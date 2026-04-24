@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.5">
+  <title>积分兑换·点数付款</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      padding: 1.5rem;
+      margin: 0;
+    }
+    .card {
+      max-width: 550px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: #f8fafc;
+      border-radius: 2.5rem;
+      box-shadow: 0 30px 55px rgba(0, 0, 0, 0.35), 0 10px 20px rgba(0, 0, 0, 0.25);
+      padding: 2rem 1.8rem;
+      color: #0f172a;
+      transition: all 0.2s ease;
+    }
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 1.9rem;
+      letter-spacing: -0.5px;
+      margin-bottom: 1.8rem;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 1rem;
+    }
+    h1 span {
+      background: #2563eb;
+      color: white;
+      font-size: 1.8rem;
+      padding: 0.2rem 0.7rem;
+      border-radius: 2rem;
+    }
+    .balance-panel {
+      background: #ffffff;
+      border-radius: 1.8rem;
+      padding: 1.5rem 1.2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(203, 213, 225, 0.6);
+    }
+    .score-box, .points-box {
+      text-align: center;
+      flex: 1;
+    }
+    .score-box {
+      border-right: 2px dashed #cbd5e1;
+      padding-right: 0.8rem;
+      margin-right: 0.8rem;
+    }
+    .label {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.3rem;
+    }
+    .value {
+      font-weight: 700;
+      font-size: 2.5rem;
+      line-height: 1.1;
+      color: #0f172a;
+    }
+    .points-value {
+      color: #2563eb;
+    }
+    .unit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #64748b;
+      margin-left: 0.2rem;
+    }
+    .conversion-badge {
+      background: #f1f5f9;
+      border-radius: 2rem;
+      padding: 0.4rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-top: 0.6rem;
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      margin: 1.8rem 0 1.5rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: white;
+      border: none;
+      padding: 0.8rem 1.2rem;
+      border-radius: 2.5rem;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.25s;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+      background: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      flex: 1 1 auto;
+    }
+    .btn:hover {
+      background: #e2e8f0;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 18px rgba(0, 0, 0, 0.1);
+    }
+    .btn.primary {
+      background: #2563eb;
+      color: white;
+      border: 1px solid #2563eb;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+    }
+    .btn.primary:hover {
+      background: #1d4ed8;
+    }
+    .btn.success {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+    .btn.success:hover {
+      background: #059669;
+    }
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      filter: grayscale(0.2);
+      transform: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .purchase-area {
+      background: #ffffff;
+      border-radius: 1.5rem;
+      padding: 1.4rem;
+      margin-top: 0.8rem;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e9eef3;
+    }
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    .item-info {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .item-name {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #0f172a;
+    }
+    .price-tag {
+      background: #f1f5f9;
+      padding: 0.3rem 1rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      color: #2563eb;
+      font-size: 0.95rem;
+    }
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .qty-btn {
+      background: #f1f5f9;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: white;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+      transition: 0.2s;
+    }
+    .qty-btn:hover {
+      background: #e2e8f0;
+    }
+    .qty-num {
+      font-weight: 700;
+      font-size: 1.2rem;
+      min-width: 40px;
+      text-align: center;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      margin: 0.8rem 0 1.2rem;
+      font-size: 1.1rem;
+    }
+    .history-log {
+      margin-top: 1.5rem;
+      background: #f8fafc;
+      border-radius: 1.2rem;
+      padding: 1rem 1rem 0.8rem;
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    .log-item {
+      border-bottom: 1px dashed #cbd5e1;
+      padding: 0.35rem 0;
+      display: flex;
+      justify-content: space-between;
+    }
+    hr {
+      border: 0.5px solid #e2e8f0;
+      margin: 1rem 0 0.5rem;
+    }
+    .warning-text {
+      color: #b91c1c;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>
+    <span>??</span> 积分兑换付款
+  </h1>
+
+  <!-- 余额显示 -->
+  <div class="balance-panel">
+    <div class="score-box">
+      <div class="label">?? 累计分数</div>
+      <div class="value" id="scoreDisplay">0</div>
+      <div class="unit">分</div>
+    </div>
+    <div class="points-box">
+      <div class="label">?? 可用点数</div>
+      <div class="value points-value" id="pointsDisplay">0.00</div>
+      <div class="unit">点</div>
+    </div>
+  </div>
+  <div style="text-align: center; margin-bottom: 0.2rem;">
+    <span class="conversion-badge" id="conversionRateLabel">? 100分 = 1.00 点</span>
+  </div>
+
+  <!-- 操作按钮：增加分数 / 兑换积分 -->
+  <div class="actions">
+    <button class="btn" id="addScoreBtn"><span>?</span> 获得100分</button>
+    <button class="btn primary" id="convertBtn"><span>??</span> 兑换为点数</button>
+  </div>
+
+  <!-- 商品购买区域 -->
+  <div class="purchase-area">
+    <div class="item-row">
+      <div class="item-info">
+        <span class="item-name">?? 精品道具</span>
+        <span class="price-tag" id="itemPriceLabel">单价 2.5 点</span>
+      </div>
+      <div class="quantity-control">
+        <button class="qty-btn" id="decrQty">?</button>
+        <span class="qty-num" id="quantityDisplay">1</span>
+        <button class="qty-btn" id="incrQty">+</button>
+      </div>
+    </div>
+    <div class="total-row">
+      <span>?? 应付点数</span>
+      <strong id="totalCostDisplay">2.50 点</strong>
+    </div>
+    <button class="btn success" id="payBtn" style="width:100%;">
+      ?? 使用点数付款
+    </button>
+    <div style="font-size:0.8rem; margin-top:0.5rem; color:#475569;" id="paymentMessage"></div>
+  </div>
+
+  <!-- 简易历史记录 -->
+  <div class="history-log" id="logContainer">
+    <div style="font-weight:600; margin-bottom:0.3rem;">?? 最近记录</div>
+    <div id="logList">尚未有任何操作</div>
+  </div>
+  <div style="display: flex; justify-content: flex-end; margin-top: 0.4rem;">
+    <button class="btn" id="clearLogBtn" style="font-size:0.75rem; padding:0.3rem 1rem;">清空记录</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // --- 状态定义 ---
+    const CONVERSION_RATE = 100; // 100分 = 1点
+    const ITEM_PRICE_POINTS = 2.5; // 每件商品点数价格
+
+    // 数据
+    let totalScore = 320;       // 累计分数 (初始展示用途)
+    let availablePoints = 1.8; // 已有可用点数
+
+    // 购买数量 (默认1)
+    let quantity = 1;
+
+    // 日志存储 (数组)
+    let historyLogs = [];
+
+    // --- DOM 元素 ---
+    const scoreDisplayEl = document.getElementById('scoreDisplay');
+    const pointsDisplayEl = document.getElementById('pointsDisplay');
+    const conversionRateLabel = document.getElementById('conversionRateLabel');
+    const quantityDisplayEl = document.getElementById('quantityDisplay');
+    const totalCostDisplayEl = document.getElementById('totalCostDisplay');
+    const itemPriceLabel = document.getElementById('itemPriceLabel');
+    const payBtn = document.getElementById('payBtn');
+    const paymentMessageEl = document.getElementById('paymentMessage');
+    const logListEl = document.getElementById('logList');
+
+    // 按钮
+    const addScoreBtn = document.getElementById('addScoreBtn');
+    const convertBtn = document.getElementById('convertBtn');
+    const decrQtyBtn = document.getElementById('decrQty');
+    const incrQtyBtn = document.getElementById('incrQty');
+    const clearLogBtn = document.getElementById('clearLogBtn');
+
+    // --- 工具函数：格式化点数 (保留两位小数) ---
+    function formatPoints(value) {
+      return Number(value).toFixed(2);
+    }
+
+    // --- 更新界面显示 ---
+    function refreshUI() {
+      // 更新分数和点数
+      scoreDisplayEl.textContent = totalScore;
+      pointsDisplayEl.textContent = formatPoints(availablePoints);
+      
+      // 更新商品价格标签
+      itemPriceLabel.textContent = `单价 ${formatPoints(ITEM_PRICE_POINTS)} 点`;
+      
+      // 计算总价
+      const totalCost = ITEM_PRICE_POINTS * quantity;
+      totalCostDisplayEl.textContent = `${formatPoints(totalCost)} 点`;
+      
+      // 根据点数是否足够，设置付款按钮状态及提示
+      if (availablePoints >= totalCost && quantity > 0) {
+        payBtn.disabled = false;
+        paymentMessageEl.textContent = '';
+        paymentMessageEl.classList.remove('warning-text');
+      } else {
+        payBtn.disabled = true;
+        if (quantity <= 0) {
+          paymentMessageEl.textContent = '?? 数量至少为1';
+        } else {
+          paymentMessageEl.textContent = `?? 点数不足，还需 ${formatPoints(totalCost - availablePoints)} 点`;
+        }
+        paymentMessageEl.classList.add('warning-text');
+      }
+      
+      // 兑换按钮状态：分数足够兑换至少0.01点 (即至少1分，但为了体验，至少100分兑换更合理，但允许少量兑换提示？ 这里只要有分数>0就可以尝试兑换，但实际转换会按比例。保持按钮可用，由兑换逻辑处理。)
+      if (totalScore <= 0) {
+        convertBtn.disabled = true;
+      } else {
+        convertBtn.disabled = false;
+      }
+      
+      // 更新数量显示
+      quantityDisplayEl.textContent = quantity;
+    }
+
+    // --- 添加日志记录 ---
+    function addLog(message) {
+      const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      const logEntry = {
+        time: timestamp,
+        text: message
+      };
+      historyLogs.push(logEntry);
+      // 保持最多显示15条
+      if (historyLogs.length > 15) {
+        historyLogs.shift();
+      }
+      renderLog();
+    }
+
+    function renderLog() {
+      if (historyLogs.length === 0) {
+        logListEl.innerHTML = '尚未有任何操作';
+        return;
+      }
+      let html = '';
+      historyLogs.slice().reverse().forEach(log => {
+        html += `<div class="log-item"><span>${log.time}</span> <span>${log.text}</span></div>`;
+      });
+      logListEl.innerHTML = html;
+    }
+
+    function clearLogs() {
+      historyLogs = [];
+      renderLog();
+      addLog('?? 记录已清空');
+    }
+
+    // --- 核心操作：增加分数 ---
+    function addScore(amount = 100) {
+      if (amount <= 0) return;
+      totalScore += amount;
+      addLog(`? 获得 ${amount} 分 (累计 ${totalScore} 分)`);
+      refreshUI();
+    }
+
+    // --- 核心操作：兑换分数为点数 ---
+    function convertScoreToPoints() {
+      if (totalScore <= 0) {
+        addLog('? 没有分数可兑换');
+        refreshUI();
+        return;
+      }
+      
+      // 计算可兑换的点数 (根据汇率)
+      const pointsFromScore = totalScore / CONVERSION_RATE;
+      if (pointsFromScore < 0.001) {
+        addLog('? 分数太少，不足以兑换点数');
+        refreshUI();
+        return;
+      }
+      
+      // 实际兑换点数 (保留两位小数精度，但使用浮点计算需谨慎)
+      const pointsToAdd = Math.floor(pointsFromScore * 100) / 100; // 截断到两位小数，避免无限小数
+      if (pointsToAdd <= 0) {
+        addLog('? 兑换点数必须大于0');
+        refreshUI();
+        return;
+      }
+      
+      // 消耗的分数 = 兑换的点数 * 汇率 (保证分数整数消耗)
+      const scoreCost = Math.ceil(pointsToAdd * CONVERSION_RATE); // 向上取整保证分数足够扣除
+      // 但需确保不超过现有分数
+      if (scoreCost > totalScore) {
+        // 如果向上取整导致超过总分，重新计算实际可兑换点数
+        const adjustedPoints = Math.floor(totalScore / CONVERSION_RATE * 100) / 100;
+        if (adjustedPoints <= 0) {
+          addLog('? 分数不足以兑换任何点数');
+          refreshUI();
+          return;
+        }
+        // 使用调整后的点数
+        const adjustedCost = Math.ceil(adjustedPoints * CONVERSION_RATE);
+        totalScore -= adjustedCost;
+        availablePoints += adjustedPoints;
+        addLog(`?? 兑换 ${adjustedCost} 分 → +${formatPoints(adjustedPoints)} 点 (剩余分数${totalScore})`);
+        refreshUI();
+        return;
+      }
+      
+      // 正常扣除
+      totalScore -= scoreCost;
+      availablePoints += pointsToAdd;
+      addLog(`?? 兑换 ${scoreCost} 分 → +${formatPoints(pointsToAdd)} 点`);
+      refreshUI();
+    }
+
+    // --- 购买商品 (使用点数付款) ---
+    function purchaseItem() {
+      const totalCost = ITEM_PRICE_POINTS * quantity;
+      if (quantity <= 0) {
+        addLog('?? 请选择有效数量');
+        refreshUI();
+        return;
+      }
+      if (availablePoints < totalCost) {
+        addLog(`? 点数不足，无法购买。需要 ${formatPoints(totalCost)} 点`);
+        refreshUI();
+        return;
+      }
+      
+      // 执行扣款
+      availablePoints -= totalCost;
+      addLog(`?? 购买 ${quantity} 个道具，消费 ${formatPoints(totalCost)} 点 (剩余 ${formatPoints(availablePoints)} 点)`);
+      
+      // 购买后重置数量为1 (可选)
+      quantity = 1;
+      refreshUI();
+    }
+
+    // --- 数量调整 ---
+    function changeQuantity(delta) {
+      const newQty = quantity + delta;
+      if (newQty < 1) {
+        addLog('数量不能少于1');
+        return;
+      }
+      if (newQty > 99) {
+        addLog('单次最多购买99个');
+        return;
+      }
+      quantity = newQty;
+      refreshUI();
+    }
+
+    // --- 初始化事件绑定 ---
+    function bindEvents() {
+      addScoreBtn.addEventListener('click', () => addScore(100));
+      
+      convertBtn.addEventListener('click', convertScoreToPoints);
+      
+      decrQtyBtn.addEventListener('click', () => changeQuantity(-1));
+      incrQtyBtn.addEventListener('click', () => changeQuantity(1));
+      
+      payBtn.addEventListener('click', purchaseItem);
+      
+      clearLogBtn.addEventListener('click', clearLogs);
+    }
+
+    // --- 设置初始日志 ---
+    function initializeLogs() {
+      // 添加初始状态记录
+      addLog(`?? 初始化：${totalScore} 分 | ${formatPoints(availablePoints)} 点`);
+    }
+
+    // --- 启动一切 ---
+    function init() {
+      bindEvents();
+      initializeLogs();
+      refreshUI();
+      // 保证转换率显示
+      conversionRateLabel.textContent = `? ${CONVERSION_RATE}分 = 1.00 点`;
+    }
+
+    // 页面加载完成后执行
+    window.addEventListener('DOMContentLoaded', init);
+  })();
+</script>
+</body>
+</html>
