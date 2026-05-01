@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>餐厅 POS + 厨房系统</title>
+<style>
+body { font-family: Arial; display:flex; margin:0; background:#eee;}
+.left { width:60%; padding:15px; background:#fff;}
+.right { width:40%; padding:15px; background:#f9f9f9; border-left:2px solid #ddd;}
+
+.item {
+    display:flex;
+    justify-content:space-between;
+    border:1px solid #ddd;
+    margin:5px 0;
+    padding:8px;
+}
+
+.cart-item {
+    display:flex;
+    justify-content:space-between;
+    margin:5px 0;
+}
+
+.total {
+    font-size:20px;
+    margin-top:10px;
+}
+
+button { cursor:pointer; }
+
+input, textarea {
+    width:100%;
+    margin:5px 0;
+    padding:5px;
+}
+</style>
+</head>
+<body>
+
+<div class="left">
+    <h2>菜单</h2>
+    <div id="menu"></div>
+</div>
+
+<div class="right">
+    <h2>订单</h2>
+
+    桌号：
+    <input id="tableNo" placeholder="例如 A1">
+
+    备注：
+    <textarea id="note"></textarea>
+
+    <div id="cart"></div>
+
+    <div class="total">总价: $<span id="total">0</span></div>
+
+    <button onclick="checkout()">结账</button>
+    <button onclick="clearCart()">清空</button>
+
+    <h3>历史订单</h3>
+    <div id="history"></div>
+</div>
+
+<script>
+const menuData = [
+    {id:1,name:"炒饭",price:8},
+    {id:2,name:"炒面",price:7},
+    {id:3,name:"鸡饭",price:6},
+    {id:4,name:"奶茶",price:3},
+    {id:5,name:"咖啡",price:2}
+];
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+function renderMenu(){
+    const menuDiv = document.getElementById("menu");
+    menuDiv.innerHTML = "";
+
+    menuData.forEach(item=>{
+        const div=document.createElement("div");
+        div.className="item";
+        div.innerHTML=`
+            <span>${item.name} - $${item.price}</span>
+            <button onclick="addToCart(${item.id})">添加</button>
+        `;
+        menuDiv.appendChild(div);
+    });
+}
+
+function addToCart(id){
+    const item=cart.find(i=>i.id===id);
+    if(item) item.qty++;
+    else{
+        const m=menuData.find(i=>i.id===id);
+        cart.push({...m,qty:1});
+    }
+    saveCart();
+    renderCart();
+}
+
+function renderCart(){
+    const cartDiv=document.getElementById("cart");
+    cartDiv.innerHTML="";
+    let total=0;
+
+    cart.forEach(item=>{
+        total+=item.price*item.qty;
+
+        const div=document.createElement("div");
+        div.className="cart-item";
+        div.innerHTML=`
+            <span>${item.name} x${item.qty}</span>
+            <div>
+                <button onclick="changeQty(${item.id},-1)">-</button>
+                <button onclick="changeQty(${item.id},1)">+</button>
+            </div>
+        `;
+        cartDiv.appendChild(div);
+    });
+
+    document.getElementById("total").innerText=total;
+}
+
+function changeQty(id,delta){
+    const item=cart.find(i=>i.id===id);
+    if(!item)return;
+
+    item.qty+=delta;
+    if(item.qty<=0){
+        cart=cart.filter(i=>i.id!==id);
+    }
+
+    saveCart();
+    renderCart();
+}
+
+function saveCart(){
+    localStorage.setItem("cart",JSON.stringify(cart));
+}
+
+function clearCart(){
+    cart=[];
+    saveCart();
+    renderCart();
+}
+
+// ⭐⭐⭐ 关键：发送到厨房
+function sendToKitchen(order){
+    let kitchenOrders = JSON.parse(localStorage.getItem("kitchenOrders")) || [];
+    kitchenOrders.push(order);
+    localStorage.setItem("kitchenOrders", JSON.stringify(kitchenOrders));
+}
+
+function checkout(){
+    if(cart.length===0){
+        alert("订单为空");
+        return;
+    }
+
+    const order={
+        time:new Date().toLocaleString(),
+        table:document.getElementById("tableNo").value || "外带",
+        note:document.getElementById("note").value,
+        items:cart,
+        total:document.getElementById("total").innerText
+    };
+
+    // 👉 发送给厨房
+    sendToKitchen(order);
+
+    // 👉 保存历史
+    history.push(order);
+    localStorage.setItem("history",JSON.stringify(history));
+
+    alert("已发送到厨房 ✅");
+
+    clearCart();
+    renderHistory();
+}
+
+function renderHistory(){
+    const div=document.getElementById("history");
+    div.innerHTML="";
+
+    history.slice().reverse().forEach(o=>{
+        const d=document.createElement("div");
+        d.innerHTML=`${o.time} | 桌号:${o.table} | $${o.total}`;
+        div.appendChild(d);
+    });
+}
+
+renderMenu();
+renderCart();
+renderHistory();
+</script>
+
+</body>
+</html>
