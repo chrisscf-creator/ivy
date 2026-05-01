@@ -1,84 +1,40 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>厨房显示系统</title>
+<title>厨房屏</title>
 <style>
-body {
-    font-family: Arial;
-    background: #111;
-    color: #fff;
-}
-
-h1 { text-align: center; }
-
-.order {
-    border: 2px solid #444;
-    margin: 10px;
-    padding: 10px;
-    background: #222;
-}
-
-.done {
-    background: green;
-}
-
-button {
-    padding: 5px 10px;
-    margin-top: 5px;
-}
+body { background:black; color:white; font-family:Arial;}
+.order { border:1px solid #555; margin:10px; padding:10px;}
 </style>
 </head>
 <body>
 
-<h1>厨房订单屏</h1>
+<h1>厨房订单</h1>
 <div id="orders"></div>
 
 <script>
-let orders = JSON.parse(localStorage.getItem("kitchenOrders")) || [];
+const ws = new WebSocket("ws://localhost:3000");
 
-function render() {
+ws.onmessage = (msg) => {
+    const order = JSON.parse(msg.data);
+    addOrder(order);
+};
+
+function addOrder(o){
     const div = document.getElementById("orders");
-    div.innerHTML = "";
+    let html = `<div class="order">
+        桌号:${o.table}<br>
+        时间:${o.time}<br>`;
 
-    orders.forEach((o, index) => {
-        const d = document.createElement("div");
-        d.className = "order";
-
-        let items = "";
-        o.items.forEach(i => {
-            items += `<div>${i.name} x${i.qty}</div>`;
-        });
-
-        d.innerHTML = `
-            <b>桌号:</b> ${o.table}<br>
-            <b>时间:</b> ${o.time}<br>
-            ${items}
-            <br>
-            <button onclick="finish(${index})">完成</button>
-        `;
-
-        div.appendChild(d);
+    o.items.forEach(i=>{
+        html += `${i.name} x${i.qty}<br>`;
     });
+
+    html += `<b>总价:$${o.total}</b></div>`;
+
+    div.innerHTML = html + div.innerHTML;
 }
-
-function finish(index) {
-    orders.splice(index, 1);
-    save();
-}
-
-function save() {
-    localStorage.setItem("kitchenOrders", JSON.stringify(orders));
-    render();
-}
-
-// 监听变化（关键！）
-window.addEventListener("storage", () => {
-    orders = JSON.parse(localStorage.getItem("kitchenOrders")) || [];
-    render();
-});
-
-render();
 </script>
 
 </body>
