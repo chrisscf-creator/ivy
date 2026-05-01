@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>厨房显示系统</title>
+<style>
+body {
+    font-family: Arial;
+    background: #111;
+    color: #fff;
+}
+
+h1 { text-align: center; }
+
+.order {
+    border: 2px solid #444;
+    margin: 10px;
+    padding: 10px;
+    background: #222;
+}
+
+.done {
+    background: green;
+}
+
+button {
+    padding: 5px 10px;
+    margin-top: 5px;
+}
+</style>
+</head>
+<body>
+
+<h1>厨房订单屏</h1>
+<div id="orders"></div>
+
+<script>
+let orders = JSON.parse(localStorage.getItem("kitchenOrders")) || [];
+
+function render() {
+    const div = document.getElementById("orders");
+    div.innerHTML = "";
+
+    orders.forEach((o, index) => {
+        const d = document.createElement("div");
+        d.className = "order";
+
+        let items = "";
+        o.items.forEach(i => {
+            items += `<div>${i.name} x${i.qty}</div>`;
+        });
+
+        d.innerHTML = `
+            <b>桌号:</b> ${o.table}<br>
+            <b>时间:</b> ${o.time}<br>
+            ${items}
+            <br>
+            <button onclick="finish(${index})">完成</button>
+        `;
+
+        div.appendChild(d);
+    });
+}
+
+function finish(index) {
+    orders.splice(index, 1);
+    save();
+}
+
+function save() {
+    localStorage.setItem("kitchenOrders", JSON.stringify(orders));
+    render();
+}
+
+// 监听变化（关键！）
+window.addEventListener("storage", () => {
+    orders = JSON.parse(localStorage.getItem("kitchenOrders")) || [];
+    render();
+});
+
+render();
+</script>
+
+</body>
+</html>
