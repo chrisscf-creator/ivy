@@ -192,25 +192,23 @@
     </div>
 
     <div id="ordersContainer" class="orders-grid">
-        <div class="loading">⏳ 加载订单中...</div>
+        <div class="loading">⏳ 连接厨房数据库...</div>
     </div>
     <footer>🔥 订单实时同步 | 点击「完成」后订单自动归档</footer>
 </div>
 
 <script>
-    // ========== 您的 Firebase 配置（必须与 POS 完全相同）==========
-    // 🔥 请将 databaseURL 改为您在 Firebase 控制台看到的实际 URL
+    // ========== Firebase 配置（必须与 POS 完全相同）==========
     const firebaseConfig = {
-  apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-  authDomain: "create-for-payment.firebaseapp.com",
-databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",  // ← 如果不对请修改
-  projectId: "create-for-payment",
-  storageBucket: "create-for-payment.firebasestorage.app",
-  messagingSenderId: "505063429802",
-  appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
-  measurementId: "G-SHP91WNP0H"
-};
-
+        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+        authDomain: "create-for-payment.firebaseapp.com",
+        databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "create-for-payment",
+        storageBucket: "create-for-payment.firebasestorage.app",
+        messagingSenderId: "505063429802",
+        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+        measurementId: "G-SHP91WNP0H"
+    };
 
     // 初始化 Firebase
     if (!firebase.apps.length) {
@@ -228,6 +226,7 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
     // 本地状态
     let currentOrderKeys = new Set();     // 存储当前显示订单的 key (用于计数)
     let completedLocalCount = 0;          // 仅用于 UI 统计（本会话完成的订单数）
+    let initialLoadingDone = false;       // 标记是否已完成初始加载
 
     // 更新时间显示
     function updateLastUpdate() {
@@ -347,14 +346,15 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
         }
     }
 
-    // 添加订单到界面 (新订单或初次加载)
+    // 添加订单到界面（始终插入到第一个订单卡片之前，保持最新在上）
     function addOrderToScreen(orderId, orderData) {
         if (currentOrderKeys.has(orderId)) return; // 防止重复添加
         
         const card = createOrderCard(orderId, orderData);
-        // 新订单插入到最前面
-        if (ordersContainer.firstChild && ordersContainer.firstChild.classList && ordersContainer.firstChild.classList.contains('order-card')) {
-            ordersContainer.insertBefore(card, ordersContainer.firstChild);
+        // 找到当前第一个订单卡片（排除空状态元素）
+        const firstOrderCard = ordersContainer.querySelector('.order-card:not(.empty-state)');
+        if (firstOrderCard) {
+            ordersContainer.insertBefore(card, firstOrderCard);
         } else {
             ordersContainer.appendChild(card);
         }
@@ -362,9 +362,6 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
         currentOrderKeys.add(orderId);
         updatePendingCount();
         updateLastUpdate();
-        
-        // 可选: 播放简短提示音 (浏览器需用户交互后才行，一般不主动播放)
-        // 此处省略自动播放避免控制台警告
     }
 
     // 从界面移除订单 (当数据库订单被删除时)
@@ -381,57 +378,26 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
         updateLastUpdate();
     }
 
-    // 清空所有订单 (重置界面)
-    function clearAllOrders() {
-        ordersContainer.innerHTML = '';
-        currentOrderKeys.clear();
-        updatePendingCount();
-    }
-
-    // 加载现有订单 (初始化时)
-    async function loadExistingOrders() {
-        try {
-            const snapshot = await ordersRef.once('value');
-            const orders = snapshot.val();
-            if (orders) {
-                // 按时间排序（旧的在下面，新的在上面？为了展示新订单在上，先收集再按时间倒序插入）
-                const orderEntries = Object.entries(orders);
-                // 按 time 字段倒序排序 (最新的在前)
-                orderEntries.sort((a, b) => {
-                    const timeA = a[1].time ? new Date(a[1].time).getTime() : 0;
-                    const timeB = b[1].time ? new Date(b[1].time).getTime() : 0;
-                    return timeB - timeA;
-                });
-                for (const [id, data] of orderEntries) {
-                    addOrderToScreen(id, data);
-                }
-            }
-            if (currentOrderKeys.size === 0) {
-                showEmptyState();
-            } else {
-                hideEmptyState();
-            }
-        } catch (err) {
-            console.error('加载订单失败:', err);
-            showEmptyState('加载订单失败，请检查网络或数据库规则');
-        } finally {
-            const loader = document.querySelector('.loading');
-            if (loader) loader.remove();
+    // 更新已有订单的内容（保持位置不变）
+    function updateOrderContent(orderId, newData) {
+        const existingCard = document.querySelector(`.order-card[data-id="${orderId}"]`);
+        if (existingCard) {
+            const newCard = createOrderCard(orderId, newData);
+            existingCard.replaceWith(newCard);
         }
     }
 
+    // 显示/隐藏空状态
     function showEmptyState(message = '✨ 暂无订单，等待厨房开工...') {
-        if (!document.getElementById('emptyState')) {
-            const emptyDiv = document.createElement('div');
+        let emptyDiv = document.getElementById('emptyState');
+        if (!emptyDiv) {
+            emptyDiv = document.createElement('div');
             emptyDiv.id = 'emptyState';
             emptyDiv.className = 'empty-state';
-            emptyDiv.innerText = message;
             ordersContainer.appendChild(emptyDiv);
-        } else {
-            const emptyDiv = document.getElementById('emptyState');
-            emptyDiv.innerText = message;
-            emptyDiv.style.display = 'block';
         }
+        emptyDiv.innerText = message;
+        emptyDiv.style.display = 'block';
     }
 
     function hideEmptyState() {
@@ -439,9 +405,31 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
         if (emptyDiv) emptyDiv.style.display = 'none';
     }
 
-    // 监听 Firebase 实时事件
+    // 移除 loading 提示并检查是否显示空状态
+    function finishLoading() {
+        const loader = document.querySelector('.loading');
+        if (loader) loader.remove();
+        if (currentOrderKeys.size === 0) {
+            showEmptyState();
+        } else {
+            hideEmptyState();
+        }
+    }
+
+    // 监听 Firebase 实时事件（同时处理历史和新订单）
     function subscribeToOrders() {
-        // 监听新订单 (child_added)
+        let initialLoadCounter = 0;
+        let initialSnapshotSize = 0;
+
+        // 先获取一次快照大小，以便知道何时完成初始加载
+        ordersRef.once('value', (snapshot) => {
+            initialSnapshotSize = snapshot.numChildren();
+            if (initialSnapshotSize === 0) {
+                finishLoading();
+            }
+        });
+
+        // 监听所有 child_added 事件（包括已存在和新增）
         ordersRef.on('child_added', (snapshot) => {
             const orderData = snapshot.val();
             const orderId = snapshot.key;
@@ -449,9 +437,14 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
                 addOrderToScreen(orderId, orderData);
                 hideEmptyState();
             }
+            // 统计加载进度：每处理一个订单，计数器+1，达到总大小时完成加载
+            initialLoadCounter++;
+            if (initialLoadCounter === initialSnapshotSize && initialSnapshotSize > 0) {
+                finishLoading();
+            }
         });
 
-        // 监听订单被删除 (child_removed) – 完成订单时会触发
+        // 监听订单被删除 (child_removed)
         ordersRef.on('child_removed', (snapshot) => {
             const orderId = snapshot.key;
             removeOrderFromScreen(orderId);
@@ -460,18 +453,12 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
             }
         });
 
-        // 监听订单修改 (可选，比如更新状态)
+        // 监听订单修改 (child_changed) – 保持原位置不跳动
         ordersRef.on('child_changed', (snapshot) => {
-            // 如果需要支持编辑订单，可以重新渲染对应卡片
-            // 这里简单处理：移除旧卡片并重新添加（保持位置）
             const orderId = snapshot.key;
             const newData = snapshot.val();
             if (currentOrderKeys.has(orderId)) {
-                // 移除旧卡片
-                removeOrderFromScreen(orderId);
-                // 重新添加（会插到最前面，是否要保持原位置？为简单，追加到最前）
-                addOrderToScreen(orderId, newData);
-                hideEmptyState();
+                updateOrderContent(orderId, newData);
             }
         });
     }
@@ -484,19 +471,23 @@ databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebaseda
                 updateLastUpdate();
             } else {
                 console.warn('⚠️ Firebase 断开连接');
-                showEmptyState('⚠️ 网络连接中，正在重连...');
+                if (document.querySelector('.loading')) {
+                    // 还在加载中则显示重连提示
+                    const loader = document.querySelector('.loading');
+                    if (loader) loader.innerHTML = '⚠️ 网络断开，正在重连...';
+                } else {
+                    showEmptyState('⚠️ 网络连接中，正在重连...');
+                }
             }
         });
     }
 
     // 初始化
-    async function init() {
+    function init() {
         // 清空容器，显示 loading
         ordersContainer.innerHTML = '<div class="loading">⏳ 连接厨房数据库...</div>';
         
-        // 等待加载现有订单
-        await loadExistingOrders();
-        // 订阅实时事件
+        // 先设置监听（会自动加载所有已有订单 + 新订单）
         subscribeToOrders();
         monitorConnection();
         
