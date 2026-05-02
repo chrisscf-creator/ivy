@@ -1,130 +1,296 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>厨房订单屏 - 实时版</title>
-    <!-- 使用 Firebase Compatibility SDK (v9 兼容老语法，简单易用) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>智慧柜台POS · 实时同步厨房</title>
+    <!-- Firebase SDK (Compat 版本) -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            background: #0a0f1e;
-            color: #eef;
             font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f2ede8;
             margin: 0;
             padding: 20px;
+            color: #1e2a2e;
+        }
+        .pos-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px 24px 32px;
         }
         h1 {
-            text-align: center;
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             margin-top: 0;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
+            gap: 10px;
         }
-        h1:before { content: "🍳"; font-size: 2rem; }
-        h1:after { content: "🔥"; font-size: 2rem; }
-        .orders-container {
-            max-width: 800px;
-            margin: 0 auto;
+        h1:before { content: "🧾"; font-size: 2rem; }
+        .sub {
+            color: #5f6c70;
+            border-left: 4px solid #ffa500;
+            padding-left: 14px;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
         }
-        .order {
-            background: #1e2a36;
-            border-radius: 20px;
-            margin-bottom: 16px;
-            padding: 16px 20px;
-            border-left: 6px solid #ffa500;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: all 0.2s;
-        }
-        .order-header {
+        /* 两列布局 */
+        .pos-grid {
             display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 12px;
-            border-bottom: 1px dashed #4a627a;
-            padding-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 30px;
         }
-        .table-number {
-            font-size: 1.4rem;
+        .menu-panel {
+            flex: 2;
+            min-width: 260px;
+        }
+        .cart-panel {
+            flex: 1.2;
+            min-width: 280px;
+            background: #fef9f0;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .menu-header, .cart-header {
             font-weight: bold;
-            background: #ffa50020;
-            padding: 4px 12px;
-            border-radius: 30px;
-            color: #ffb347;
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #ffb347;
+            display: inline-block;
+            padding-right: 12px;
         }
-        .order-time {
-            font-size: 0.85rem;
-            color: #9aaebf;
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 14px;
         }
-        .items-list {
-            margin: 12px 0;
-            padding-left: 8px;
+        .menu-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 12px 12px 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+            border: 1px solid #ffddb0;
+            cursor: pointer;
         }
-        .item-row {
+        .menu-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+            border-color: #ffa500;
+        }
+        .menu-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .menu-price {
+            color: #e67e22;
+            font-weight: bold;
+            margin-top: 8px;
+            font-size: 1.05rem;
+        }
+        .cart-items {
+            max-height: 380px;
+            overflow-y: auto;
+            margin: 16px 0;
+        }
+        .cart-item {
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #2e445e;
+            align-items: center;
+            background: white;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border-radius: 50px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .item-name {
+        .cart-item-info {
+            flex: 2;
+        }
+        .cart-item-name {
             font-weight: 500;
         }
-        .item-qty {
-            color: #ffaa66;
-            font-weight: bold;
-        }
-        .order-total {
-            text-align: right;
-            margin-top: 12px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #7effb3;
-            border-top: 1px solid #2e445e;
-            padding-top: 10px;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 50px 20px;
-            background: #111a24;
-            border-radius: 30px;
-            color: #88aacc;
-            font-size: 1.2rem;
-        }
-        .badge {
-            font-size: 0.75rem;
-            background: #2c5f8a;
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            margin-left: 12px;
-        }
-        footer {
-            text-align: center;
-            margin-top: 40px;
+        .cart-item-price {
             font-size: 0.8rem;
-            color: #5b7992;
+            color: #b45f1b;
+        }
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .cart-qty {
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        .btn-qty {
+            background: #f0e2d0;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .btn-qty:active { background: #e2ceb5; }
+        .remove-item {
+            color: #b91c1c;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            font-size: 1.1rem;
+        }
+        .total-price {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #d35400;
+            border-top: 2px dashed #ffd89a;
+            padding-top: 12px;
+            margin-top: 8px;
+        }
+        .table-input {
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            margin: 20px 0 16px;
+            background: #fff2e2;
+            padding: 12px;
+            border-radius: 60px;
+        }
+        .table-input label {
+            font-weight: bold;
+        }
+        #tableNumber {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 40px;
+            border: 1px solid #ffcb8e;
+            font-size: 1rem;
+            background: white;
+        }
+        button {
+            background: #ffa500;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #2c2c2c;
+        }
+        button:active { transform: scale(0.97); }
+        .btn-submit {
+            width: 100%;
+            background: #2c6e2c;
+            color: white;
+            font-size: 1.2rem;
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-submit:active { background: #1f511f; }
+        .clear-cart {
+            background: #cdd4d9;
+            color: #2d3e45;
+            margin-top: 8px;
+        }
+        .feedback {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 6px;
+            border-radius: 100px;
+            background: #e9f5e9;
+            color: #2e7d32;
+        }
+        .error-feedback {
+            background: #ffe6e5;
+            color: #c62828;
+        }
+        .footer-credit {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.7rem;
+            color: #988f82;
+        }
+        @media (max-width: 780px) {
+            .pos-container { padding: 16px; }
+            .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
         }
     </style>
 </head>
 <body>
+<div class="pos-container">
+    <h1>柜台·点餐终端</h1>
+    <div class="sub">实时同步厨房系统 | 订单自动推送至厨房屏</div>
 
-<div class="orders-container">
-    <h1>厨房订单看板</h1>
-    <div id="ordersList"></div>
-    <div id="emptyMessage" class="empty-state">
-        ✨ 等待新订单...<br>
-        下单后将实时显示在此处
+    <div class="pos-grid">
+        <!-- 左侧菜单栏 -->
+        <div class="menu-panel">
+            <div class="menu-header">📋 今日菜品</div>
+            <div class="menu-items" id="menuList">
+                <!-- 动态生成菜品 -->
+            </div>
+        </div>
+
+        <!-- 右侧购物车 & 结账 -->
+        <div class="cart-panel">
+            <div class="cart-header">🛒 当前订单</div>
+            <div id="cartItems" class="cart-items">
+                <div style="color:#aa9f93; text-align:center;">暂无菜品，点菜加购</div>
+            </div>
+            <div class="table-input">
+                <label>🏷️ 桌号 / 外带</label>
+                <input type="text" id="tableNumber" placeholder="例: 3 或 外带" value="1">
+            </div>
+            <div class="order-row">
+                <span>合计金额</span>
+                <span id="totalAmount" style="font-weight:bold;">¥0.00</span>
+            </div>
+            <button id="submitOrderBtn" class="btn-submit">📨 下单 → 厨房</button>
+            <button id="clearCartBtn" class="clear-cart">🗑️ 清空购物车</button>
+            <div id="statusMsg" class="feedback" style="display:none;"></div>
+        </div>
     </div>
+    <div class="footer-credit">✅ 订单将实时显示在厨房屏 (Firebase同步)</div>
 </div>
-<footer>实时数据来自 Firebase | 订单自动刷新</footer>
 
 <script>
-    // ========== 您的 Firebase 配置（已粘贴）==========
+    // ========== 您的 Firebase 配置（已修复 databaseURL）==========
+    // 🔥 请根据您在 Firebase 控制台看到实际地址，修改 databaseURL
+    // 通常格式为: https://你的项目名-default-rtdb.区域.firebasedatabase.app
     const firebaseConfig = {
         apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
         authDomain: "create-for-payment.firebaseapp.com",
+        // 重要：下面这一行需要改成您真实的数据库URL！
+        // 去 Firebase 控制台 -> Realtime Database -> 复制页面顶部显示的 URL
+        databaseURL: "https://create-for-payment-default-rtdb.firebaseio.com",  // ← 如果不对请修改
         projectId: "create-for-payment",
         storageBucket: "create-for-payment.firebasestorage.app",
         messagingSenderId: "505063429802",
@@ -132,130 +298,249 @@
         measurementId: "G-SHP91WNP0H"
     };
 
-    // 初始化 Firebase (compat 版本)
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    // 订单会存储在数据库的 "orders" 节点下
-    const ordersRef = database.ref('orders');
-
-    // 获取页面元素
-    const ordersContainer = document.getElementById('ordersList');
-    const emptyDiv = document.getElementById('emptyMessage');
-
-    // 监听新增订单 (child_added 事件会获取所有已有订单 + 新订单)
-    ordersRef.on('child_added', (snapshot) => {
-        const orderData = snapshot.val();
-        if (orderData) {
-            displayOrder(orderData);
-            // 隐藏“空状态”提示
-            if (emptyDiv) emptyDiv.style.display = 'none';
-        }
-    });
-
-    // 可选：如果所有订单被删除，显示空状态（监听 child_removed）
-    ordersRef.on('child_removed', () => {
-        // 检查是否还有订单子节点，如果没有就显示空状态
-        ordersRef.once('value', (snap) => {
-            if (!snap.exists()) {
-                if (emptyDiv) emptyDiv.style.display = 'block';
-                ordersContainer.innerHTML = '';
-            }
-        });
-    });
-
-    /**
-     * 将订单数据渲染到屏幕上
-     */
-    function displayOrder(order) {
-        // 创建订单卡片
-        const orderCard = document.createElement('div');
-        orderCard.className = 'order';
-        
-        // 桌号 (如果没有 table 字段就显示"外带")
-        const tableText = order.table ? `桌 ${order.table}` : '🥡 外带';
-        
-        // 时间格式化 (兼容 order.time 字段)
-        let timeStr = '刚刚';
-        if (order.time) {
-            try {
-                const orderDate = new Date(order.time);
-                if (!isNaN(orderDate.getTime())) {
-                    timeStr = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                } else {
-                    timeStr = order.time; // 可能是字符串格式
-                }
-            } catch(e) { timeStr = order.time; }
-        }
-        
-        // 构建 items 列表
-        let itemsHtml = '';
-        if (order.items && Array.isArray(order.items)) {
-            order.items.forEach(item => {
-                itemsHtml += `
-                    <div class="item-row">
-                        <span class="item-name">🍽️ ${escapeHtml(item.name)}</span>
-                        <span class="item-qty">x ${item.qty}</span>
-                    </div>
-                `;
-            });
-        } else if (order.items && typeof order.items === 'object') {
-            // 如果 items 是对象而不是数组（兜底处理）
-            for (let key in order.items) {
-                let item = order.items[key];
-                itemsHtml += `
-                    <div class="item-row">
-                        <span class="item-name">🍽️ ${escapeHtml(item.name)}</span>
-                        <span class="item-qty">x ${item.qty}</span>
-                    </div>
-                `;
-            }
-        } else {
-            itemsHtml = '<div class="item-row">无明细</div>';
-        }
-        
-        // 总价
-        const totalPrice = order.total !== undefined ? order.total : 0;
-        
-        orderCard.innerHTML = `
-            <div class="order-header">
-                <span class="table-number">${escapeHtml(tableText)}</span>
-                <span class="order-time">🕒 ${escapeHtml(timeStr)}</span>
-            </div>
-            <div class="items-list">
-                ${itemsHtml}
-            </div>
-            <div class="order-total">
-                💵 合计: ¥${Number(totalPrice).toFixed(2)}
-            </div>
-        `;
-        
-        // 新订单插入到最前面 （最新订单在上方）
-        ordersContainer.prepend(orderCard);
-        
-        // 可选：播放简单的提示音（浏览器需用户交互后才允许，取消注释需谨慎）
-        // const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-        // audio.play().catch(e => console.log("音频需用户交互"));
+    // 初始化 Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
     }
-    
-    // 简单防止 XSS
+    const database = firebase.database();
+    const ordersRef = database.ref('orders');    // 与厨房屏路径一致
+
+    // ========== 菜单数据 (可根据需要增改) ==========
+    const MENU = [
+        { id: 1, name: "🍜 招牌牛肉面", price: 28 },
+        { id: 2, name: "🍚 卤肉饭套餐", price: 32 },
+        { id: 3, name: "🥟 手工煎饺 (6只)", price: 18 },
+        { id: 4, name: "🥗 时令沙拉", price: 22 },
+        { id: 5, name: "🍗 盐酥鸡", price: 25 },
+        { id: 6, name: "🥤 冰红茶", price: 8 },
+        { id: 7, name: "☕ 现磨咖啡", price: 15 },
+        { id: 8, name: "🍰 芝士蛋糕", price: 20 }
+    ];
+
+    // 购物车结构: { id, name, price, qty }
+    let cart = [];
+
+    // DOM 元素
+    const menuContainer = document.getElementById('menuList');
+    const cartContainer = document.getElementById('cartItems');
+    const totalSpan = document.getElementById('totalAmount');
+    const tableInput = document.getElementById('tableNumber');
+    const submitBtn = document.getElementById('submitOrderBtn');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+    const statusDiv = document.getElementById('statusMsg');
+
+    // 辅助：显示临时消息
+    let timeoutId = null;
+    function showStatus(msg, isError = false) {
+        statusDiv.innerText = msg;
+        statusDiv.style.display = 'block';
+        statusDiv.classList.toggle('error-feedback', isError);
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // 渲染菜单
+    function renderMenu() {
+        menuContainer.innerHTML = '';
+        MENU.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'menu-card';
+            card.innerHTML = `
+                <div class="menu-name">${escapeHtml(item.name)}</div>
+                <div class="menu-price">¥${item.price}</div>
+            `;
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addToCart(item);
+            });
+            menuContainer.appendChild(card);
+        });
+    }
+
+    // 添加至购物车
+    function addToCart(menuItem) {
+        const existing = cart.find(i => i.id === menuItem.id);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({
+                id: menuItem.id,
+                name: menuItem.name,
+                price: menuItem.price,
+                qty: 1
+            });
+        }
+        renderCart();
+        showStatus(`➕ 已添加 ${menuItem.name}`, false);
+    }
+
+    // 更新数量
+    function updateQty(id, delta) {
+        const idx = cart.findIndex(i => i.id === id);
+        if (idx !== -1) {
+            const newQty = cart[idx].qty + delta;
+            if (newQty <= 0) {
+                cart.splice(idx, 1);
+            } else {
+                cart[idx].qty = newQty;
+            }
+            renderCart();
+        }
+    }
+
+    function removeItem(id) {
+        cart = cart.filter(i => i.id !== id);
+        renderCart();
+        showStatus('🗑️ 已移除菜品', false);
+    }
+
+    // 计算总价
+    function calcTotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    }
+
+    // 刷新购物车UI
+    function renderCart() {
+        if (!cartContainer) return;
+        if (cart.length === 0) {
+            cartContainer.innerHTML = '<div style="color:#aa9f93; text-align:center;">🥢 暂无菜品，点击菜单加购</div>';
+            totalSpan.innerText = '¥0.00';
+            return;
+        }
+        let html = '';
+        cart.forEach(item => {
+            html += `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${escapeHtml(item.name)}</div>
+                        <div class="cart-item-price">¥${item.price}</div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button>
+                        <span class="cart-qty">${item.qty}</span>
+                        <button class="btn-qty" data-id="${item.id}" data-delta="1">+</button>
+                        <button class="remove-item" data-id="${item.id}">✕</button>
+                    </div>
+                </div>
+            `;
+        });
+        cartContainer.innerHTML = html;
+        totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
+
+        // 绑定动态按钮事件
+        document.querySelectorAll('.btn-qty').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                const delta = parseInt(btn.dataset.delta);
+                updateQty(id, delta);
+            });
+        });
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                removeItem(id);
+            });
+        });
+    }
+
+    // 提交订单到 Firebase
+    async function submitOrder() {
+        if (cart.length === 0) {
+            showStatus('❌ 购物车为空，请先点餐', true);
+            return;
+        }
+        let tableNo = tableInput.value.trim();
+        if (tableNo === "") {
+            tableNo = "外带";
+        }
+
+        // 构建订单数据
+        const itemsForOrder = cart.map(item => ({
+            name: item.name,
+            qty: item.qty,
+            price: item.price
+        }));
+
+        const orderData = {
+            table: tableNo,
+            items: itemsForOrder,
+            total: calcTotal(),
+            time: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        // 禁用按钮防止重复提交
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '📡 发送中...';
+
+        try {
+            await ordersRef.push(orderData);
+            showStatus(`✅ 订单已发送至厨房！ 桌号: ${tableNo} 总价 ¥${calcTotal().toFixed(2)}`);
+            // 清空购物车
+            cart = [];
+            renderCart();
+            // 可选：保留桌号不清空
+        } catch (err) {
+            console.error("Firebase写入错误:", err);
+            let errorMsg = err.message || '网络错误';
+            if (errorMsg.includes('PERMISSION_DENIED')) {
+                errorMsg = '权限不足，请检查 Firebase 数据库规则是否允许写入';
+            } else if (errorMsg.includes('databaseURL')) {
+                errorMsg = '数据库URL配置错误，请在代码中设置正确的 databaseURL';
+            }
+            showStatus(`❌ 订单发送失败: ${errorMsg}`, true);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    // 清空购物车
+    function clearCart() {
+        if (cart.length === 0) return;
+        cart = [];
+        renderCart();
+        showStatus('🧹 购物车已清空', false);
+    }
+
+    // 辅助防XSS
     function escapeHtml(str) {
         if (!str) return '';
-        return String(str).replace(/[&<>]/g, function(m) {
+        return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
         });
     }
-    
-    // 初始检查：如果数据库没有订单，保持空状态显示
-    ordersRef.once('value', (snap) => {
-        if (!snap.exists()) {
-            if (emptyDiv) emptyDiv.style.display = 'block';
-        } else {
-            if (emptyDiv) emptyDiv.style.display = 'none';
-        }
-    });
+
+    // 初始化
+    function init() {
+        renderMenu();
+        renderCart();
+        submitBtn.addEventListener('click', submitOrder);
+        clearCartBtn.addEventListener('click', clearCart);
+        tableInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitOrder();
+        });
+        // 测试 Firebase 连接（可选）
+        database.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('✅ Firebase 已连接');
+            } else {
+                console.warn('⚠️ Firebase 未连接，请检查 databaseURL');
+            }
+        });
+    }
+
+    init();
 </script>
 </body>
 </html>
