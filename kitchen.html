@@ -201,17 +201,16 @@
     // ========== 您的 Firebase 配置（必须与 POS 完全相同）==========
     // 🔥 请将 databaseURL 改为您在 Firebase 控制台看到的实际 URL
     const firebaseConfig = {
-        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-        authDomain: "create-for-payment.firebaseapp.com",
-        databaseURL: "
-https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app/
-",  // ← 请修改成真实地址
-        projectId: "create-for-payment",
-        storageBucket: "create-for-payment.firebasestorage.app",
-        messagingSenderId: "505063429802",
-        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
-        measurementId: "G-SHP91WNP0H"
-    };
+  apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+  authDomain: "create-for-payment.firebaseapp.com",
+databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",  // ← 如果不对请修改
+  projectId: "create-for-payment",
+  storageBucket: "create-for-payment.firebasestorage.app",
+  messagingSenderId: "505063429802",
+  appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+  measurementId: "G-SHP91WNP0H"
+};
+
 
     // 初始化 Firebase
     if (!firebase.apps.length) {
