@@ -1,41 +1,261 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>厨房屏</title>
-<style>
-body { background:black; color:white; font-family:Arial;}
-.order { border:1px solid #555; margin:10px; padding:10px;}
-</style>
+    <meta charset="UTF-8">
+    <title>厨房订单屏 - 实时版</title>
+    <!-- 使用 Firebase Compatibility SDK (v9 兼容老语法，简单易用) -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
+    <style>
+        body {
+            background: #0a0f1e;
+            color: #eef;
+            font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        h1:before { content: "🍳"; font-size: 2rem; }
+        h1:after { content: "🔥"; font-size: 2rem; }
+        .orders-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .order {
+            background: #1e2a36;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            padding: 16px 20px;
+            border-left: 6px solid #ffa500;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #4a627a;
+            padding-bottom: 6px;
+        }
+        .table-number {
+            font-size: 1.4rem;
+            font-weight: bold;
+            background: #ffa50020;
+            padding: 4px 12px;
+            border-radius: 30px;
+            color: #ffb347;
+        }
+        .order-time {
+            font-size: 0.85rem;
+            color: #9aaebf;
+        }
+        .items-list {
+            margin: 12px 0;
+            padding-left: 8px;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #2e445e;
+        }
+        .item-name {
+            font-weight: 500;
+        }
+        .item-qty {
+            color: #ffaa66;
+            font-weight: bold;
+        }
+        .order-total {
+            text-align: right;
+            margin-top: 12px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #7effb3;
+            border-top: 1px solid #2e445e;
+            padding-top: 10px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            background: #111a24;
+            border-radius: 30px;
+            color: #88aacc;
+            font-size: 1.2rem;
+        }
+        .badge {
+            font-size: 0.75rem;
+            background: #2c5f8a;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 12px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 0.8rem;
+            color: #5b7992;
+        }
+    </style>
 </head>
 <body>
 
-<h1>厨房订单</h1>
-<div id="orders"></div>
+<div class="orders-container">
+    <h1>厨房订单看板</h1>
+    <div id="ordersList"></div>
+    <div id="emptyMessage" class="empty-state">
+        ✨ 等待新订单...<br>
+        下单后将实时显示在此处
+    </div>
+</div>
+<footer>实时数据来自 Firebase | 订单自动刷新</footer>
 
 <script>
-const ws = new WebSocket("ws://localhost:3000");
+    // ========== 您的 Firebase 配置（已粘贴）==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+        authDomain: "create-for-payment.firebaseapp.com",
+        projectId: "create-for-payment",
+        storageBucket: "create-for-payment.firebasestorage.app",
+        messagingSenderId: "505063429802",
+        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+        measurementId: "G-SHP91WNP0H"
+    };
 
-ws.onmessage = (msg) => {
-    const order = JSON.parse(msg.data);
-    addOrder(order);
-};
+    // 初始化 Firebase (compat 版本)
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    // 订单会存储在数据库的 "orders" 节点下
+    const ordersRef = database.ref('orders');
 
-function addOrder(o){
-    const div = document.getElementById("orders");
-    let html = `<div class="order">
-        桌号:${o.table}<br>
-        时间:${o.time}<br>`;
+    // 获取页面元素
+    const ordersContainer = document.getElementById('ordersList');
+    const emptyDiv = document.getElementById('emptyMessage');
 
-    o.items.forEach(i=>{
-        html += `${i.name} x${i.qty}<br>`;
+    // 监听新增订单 (child_added 事件会获取所有已有订单 + 新订单)
+    ordersRef.on('child_added', (snapshot) => {
+        const orderData = snapshot.val();
+        if (orderData) {
+            displayOrder(orderData);
+            // 隐藏“空状态”提示
+            if (emptyDiv) emptyDiv.style.display = 'none';
+        }
     });
 
-    html += `<b>总价:$${o.total}</b></div>`;
+    // 可选：如果所有订单被删除，显示空状态（监听 child_removed）
+    ordersRef.on('child_removed', () => {
+        // 检查是否还有订单子节点，如果没有就显示空状态
+        ordersRef.once('value', (snap) => {
+            if (!snap.exists()) {
+                if (emptyDiv) emptyDiv.style.display = 'block';
+                ordersContainer.innerHTML = '';
+            }
+        });
+    });
 
-    div.innerHTML = html + div.innerHTML;
-}
+    /**
+     * 将订单数据渲染到屏幕上
+     */
+    function displayOrder(order) {
+        // 创建订单卡片
+        const orderCard = document.createElement('div');
+        orderCard.className = 'order';
+        
+        // 桌号 (如果没有 table 字段就显示"外带")
+        const tableText = order.table ? `桌 ${order.table}` : '🥡 外带';
+        
+        // 时间格式化 (兼容 order.time 字段)
+        let timeStr = '刚刚';
+        if (order.time) {
+            try {
+                const orderDate = new Date(order.time);
+                if (!isNaN(orderDate.getTime())) {
+                    timeStr = orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    timeStr = order.time; // 可能是字符串格式
+                }
+            } catch(e) { timeStr = order.time; }
+        }
+        
+        // 构建 items 列表
+        let itemsHtml = '';
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <div class="item-row">
+                        <span class="item-name">🍽️ ${escapeHtml(item.name)}</span>
+                        <span class="item-qty">x ${item.qty}</span>
+                    </div>
+                `;
+            });
+        } else if (order.items && typeof order.items === 'object') {
+            // 如果 items 是对象而不是数组（兜底处理）
+            for (let key in order.items) {
+                let item = order.items[key];
+                itemsHtml += `
+                    <div class="item-row">
+                        <span class="item-name">🍽️ ${escapeHtml(item.name)}</span>
+                        <span class="item-qty">x ${item.qty}</span>
+                    </div>
+                `;
+            }
+        } else {
+            itemsHtml = '<div class="item-row">无明细</div>';
+        }
+        
+        // 总价
+        const totalPrice = order.total !== undefined ? order.total : 0;
+        
+        orderCard.innerHTML = `
+            <div class="order-header">
+                <span class="table-number">${escapeHtml(tableText)}</span>
+                <span class="order-time">🕒 ${escapeHtml(timeStr)}</span>
+            </div>
+            <div class="items-list">
+                ${itemsHtml}
+            </div>
+            <div class="order-total">
+                💵 合计: ¥${Number(totalPrice).toFixed(2)}
+            </div>
+        `;
+        
+        // 新订单插入到最前面 （最新订单在上方）
+        ordersContainer.prepend(orderCard);
+        
+        // 可选：播放简单的提示音（浏览器需用户交互后才允许，取消注释需谨慎）
+        // const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+        // audio.play().catch(e => console.log("音频需用户交互"));
+    }
+    
+    // 简单防止 XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // 初始检查：如果数据库没有订单，保持空状态显示
+    ordersRef.once('value', (snap) => {
+        if (!snap.exists()) {
+            if (emptyDiv) emptyDiv.style.display = 'block';
+        } else {
+            if (emptyDiv) emptyDiv.style.display = 'none';
+        }
+    });
 </script>
-
 </body>
 </html>
