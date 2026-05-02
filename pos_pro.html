@@ -283,15 +283,16 @@
 
 <script>
     // ========== Firebase 配置（您的项目）==========
-    const firebaseConfig = {
-        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-        authDomain: "create-for-payment.firebaseapp.com",
-        projectId: "create-for-payment",
-        storageBucket: "create-for-payment.firebasestorage.app",
-        messagingSenderId: "505063429802",
-        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
-        measurementId: "G-SHP91WNP0H"
-    };
+   const firebaseConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.firebaseio.com",  // ← 这行必须改成真实的
+    projectId: "create-for-payment",
+    storageBucket: "create-for-payment.firebasestorage.app",
+    messagingSenderId: "505063429802",
+    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+    measurementId: "G-SHP91WNP0H"
+};
 
     // 初始化 Firebase
     firebase.initializeApp(firebaseConfig);
