@@ -344,8 +344,9 @@
             background: #ffa50020;
             font-weight: bold;
         }
-        .order-table tr:nth-child(even) {
-            background: #f9f9f9;
+        .completed-row {
+            background-color: #e0f0e0 !important;
+            color: #2c6e2c;
         }
         @media (max-width: 780px) {
             .pos-container { padding: 16px; }
@@ -362,7 +363,7 @@
         <h1>柜台·点餐终端</h1>
         <button id="historyBtn" class="btn-history">📊 订单历史 / 导出 Excel</button>
     </div>
-    <div class="sub">实时同步厨房系统 | 分类菜单 · 快捷加购</div>
+    <div class="sub">实时同步厨房系统 | 分类菜单 · 订单永久保存</div>
 
     <!-- 分类标签栏 -->
     <div class="category-tabs" id="categoryTabs">
@@ -399,23 +400,23 @@
             <div id="statusMsg" class="feedback" style="display:none;"></div>
         </div>
     </div>
-    <div class="footer-credit">✅ 订单将实时显示在厨房屏 (Firebase同步)</div>
+    <div class="footer-credit">✅ 订单永久保存，厨房完成即归档，历史可查</div>
 </div>
 
 <!-- 订单历史模态框 -->
 <div id="historyModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <h2>📋 当前所有订单（待厨房制作）
+        <h2>📋 全部订单（已完成 + 未完成）
             <button id="exportExcelBtn" class="export-btn">📎 导出为 Excel</button>
         </h2>
         <div id="historyTableContainer" style="overflow-x: auto;">
             <table class="order-table" id="orderHistoryTable">
                 <thead>
-                    <tr><th>订单ID</th><th>桌号</th><th>下单时间</th><th>菜品明细</th><th>总价(¥)</th></tr>
+                    <tr><th>订单ID</th><th>桌号</th><th>下单时间</th><th>菜品明细</th><th>总价(¥)</th><th>状态</th></tr>
                 </thead>
                 <tbody id="historyTbody">
-                    <tr><td colspan="5">加载中...</td></tr>
+                    <tr><td colspan="6">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -423,7 +424,8 @@
 </div>
 
 <script>
-    // ========== Firebase 配置（与厨房屏完全一致）==========
+    // ========== Firebase 配置 ==========
+    // 请将 databaseURL 替换为您在 Firebase 控制台看到的实际地址
     const firebaseConfig = {
         apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
         authDomain: "create-for-payment.firebaseapp.com",
@@ -525,6 +527,7 @@
         else categoryTitle.innerText = '✨ 额外添加';
     }
 
+    // 切换分类（同时更新按钮活跃状态）
     function switchCategory(category) {
         currentCategory = category;
         renderMenuByCategory(category);
@@ -534,6 +537,7 @@
         });
     }
 
+    // 添加至购物车
     function addToCart(menuItem) {
         const existing = cart.find(i => i.id === menuItem.id);
         if (existing) existing.qty += 1;
@@ -542,6 +546,7 @@
         showStatus(`➕ 已添加 ${menuItem.name}`, false);
     }
 
+    // 更新数量
     function updateQty(id, delta) {
         const idx = cart.findIndex(i => i.id === id);
         if (idx !== -1) {
@@ -558,10 +563,12 @@
         showStatus('🗑️ 已移除菜品', false);
     }
 
+    // 计算总价
     function calcTotal() {
         return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     }
 
+    // 刷新购物车UI
     function renderCart() {
         if (!cartContainer) return;
         if (cart.length === 0) {
@@ -589,6 +596,7 @@
         cartContainer.innerHTML = html;
         totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
 
+        // 绑定动态按钮事件
         document.querySelectorAll('.btn-qty').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -606,7 +614,7 @@
         });
     }
 
-    // 提交订单
+    // 提交订单到 Firebase
     async function submitOrder() {
         if (cart.length === 0) {
             showStatus('❌ 购物车为空，请先点餐', true);
@@ -621,7 +629,7 @@
             items: itemsForOrder,
             total: calcTotal(),
             time: new Date().toISOString(),
-            status: 'pending'
+            completed: false   // 新订单状态为“未完成”
         };
 
         submitBtn.disabled = true;
@@ -647,6 +655,7 @@
         }
     }
 
+    // 清空购物车
     function clearCart() {
         if (cart.length === 0) return;
         cart = [];
@@ -655,54 +664,56 @@
     }
 
     // ========== 订单历史相关函数 ==========
-    // 从 Firebase 获取所有订单（未完成）
+    // 获取所有订单（包括已完成和未完成）
     async function fetchAllOrders() {
         const snapshot = await ordersRef.once('value');
         const orders = snapshot.val();
         if (!orders) return [];
-        // 转换为数组，并按时间倒序（最新在前）
         const orderList = Object.entries(orders).map(([id, data]) => ({ id, ...data }));
         orderList.sort((a, b) => new Date(b.time) - new Date(a.time));
         return orderList;
     }
 
-    // 将订单项数组格式化为可读字符串（如 "牛肉面x2, 卤肉饭x1"）
+    // 格式化菜品明细
     function formatItems(items) {
         if (!items || !Array.isArray(items)) return '';
         return items.map(item => `${item.name} x${item.qty}`).join('; ');
     }
 
-    // 渲染历史订单表格
+    // 渲染历史订单表格（显示状态列）
     async function renderHistoryTable() {
-        historyTbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
+        historyTbody.innerHTML = '<tr><td colspan="6">加载中...</td></tr>';
         try {
             const orders = await fetchAllOrders();
             if (orders.length === 0) {
-                historyTbody.innerHTML = '<tr><td colspan="5">暂无任何订单</td></tr>';
+                historyTbody.innerHTML = '<tr><td colspan="6">暂无任何订单</td></tr>';
                 return;
             }
             let html = '';
             orders.forEach(order => {
                 const itemsStr = formatItems(order.items);
                 const timeStr = order.time ? new Date(order.time).toLocaleString() : '未知';
+                const status = order.completed === true ? '✅ 已完成' : '⏳ 制作中';
+                const rowClass = order.completed === true ? 'completed-row' : '';
                 html += `
-                    <tr>
+                    <tr class="${rowClass}">
                         <td>${escapeHtml(order.id)}</td>
                         <td>${escapeHtml(order.table || '外带')}</td>
                         <td>${escapeHtml(timeStr)}</td>
                         <td>${escapeHtml(itemsStr)}</td>
                         <td>¥${order.total ? order.total.toFixed(2) : '0.00'}</td>
+                        <td>${status}</td>
                     </tr>
                 `;
             });
             historyTbody.innerHTML = html;
         } catch (err) {
             console.error(err);
-            historyTbody.innerHTML = '<tr><td colspan="5">加载失败，请检查网络或数据库规则</td></tr>';
+            historyTbody.innerHTML = '<tr><td colspan="6">加载失败，请检查网络或数据库规则</td></tr>';
         }
     }
 
-    // 导出为 CSV (Excel 可打开)
+    // 导出为 CSV（Excel 可打开）
     async function exportToExcel() {
         try {
             const orders = await fetchAllOrders();
@@ -710,21 +721,23 @@
                 alert('没有订单可导出');
                 return;
             }
-            // 准备 CSV 数据
-            const headers = ['订单ID', '桌号', '下单时间', '菜品明细', '总价(¥)'];
+            const headers = ['订单ID', '桌号', '下单时间', '菜品明细', '总价(¥)', '状态'];
             const rows = orders.map(order => [
                 order.id,
                 order.table || '外带',
                 order.time ? new Date(order.time).toLocaleString() : '',
                 formatItems(order.items),
-                order.total ? order.total.toFixed(2) : '0.00'
+                order.total ? order.total.toFixed(2) : '0.00',
+                order.completed === true ? '已完成' : '制作中'
             ]);
-            const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM 处理中文
+            const csvContent = [headers, ...rows].map(row => 
+                row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+            ).join('\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.href = url;
-            link.setAttribute('download', `orders_${new Date().toISOString().slice(0,19)}.csv`);
+            link.setAttribute('download', `all_orders_${new Date().toISOString().slice(0,19)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -744,20 +757,28 @@
         modal.style.display = 'none';
     }
 
-    // 辅助
+    // 防XSS
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
     // 初始化
     function init() {
-        switchCategory('main');
+        // 分类按钮绑定事件
+        catBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchCategory(btn.dataset.cat);
+            });
+        });
+        // 备用：事件委托，确保分类按钮能响应（防止动态添加）
+        document.getElementById('categoryTabs')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.cat-btn');
+            if (btn && btn.dataset.cat && !btn.classList.contains('active')) {
+                switchCategory(btn.dataset.cat);
+            }
+        });
+        renderMenuByCategory('main');   // 显示主菜单
         renderCart();
         submitBtn.addEventListener('click', submitOrder);
         clearCartBtn.addEventListener('click', clearCart);
@@ -766,11 +787,13 @@
         closeModal.addEventListener('click', closeModalFunc);
         exportExcelBtn.addEventListener('click', exportToExcel);
         window.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
+        // 监听 Firebase 连接状态
         database.ref('.info/connected').on('value', (snap) => {
             if (snap.val() === true) console.log('✅ Firebase 已连接');
-            else console.warn('⚠️ Firebase 未连接');
+            else console.warn('⚠️ Firebase 未连接，请检查 databaseURL 和网络');
         });
     }
+
     init();
 </script>
 </body>
