@@ -320,14 +320,21 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            gap: 15px;
         }
-        .export-btn {
+        .export-btn, .clear-all-btn {
             background: #2c6e2c;
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 30px;
             cursor: pointer;
+        }
+        .clear-all-btn {
+            background: #c62828;
+        }
+        .clear-all-btn:hover {
+            background: #8b1e1e;
         }
         .order-table {
             width: 100%;
@@ -348,6 +355,50 @@
             background-color: #e0f0e0 !important;
             color: #2c6e2c;
         }
+        /* 登录遮罩层 */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 32px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .login-box h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 40px;
+            font-size: 1rem;
+        }
+        .login-box button {
+            width: 100%;
+            margin-top: 15px;
+            background: #ffa500;
+        }
+        .login-error {
+            color: #c62828;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
         @media (max-width: 780px) {
             .pos-container { padding: 16px; }
             .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
@@ -358,6 +409,19 @@
     </style>
 </head>
 <body>
+
+<!-- 登录遮罩层 -->
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>🔐 系统登录</h2>
+        <input type="password" id="passwordInput" placeholder="请输入密码" autofocus>
+        <button id="loginBtn">登 录</button>
+        <div id="loginError" class="login-error"></div>
+    </div>
+</div>
+
+<!-- 主内容（初始隐藏） -->
+<div id="mainContent" style="display: none;">
 <div class="pos-container">
     <div class="header-row">
         <h1>柜台·点餐终端</h1>
@@ -408,7 +472,10 @@
     <div class="modal-content">
         <span class="close">&times;</span>
         <h2>📋 全部订单（已完成 + 未完成）
-            <button id="exportExcelBtn" class="export-btn">📎 导出为 Excel</button>
+            <div style="display: flex; gap: 10px;">
+                <button id="exportExcelBtn" class="export-btn">📎 导出为 Excel</button>
+                <button id="clearAllOrdersBtn" class="clear-all-btn">🗑️ 一键清除所有订单</button>
+            </div>
         </h2>
         <div id="historyTableContainer" style="overflow-x: auto;">
             <table class="order-table" id="orderHistoryTable">
@@ -422,10 +489,42 @@
         </div>
     </div>
 </div>
+</div>
 
 <script>
+    // ========== 登录密码配置 ==========
+    const LOGIN_PASSWORD = "1234";   // 可修改为您的密码
+
+    // ========== 登录逻辑 ==========
+    const loginOverlay = document.getElementById('loginOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+
+    function doLogin() {
+        const pwd = passwordInput.value.trim();
+        if (pwd === LOGIN_PASSWORD) {
+            loginOverlay.style.display = 'none';
+            mainContent.style.display = 'block';
+            // 登录成功后初始化页面
+            initPOS();
+        } else {
+            loginError.innerText = '密码错误，请重试';
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    loginBtn.addEventListener('click', doLogin);
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') doLogin();
+    });
+
+    // 防止未登录时看到主内容
+    // 主内容初始隐藏，待登录后显示
+
     // ========== Firebase 配置 ==========
-    // 请将 databaseURL 替换为您在 Firebase 控制台看到的实际地址
     const firebaseConfig = {
         apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
         authDomain: "create-for-payment.firebaseapp.com",
@@ -437,62 +536,25 @@
         measurementId: "G-SHP91WNP0H"
     };
 
-    // 初始化 Firebase
+    // 初始化 Firebase（全局）
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const database = firebase.database();
     const ordersRef = database.ref('orders');
 
-    // ========== 分类菜单数据 ==========
-    const MENU_BY_CATEGORY = {
-        main: [   // 主菜
-            { id: 1, name: "🍜 招牌牛肉面", price: 28, cat: "main" },
-            { id: 2, name: "🍚 卤肉饭套餐", price: 32, cat: "main" },
-            { id: 3, name: "🍛 咖喱鸡饭", price: 35, cat: "main" },
-            { id: 4, name: "🍝 肉酱意面", price: 30, cat: "main" },
-            { id: 5, name: "🥘 海鲜豆腐煲", price: 42, cat: "main" }
-        ],
-        side: [   // 小菜
-            { id: 6, name: "🥟 手工煎饺 (6只)", price: 18, cat: "side" },
-            { id: 7, name: "🥗 时令沙拉", price: 22, cat: "side" },
-            { id: 8, name: "🍗 盐酥鸡", price: 25, cat: "side" },
-            { id: 9, name: "🍠 地瓜球", price: 15, cat: "side" },
-            { id: 10, name: "🥒 凉拌小黄瓜", price: 12, cat: "side" }
-        ],
-        extra: [  // 额外添加
-            { id: 11, name: "🥤 冰红茶", price: 8, cat: "extra" },
-            { id: 12, name: "☕ 现磨咖啡", price: 15, cat: "extra" },
-            { id: 13, name: "🍰 芝士蛋糕", price: 20, cat: "extra" },
-            { id: 14, name: "🍦 冰淇淋", price: 10, cat: "extra" },
-            { id: 15, name: "🧀 加芝士片", price: 5, cat: "extra" },
-            { id: 16, name: "🥚 加卤蛋", price: 3, cat: "extra" }
-        ]
-    };
-
-    // 当前选中的分类
+    // ========== POS 核心变量 ==========
     let currentCategory = "main";
     let cart = [];
 
-    // DOM 元素
-    const menuContainer = document.getElementById('menuList');
-    const cartContainer = document.getElementById('cartItems');
-    const totalSpan = document.getElementById('totalAmount');
-    const tableInput = document.getElementById('tableNumber');
-    const submitBtn = document.getElementById('submitOrderBtn');
-    const clearCartBtn = document.getElementById('clearCartBtn');
-    const statusDiv = document.getElementById('statusMsg');
-    const categoryTitle = document.getElementById('currentCategoryTitle');
-    const catBtns = document.querySelectorAll('.cat-btn');
-    const historyBtn = document.getElementById('historyBtn');
-    const modal = document.getElementById('historyModal');
-    const closeModal = document.querySelector('.close');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
-    const historyTbody = document.getElementById('historyTbody');
+    // DOM 元素（在登录后才能正确获取）
+    let menuContainer, cartContainer, totalSpan, tableInput, submitBtn, clearCartBtn, statusDiv, categoryTitle, catBtns;
+    let historyBtn, modal, closeModal, exportExcelBtn, clearAllOrdersBtn, historyTbody;
 
-    // 辅助：显示临时消息
+    // 辅助函数：显示临时消息
     let timeoutId = null;
     function showStatus(msg, isError = false) {
+        if (!statusDiv) return;
         statusDiv.innerText = msg;
         statusDiv.style.display = 'block';
         statusDiv.classList.toggle('error-feedback', isError);
@@ -502,17 +564,46 @@
         }, 3000);
     }
 
-    // 根据分类渲染菜单
+    // 菜单数据
+    const MENU_BY_CATEGORY = {
+        main: [
+            { id: 1, name: "🍜 招牌牛肉面", price: 28, cat: "main" },
+            { id: 2, name: "🍚 卤肉饭套餐", price: 32, cat: "main" },
+            { id: 3, name: "🍛 咖喱鸡饭", price: 35, cat: "main" },
+            { id: 4, name: "🍝 肉酱意面", price: 30, cat: "main" },
+            { id: 5, name: "🥘 海鲜豆腐煲", price: 42, cat: "main" }
+        ],
+        side: [
+            { id: 6, name: "🥟 手工煎饺 (6只)", price: 18, cat: "side" },
+            { id: 7, name: "🥗 时令沙拉", price: 22, cat: "side" },
+            { id: 8, name: "🍗 盐酥鸡", price: 25, cat: "side" },
+            { id: 9, name: "🍠 地瓜球", price: 15, cat: "side" },
+            { id: 10, name: "🥒 凉拌小黄瓜", price: 12, cat: "side" }
+        ],
+        extra: [
+            { id: 11, name: "🥤 冰红茶", price: 8, cat: "extra" },
+            { id: 12, name: "☕ 现磨咖啡", price: 15, cat: "extra" },
+            { id: 13, name: "🍰 芝士蛋糕", price: 20, cat: "extra" },
+            { id: 14, name: "🍦 冰淇淋", price: 10, cat: "extra" },
+            { id: 15, name: "🧀 加芝士片", price: 5, cat: "extra" },
+            { id: 16, name: "🥚 加卤蛋", price: 3, cat: "extra" }
+        ]
+    };
+
+    // 安全转义
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+
+    // 渲染菜单
     function renderMenuByCategory(category) {
         const items = MENU_BY_CATEGORY[category] || [];
         menuContainer.innerHTML = '';
         items.forEach(item => {
             const card = document.createElement('div');
             card.className = 'menu-card';
-            card.innerHTML = `
-                <div class="menu-name">${escapeHtml(item.name)}</div>
-                <div class="menu-price">¥${item.price}</div>
-            `;
+            card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">¥${item.price}</div>`;
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
                 addToCart(item);
@@ -527,7 +618,6 @@
         else categoryTitle.innerText = '✨ 额外添加';
     }
 
-    // 切换分类（同时更新按钮活跃状态）
     function switchCategory(category) {
         currentCategory = category;
         renderMenuByCategory(category);
@@ -537,7 +627,7 @@
         });
     }
 
-    // 添加至购物车
+    // 购物车操作
     function addToCart(menuItem) {
         const existing = cart.find(i => i.id === menuItem.id);
         if (existing) existing.qty += 1;
@@ -546,7 +636,6 @@
         showStatus(`➕ 已添加 ${menuItem.name}`, false);
     }
 
-    // 更新数量
     function updateQty(id, delta) {
         const idx = cart.findIndex(i => i.id === id);
         if (idx !== -1) {
@@ -563,12 +652,10 @@
         showStatus('🗑️ 已移除菜品', false);
     }
 
-    // 计算总价
     function calcTotal() {
         return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     }
 
-    // 刷新购物车UI
     function renderCart() {
         if (!cartContainer) return;
         if (cart.length === 0) {
@@ -596,7 +683,6 @@
         cartContainer.innerHTML = html;
         totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
 
-        // 绑定动态按钮事件
         document.querySelectorAll('.btn-qty').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -614,7 +700,7 @@
         });
     }
 
-    // 提交订单到 Firebase
+    // 提交订单
     async function submitOrder() {
         if (cart.length === 0) {
             showStatus('❌ 购物车为空，请先点餐', true);
@@ -629,7 +715,7 @@
             items: itemsForOrder,
             total: calcTotal(),
             time: new Date().toISOString(),
-            completed: false   // 新订单状态为“未完成”
+            completed: false
         };
 
         submitBtn.disabled = true;
@@ -655,7 +741,6 @@
         }
     }
 
-    // 清空购物车
     function clearCart() {
         if (cart.length === 0) return;
         cart = [];
@@ -663,8 +748,7 @@
         showStatus('🧹 购物车已清空', false);
     }
 
-    // ========== 订单历史相关函数 ==========
-    // 获取所有订单（包括已完成和未完成）
+    // ========== 订单历史相关 ==========
     async function fetchAllOrders() {
         const snapshot = await ordersRef.once('value');
         const orders = snapshot.val();
@@ -674,13 +758,11 @@
         return orderList;
     }
 
-    // 格式化菜品明细
     function formatItems(items) {
         if (!items || !Array.isArray(items)) return '';
         return items.map(item => `${item.name} x${item.qty}`).join('; ');
     }
 
-    // 渲染历史订单表格（显示状态列）
     async function renderHistoryTable() {
         historyTbody.innerHTML = '<tr><td colspan="6">加载中...</td></tr>';
         try {
@@ -709,11 +791,10 @@
             historyTbody.innerHTML = html;
         } catch (err) {
             console.error(err);
-            historyTbody.innerHTML = '<tr><td colspan="6">加载失败，请检查网络或数据库规则</td></tr>';
+            historyTbody.innerHTML = '<tr><td colspan="6">加载失败，请检查网络</td></tr>';
         }
     }
 
-    // 导出为 CSV（Excel 可打开）
     async function exportToExcel() {
         try {
             const orders = await fetchAllOrders();
@@ -743,8 +824,23 @@
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (err) {
-            console.error(err);
             alert('导出失败：' + err.message);
+        }
+    }
+
+    // 一键清除所有订单
+    async function clearAllOrders() {
+        const confirmMsg = '⚠️ 确认删除所有订单吗？此操作不可恢复！\n\n确定要清空全部历史订单吗？';
+        if (!confirm(confirmMsg)) return;
+        try {
+            await ordersRef.remove();
+            alert('✅ 所有订单已清除');
+            if (modal.style.display === 'block') {
+                await renderHistoryTable();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('清除失败：' + (err.message || '请检查数据库权限'));
         }
     }
 
@@ -757,28 +853,38 @@
         modal.style.display = 'none';
     }
 
-    // 防XSS
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-    }
+    // ========== 初始化 POS（登录后执行） ==========
+    function initPOS() {
+        // 获取 DOM 元素（此时主内容可见）
+        menuContainer = document.getElementById('menuList');
+        cartContainer = document.getElementById('cartItems');
+        totalSpan = document.getElementById('totalAmount');
+        tableInput = document.getElementById('tableNumber');
+        submitBtn = document.getElementById('submitOrderBtn');
+        clearCartBtn = document.getElementById('clearCartBtn');
+        statusDiv = document.getElementById('statusMsg');
+        categoryTitle = document.getElementById('currentCategoryTitle');
+        catBtns = document.querySelectorAll('.cat-btn');
+        historyBtn = document.getElementById('historyBtn');
+        modal = document.getElementById('historyModal');
+        closeModal = document.querySelector('.close');
+        exportExcelBtn = document.getElementById('exportExcelBtn');
+        clearAllOrdersBtn = document.getElementById('clearAllOrdersBtn');
+        historyTbody = document.getElementById('historyTbody');
 
-    // 初始化
-    function init() {
-        // 分类按钮绑定事件
+        // 绑定事件
         catBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 switchCategory(btn.dataset.cat);
             });
         });
-        // 备用：事件委托，确保分类按钮能响应（防止动态添加）
         document.getElementById('categoryTabs')?.addEventListener('click', (e) => {
             const btn = e.target.closest('.cat-btn');
             if (btn && btn.dataset.cat && !btn.classList.contains('active')) {
                 switchCategory(btn.dataset.cat);
             }
         });
-        renderMenuByCategory('main');   // 显示主菜单
+        renderMenuByCategory('main');
         renderCart();
         submitBtn.addEventListener('click', submitOrder);
         clearCartBtn.addEventListener('click', clearCart);
@@ -786,15 +892,13 @@
         historyBtn.addEventListener('click', openModal);
         closeModal.addEventListener('click', closeModalFunc);
         exportExcelBtn.addEventListener('click', exportToExcel);
+        clearAllOrdersBtn.addEventListener('click', clearAllOrders);
         window.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
-        // 监听 Firebase 连接状态
         database.ref('.info/connected').on('value', (snap) => {
             if (snap.val() === true) console.log('✅ Firebase 已连接');
-            else console.warn('⚠️ Firebase 未连接，请检查 databaseURL 和网络');
+            else console.warn('⚠️ Firebase 未连接');
         });
     }
-
-    init();
 </script>
 </body>
 </html>
