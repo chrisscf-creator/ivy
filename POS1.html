@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>智慧柜台POS · 分类菜单 + 订单历史/导出Excel</title>
+    <!-- Firebase SDK (Compat 版本) -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f2ede8;
+            margin: 0;
+            padding: 20px;
+            color: #1e2a2e;
+        }
+        .pos-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            padding: 20px 24px 32px;
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1:before { content: "🧾"; font-size: 2rem; }
+        .sub {
+            color: #5f6c70;
+            border-left: 4px solid #ffa500;
+            padding-left: 14px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .btn-history {
+            background: #4a6a8a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-history:hover {
+            background: #2c4a6a;
+            transform: scale(1.02);
+        }
+        /* 分类标签栏 */
+        .category-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e0d6cc;
+            padding-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .cat-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #5f6c70;
+        }
+        .cat-btn.active {
+            background: #ffa500;
+            color: #2c2c2c;
+            box-shadow: 0 2px 8px rgba(255,165,0,0.3);
+        }
+        .cat-btn:not(.active):hover {
+            background: #fff0e0;
+        }
+        /* 两列布局 */
+        .pos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        .menu-panel {
+            flex: 2;
+            min-width: 260px;
+        }
+        .cart-panel {
+            flex: 1.2;
+            min-width: 280px;
+            background: #fef9f0;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .menu-header, .cart-header {
+            font-weight: bold;
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #ffb347;
+            display: inline-block;
+            padding-right: 12px;
+        }
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 14px;
+        }
+        .menu-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 12px 12px 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+            border: 1px solid #ffddb0;
+            cursor: pointer;
+        }
+        .menu-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+            border-color: #ffa500;
+        }
+        .menu-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .menu-price {
+            color: #e67e22;
+            font-weight: bold;
+            margin-top: 8px;
+            font-size: 1.05rem;
+        }
+        .cart-items {
+            max-height: 380px;
+            overflow-y: auto;
+            margin: 16px 0;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border-radius: 50px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .cart-item-info {
+            flex: 2;
+        }
+        .cart-item-name {
+            font-weight: 500;
+        }
+        .cart-item-price {
+            font-size: 0.8rem;
+            color: #b45f1b;
+        }
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .cart-qty {
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        .btn-qty {
+            background: #f0e2d0;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .btn-qty:active { background: #e2ceb5; }
+        .remove-item {
+            color: #b91c1c;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-left: 6px;
+            opacity: 0.7;
+        }
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            font-size: 1.1rem;
+        }
+        .table-input {
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            margin: 20px 0 16px;
+            background: #fff2e2;
+            padding: 12px;
+            border-radius: 60px;
+        }
+        .table-input label {
+            font-weight: bold;
+        }
+        #tableNumber {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 40px;
+            border: 1px solid #ffcb8e;
+            font-size: 1rem;
+            background: white;
+        }
+        button {
+            background: #ffa500;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #2c2c2c;
+        }
+        button:active { transform: scale(0.97); }
+        .btn-submit {
+            width: 100%;
+            background: #2c6e2c;
+            color: white;
+            font-size: 1.2rem;
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-submit:active { background: #1f511f; }
+        .clear-cart {
+            background: #cdd4d9;
+            color: #2d3e45;
+            margin-top: 8px;
+        }
+        .feedback {
+            margin-top: 12px;
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 6px;
+            border-radius: 100px;
+            background: #e9f5e9;
+            color: #2e7d32;
+        }
+        .error-feedback {
+            background: #ffe6e5;
+            color: #c62828;
+        }
+        .footer-credit {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.7rem;
+            color: #988f82;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            overflow: auto;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: 30px auto;
+            padding: 20px;
+            border-radius: 32px;
+            width: 90%;
+            max-width: 1200px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 24px;
+            top: 16px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+        .close:hover { color: black; }
+        .modal h2 {
+            margin-top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .export-btn {
+            background: #2c6e2c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        .order-table th, .order-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .order-table th {
+            background: #ffa50020;
+            font-weight: bold;
+        }
+        .order-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        @media (max-width: 780px) {
+            .pos-container { padding: 16px; }
+            .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+            .cat-btn { padding: 6px 14px; font-size: 0.9rem; }
+            .modal-content { margin: 20px auto; width: 95%; padding: 16px; }
+            .order-table th, .order-table td { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="pos-container">
+    <div class="header-row">
+        <h1>柜台·点餐终端</h1>
+        <button id="historyBtn" class="btn-history">📊 订单历史 / 导出 Excel</button>
+    </div>
+    <div class="sub">实时同步厨房系统 | 分类菜单 · 快捷加购</div>
+
+    <!-- 分类标签栏 -->
+    <div class="category-tabs" id="categoryTabs">
+        <button class="cat-btn active" data-cat="main">🍜 主菜</button>
+        <button class="cat-btn" data-cat="side">🥗 小菜</button>
+        <button class="cat-btn" data-cat="extra">➕ 额外添加</button>
+    </div>
+
+    <div class="pos-grid">
+        <!-- 左侧菜单栏 -->
+        <div class="menu-panel">
+            <div class="menu-header" id="currentCategoryTitle">📋 主菜</div>
+            <div class="menu-items" id="menuList">
+                <!-- 动态生成菜品 -->
+            </div>
+        </div>
+
+        <!-- 右侧购物车 & 结账 -->
+        <div class="cart-panel">
+            <div class="cart-header">🛒 当前订单</div>
+            <div id="cartItems" class="cart-items">
+                <div style="color:#aa9f93; text-align:center;">暂无菜品，点菜加购</div>
+            </div>
+            <div class="table-input">
+                <label>🏷️ 桌号 / 外带</label>
+                <input type="text" id="tableNumber" placeholder="例: 3 或 外带" value="1">
+            </div>
+            <div class="order-row">
+                <span>合计金额</span>
+                <span id="totalAmount" style="font-weight:bold;">¥0.00</span>
+            </div>
+            <button id="submitOrderBtn" class="btn-submit">📨 下单 → 厨房</button>
+            <button id="clearCartBtn" class="clear-cart">🗑️ 清空购物车</button>
+            <div id="statusMsg" class="feedback" style="display:none;"></div>
+        </div>
+    </div>
+    <div class="footer-credit">✅ 订单将实时显示在厨房屏 (Firebase同步)</div>
+</div>
+
+<!-- 订单历史模态框 -->
+<div id="historyModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>📋 当前所有订单（待厨房制作）
+            <button id="exportExcelBtn" class="export-btn">📎 导出为 Excel</button>
+        </h2>
+        <div id="historyTableContainer" style="overflow-x: auto;">
+            <table class="order-table" id="orderHistoryTable">
+                <thead>
+                    <tr><th>订单ID</th><th>桌号</th><th>下单时间</th><th>菜品明细</th><th>总价(¥)</th></tr>
+                </thead>
+                <tbody id="historyTbody">
+                    <tr><td colspan="5">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== Firebase 配置（与厨房屏完全一致）==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+        authDomain: "create-for-payment.firebaseapp.com",
+        databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app/",
+        projectId: "create-for-payment",
+        storageBucket: "create-for-payment.firebasestorage.app",
+        messagingSenderId: "505063429802",
+        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+        measurementId: "G-SHP91WNP0H"
+    };
+
+    // 初始化 Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const database = firebase.database();
+    const ordersRef = database.ref('orders');
+
+    // ========== 分类菜单数据 ==========
+    const MENU_BY_CATEGORY = {
+        main: [   // 主菜
+            { id: 1, name: "🍜 招牌牛肉面", price: 28, cat: "main" },
+            { id: 2, name: "🍚 卤肉饭套餐", price: 32, cat: "main" },
+            { id: 3, name: "🍛 咖喱鸡饭", price: 35, cat: "main" },
+            { id: 4, name: "🍝 肉酱意面", price: 30, cat: "main" },
+            { id: 5, name: "🥘 海鲜豆腐煲", price: 42, cat: "main" }
+        ],
+        side: [   // 小菜
+            { id: 6, name: "🥟 手工煎饺 (6只)", price: 18, cat: "side" },
+            { id: 7, name: "🥗 时令沙拉", price: 22, cat: "side" },
+            { id: 8, name: "🍗 盐酥鸡", price: 25, cat: "side" },
+            { id: 9, name: "🍠 地瓜球", price: 15, cat: "side" },
+            { id: 10, name: "🥒 凉拌小黄瓜", price: 12, cat: "side" }
+        ],
+        extra: [  // 额外添加
+            { id: 11, name: "🥤 冰红茶", price: 8, cat: "extra" },
+            { id: 12, name: "☕ 现磨咖啡", price: 15, cat: "extra" },
+            { id: 13, name: "🍰 芝士蛋糕", price: 20, cat: "extra" },
+            { id: 14, name: "🍦 冰淇淋", price: 10, cat: "extra" },
+            { id: 15, name: "🧀 加芝士片", price: 5, cat: "extra" },
+            { id: 16, name: "🥚 加卤蛋", price: 3, cat: "extra" }
+        ]
+    };
+
+    // 当前选中的分类
+    let currentCategory = "main";
+    let cart = [];
+
+    // DOM 元素
+    const menuContainer = document.getElementById('menuList');
+    const cartContainer = document.getElementById('cartItems');
+    const totalSpan = document.getElementById('totalAmount');
+    const tableInput = document.getElementById('tableNumber');
+    const submitBtn = document.getElementById('submitOrderBtn');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+    const statusDiv = document.getElementById('statusMsg');
+    const categoryTitle = document.getElementById('currentCategoryTitle');
+    const catBtns = document.querySelectorAll('.cat-btn');
+    const historyBtn = document.getElementById('historyBtn');
+    const modal = document.getElementById('historyModal');
+    const closeModal = document.querySelector('.close');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const historyTbody = document.getElementById('historyTbody');
+
+    // 辅助：显示临时消息
+    let timeoutId = null;
+    function showStatus(msg, isError = false) {
+        statusDiv.innerText = msg;
+        statusDiv.style.display = 'block';
+        statusDiv.classList.toggle('error-feedback', isError);
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // 根据分类渲染菜单
+    function renderMenuByCategory(category) {
+        const items = MENU_BY_CATEGORY[category] || [];
+        menuContainer.innerHTML = '';
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'menu-card';
+            card.innerHTML = `
+                <div class="menu-name">${escapeHtml(item.name)}</div>
+                <div class="menu-price">¥${item.price}</div>
+            `;
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                addToCart(item);
+            });
+            menuContainer.appendChild(card);
+        });
+        if (items.length === 0) {
+            menuContainer.innerHTML = '<div style="text-align:center; padding:40px; color:#aaa;">暂无菜品</div>';
+        }
+        if (category === 'main') categoryTitle.innerText = '📋 主菜';
+        else if (category === 'side') categoryTitle.innerText = '🥢 小菜';
+        else categoryTitle.innerText = '✨ 额外添加';
+    }
+
+    function switchCategory(category) {
+        currentCategory = category;
+        renderMenuByCategory(category);
+        catBtns.forEach(btn => {
+            if (btn.dataset.cat === category) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+
+    function addToCart(menuItem) {
+        const existing = cart.find(i => i.id === menuItem.id);
+        if (existing) existing.qty += 1;
+        else cart.push({ ...menuItem, qty: 1 });
+        renderCart();
+        showStatus(`➕ 已添加 ${menuItem.name}`, false);
+    }
+
+    function updateQty(id, delta) {
+        const idx = cart.findIndex(i => i.id === id);
+        if (idx !== -1) {
+            const newQty = cart[idx].qty + delta;
+            if (newQty <= 0) cart.splice(idx, 1);
+            else cart[idx].qty = newQty;
+            renderCart();
+        }
+    }
+
+    function removeItem(id) {
+        cart = cart.filter(i => i.id !== id);
+        renderCart();
+        showStatus('🗑️ 已移除菜品', false);
+    }
+
+    function calcTotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    }
+
+    function renderCart() {
+        if (!cartContainer) return;
+        if (cart.length === 0) {
+            cartContainer.innerHTML = '<div style="color:#aa9f93; text-align:center;">🥢 暂无菜品，点击菜单加购</div>';
+            totalSpan.innerText = '¥0.00';
+            return;
+        }
+        let html = '';
+        cart.forEach(item => {
+            html += `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${escapeHtml(item.name)}</div>
+                        <div class="cart-item-price">¥${item.price}</div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button>
+                        <span class="cart-qty">${item.qty}</span>
+                        <button class="btn-qty" data-id="${item.id}" data-delta="1">+</button>
+                        <button class="remove-item" data-id="${item.id}">✕</button>
+                    </div>
+                </div>
+            `;
+        });
+        cartContainer.innerHTML = html;
+        totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
+
+        document.querySelectorAll('.btn-qty').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                const delta = parseInt(btn.dataset.delta);
+                updateQty(id, delta);
+            });
+        });
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                removeItem(id);
+            });
+        });
+    }
+
+    // 提交订单
+    async function submitOrder() {
+        if (cart.length === 0) {
+            showStatus('❌ 购物车为空，请先点餐', true);
+            return;
+        }
+        let tableNo = tableInput.value.trim();
+        if (tableNo === "") tableNo = "外带";
+
+        const itemsForOrder = cart.map(item => ({ name: item.name, qty: item.qty, price: item.price }));
+        const orderData = {
+            table: tableNo,
+            items: itemsForOrder,
+            total: calcTotal(),
+            time: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.6';
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '📡 发送中...';
+
+        try {
+            await ordersRef.push(orderData);
+            showStatus(`✅ 订单已发送至厨房！ 桌号: ${tableNo} 总价 ¥${calcTotal().toFixed(2)}`);
+            cart = [];
+            renderCart();
+        } catch (err) {
+            console.error(err);
+            let errorMsg = err.message || '网络错误';
+            if (errorMsg.includes('PERMISSION_DENIED')) errorMsg = '权限不足，请检查 Firebase 数据库规则';
+            else if (errorMsg.includes('databaseURL')) errorMsg = '数据库URL配置错误';
+            showStatus(`❌ 订单发送失败: ${errorMsg}`, true);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.innerHTML = originalText;
+        }
+    }
+
+    function clearCart() {
+        if (cart.length === 0) return;
+        cart = [];
+        renderCart();
+        showStatus('🧹 购物车已清空', false);
+    }
+
+    // ========== 订单历史相关函数 ==========
+    // 从 Firebase 获取所有订单（未完成）
+    async function fetchAllOrders() {
+        const snapshot = await ordersRef.once('value');
+        const orders = snapshot.val();
+        if (!orders) return [];
+        // 转换为数组，并按时间倒序（最新在前）
+        const orderList = Object.entries(orders).map(([id, data]) => ({ id, ...data }));
+        orderList.sort((a, b) => new Date(b.time) - new Date(a.time));
+        return orderList;
+    }
+
+    // 将订单项数组格式化为可读字符串（如 "牛肉面x2, 卤肉饭x1"）
+    function formatItems(items) {
+        if (!items || !Array.isArray(items)) return '';
+        return items.map(item => `${item.name} x${item.qty}`).join('; ');
+    }
+
+    // 渲染历史订单表格
+    async function renderHistoryTable() {
+        historyTbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
+        try {
+            const orders = await fetchAllOrders();
+            if (orders.length === 0) {
+                historyTbody.innerHTML = '<tr><td colspan="5">暂无任何订单</td></tr>';
+                return;
+            }
+            let html = '';
+            orders.forEach(order => {
+                const itemsStr = formatItems(order.items);
+                const timeStr = order.time ? new Date(order.time).toLocaleString() : '未知';
+                html += `
+                    <tr>
+                        <td>${escapeHtml(order.id)}</td>
+                        <td>${escapeHtml(order.table || '外带')}</td>
+                        <td>${escapeHtml(timeStr)}</td>
+                        <td>${escapeHtml(itemsStr)}</td>
+                        <td>¥${order.total ? order.total.toFixed(2) : '0.00'}</td>
+                    </tr>
+                `;
+            });
+            historyTbody.innerHTML = html;
+        } catch (err) {
+            console.error(err);
+            historyTbody.innerHTML = '<tr><td colspan="5">加载失败，请检查网络或数据库规则</td></tr>';
+        }
+    }
+
+    // 导出为 CSV (Excel 可打开)
+    async function exportToExcel() {
+        try {
+            const orders = await fetchAllOrders();
+            if (orders.length === 0) {
+                alert('没有订单可导出');
+                return;
+            }
+            // 准备 CSV 数据
+            const headers = ['订单ID', '桌号', '下单时间', '菜品明细', '总价(¥)'];
+            const rows = orders.map(order => [
+                order.id,
+                order.table || '外带',
+                order.time ? new Date(order.time).toLocaleString() : '',
+                formatItems(order.items),
+                order.total ? order.total.toFixed(2) : '0.00'
+            ]);
+            const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM 处理中文
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute('download', `orders_${new Date().toISOString().slice(0,19)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            alert('导出失败：' + err.message);
+        }
+    }
+
+    // 模态框控制
+    function openModal() {
+        modal.style.display = 'block';
+        renderHistoryTable();
+    }
+    function closeModalFunc() {
+        modal.style.display = 'none';
+    }
+
+    // 辅助
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // 初始化
+    function init() {
+        switchCategory('main');
+        renderCart();
+        submitBtn.addEventListener('click', submitOrder);
+        clearCartBtn.addEventListener('click', clearCart);
+        tableInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') submitOrder(); });
+        historyBtn.addEventListener('click', openModal);
+        closeModal.addEventListener('click', closeModalFunc);
+        exportExcelBtn.addEventListener('click', exportToExcel);
+        window.addEventListener('click', (e) => { if (e.target === modal) closeModalFunc(); });
+        database.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) console.log('✅ Firebase 已连接');
+            else console.warn('⚠️ Firebase 未连接');
+        });
+    }
+    init();
+</script>
+</body>
+</html>
