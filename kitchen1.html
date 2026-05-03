@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>厨房看板 · 实时订单（完成归档）</title>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #0a0f1e;
+            color: #eef;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .kitchen-container { max-width: 1400px; margin: 0 auto; }
+        h1 { text-align: center; font-size: 2.2rem; margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        h1:before { content: "🍳"; font-size: 2rem; }
+        h1:after { content: "🔥"; font-size: 2rem; }
+        .sub { text-align: center; color: #9aaebf; margin-bottom: 30px; font-size: 0.9rem; }
+        .stats {
+            display: flex; justify-content: space-between; background: #111a24;
+            padding: 12px 24px; border-radius: 60px; margin-bottom: 25px;
+            flex-wrap: wrap; gap: 15px;
+        }
+        .stats span { color: #ffaa66; font-weight: bold; }
+        .orders-grid { display: flex; flex-direction: column; gap: 18px; }
+        .order-card {
+            background: #1e2a36; border-radius: 24px; padding: 18px 22px;
+            border-left: 8px solid #ffa500; box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .order-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-bottom: 14px; border-bottom: 1px dashed #4a627a; padding-bottom: 8px; }
+        .table-number { font-size: 1.5rem; font-weight: bold; background: #ffa50020; padding: 4px 16px; border-radius: 40px; color: #ffb347; }
+        .order-time { font-size: 0.85rem; color: #b8d0e0; background: #0f1a24; padding: 4px 12px; border-radius: 30px; }
+        .items-list { margin: 15px 0; padding-left: 8px; }
+        .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2e445e; }
+        .item-name { font-weight: 500; }
+        .item-qty { color: #ffaa66; font-weight: bold; background: #00000030; padding: 2px 10px; border-radius: 30px; }
+        .order-total { text-align: right; margin-top: 12px; font-size: 1.2rem; font-weight: bold; color: #7effb3; border-top: 1px solid #2e445e; padding-top: 12px; }
+        .order-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+        .btn-complete { background: #2c6e2c; color: white; border: none; padding: 8px 20px; border-radius: 40px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
+        .btn-complete:hover { background: #1f511f; transform: scale(1.02); }
+        .empty-state { text-align: center; padding: 60px 20px; background: #111a24; border-radius: 40px; color: #88aacc; font-size: 1.2rem; }
+        .loading { text-align: center; padding: 40px; color: #ffaa66; }
+        footer { text-align: center; margin-top: 40px; font-size: 0.75rem; color: #5b7992; }
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .order-card { padding: 14px; }
+            .table-number { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="kitchen-container">
+    <h1>厨房订单看板</h1>
+    <div class="sub">实时同步 | 完成即归档（永久保存）</div>
+
+    <div class="stats">
+        <div>📋 等待中的订单：<span id="pendingCount">0</span></div>
+        <div>🕒 最后更新：<span id="lastUpdate">--:--:--</span></div>
+        <div>✅ 已完成（本会话）：<span id="completedCount">0</span></div>
+    </div>
+
+    <div id="ordersContainer" class="orders-grid">
+        <div class="loading">⏳ 连接厨房数据库...</div>
+    </div>
+    <footer>🔥 点击「完成」后订单归档，不再显示在此处，但数据永久保留</footer>
+</div>
+
+<script>
+    // ========== Firebase 配置（与 POS 完全相同）==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+        authDomain: "create-for-payment.firebaseapp.com",
+        databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app/",
+        projectId: "create-for-payment",
+        storageBucket: "create-for-payment.firebasestorage.app",
+        messagingSenderId: "505063429802",
+        appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+        measurementId: "G-SHP91WNP0H"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    // 只查询未完成的订单（completed == false 或 不存在 completed 字段的旧数据）
+    const ordersRef = database.ref('orders').orderByChild('completed').equalTo(false);
+
+    const ordersContainer = document.getElementById('ordersContainer');
+    const pendingCountSpan = document.getElementById('pendingCount');
+    const lastUpdateSpan = document.getElementById('lastUpdate');
+    const completedCountSpan = document.getElementById('completedCount');
+
+    let currentOrderKeys = new Set();
+    let completedLocalCount = 0;
+
+    function updateLastUpdate() {
+        lastUpdateSpan.innerText = new Date().toLocaleTimeString();
+    }
+    function updatePendingCount() {
+        pendingCountSpan.innerText = currentOrderKeys.size;
+    }
+    function incrementCompletedCount() {
+        completedLocalCount++;
+        completedCountSpan.innerText = completedLocalCount;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+
+    function formatOrderTime(timeValue) {
+        if (!timeValue) return '刚刚';
+        try {
+            const date = new Date(timeValue);
+            if (!isNaN(date.getTime())) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            return timeValue;
+        } catch(e) { return timeValue; }
+    }
+
+    function createOrderCard(orderId, orderData) {
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.dataset.id = orderId;
+        const tableText = orderData.table ? `桌 ${orderData.table}` : '🥡 外带';
+        const timeStr = formatOrderTime(orderData.time);
+        let itemsHtml = '';
+        if (orderData.items && Array.isArray(orderData.items)) {
+            orderData.items.forEach(item => {
+                itemsHtml += `<div class="item-row"><span class="item-name">🍽️ ${escapeHtml(item.name)}</span><span class="item-qty">x ${item.qty}</span></div>`;
+            });
+        } else {
+            itemsHtml = '<div class="item-row">无明细</div>';
+        }
+        const totalPrice = orderData.total !== undefined ? orderData.total : 0;
+        card.innerHTML = `
+            <div class="order-header">
+                <span class="table-number">${escapeHtml(tableText)}</span>
+                <span class="order-time">🕒 ${escapeHtml(timeStr)}</span>
+            </div>
+            <div class="items-list">${itemsHtml}</div>
+            <div class="order-total">💵 合计: ¥${Number(totalPrice).toFixed(2)}</div>
+            <div class="order-actions"><button class="btn-complete" data-id="${orderId}">✅ 完成</button></div>
+        `;
+        const completeBtn = card.querySelector('.btn-complete');
+        completeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await completeOrder(orderId);
+        });
+        return card;
+    }
+
+    // 完成订单：将 completed 字段改为 true
+    async function completeOrder(orderId) {
+        if (!orderId) return;
+        try {
+            await database.ref('orders').child(orderId).update({ completed: true });
+            console.log(`订单 ${orderId} 已标记为完成`);
+            incrementCompletedCount();
+            updateLastUpdate();
+        } catch (err) {
+            console.error('标记完成失败:', err);
+            alert('操作失败: ' + (err.message || '网络错误'));
+        }
+    }
+
+    function addOrderToScreen(orderId, orderData) {
+        if (currentOrderKeys.has(orderId)) return;
+        const card = createOrderCard(orderId, orderData);
+        const firstOrderCard = ordersContainer.querySelector('.order-card');
+        if (firstOrderCard) ordersContainer.insertBefore(card, firstOrderCard);
+        else ordersContainer.appendChild(card);
+        currentOrderKeys.add(orderId);
+        updatePendingCount();
+        updateLastUpdate();
+    }
+
+    function removeOrderFromScreen(orderId) {
+        const card = document.querySelector(`.order-card[data-id="${orderId}"]`);
+        if (card) card.remove();
+        currentOrderKeys.delete(orderId);
+        updatePendingCount();
+        updateLastUpdate();
+    }
+
+    function showEmptyState(message = '✨ 暂无订单，等待厨房开工...') {
+        let emptyDiv = document.getElementById('emptyState');
+        if (!emptyDiv) {
+            emptyDiv = document.createElement('div');
+            emptyDiv.id = 'emptyState';
+            emptyDiv.className = 'empty-state';
+            ordersContainer.appendChild(emptyDiv);
+        }
+        emptyDiv.innerText = message;
+        emptyDiv.style.display = 'block';
+    }
+    function hideEmptyState() {
+        const emptyDiv = document.getElementById('emptyState');
+        if (emptyDiv) emptyDiv.style.display = 'none';
+    }
+
+    let initialLoadDone = false;
+    function subscribeToOrders() {
+        // 监听新添加的未完成订单
+        ordersRef.on('child_added', (snapshot) => {
+            const orderData = snapshot.val();
+            const orderId = snapshot.key;
+            if (!currentOrderKeys.has(orderId)) {
+                addOrderToScreen(orderId, orderData);
+                hideEmptyState();
+            }
+            if (!initialLoadDone) {
+                const loader = document.querySelector('.loading');
+                if (loader) loader.remove();
+                initialLoadDone = true;
+                if (currentOrderKeys.size === 0) showEmptyState();
+                else hideEmptyState();
+            }
+        });
+        // 监听订单状态变为 completed (child_changed)
+        database.ref('orders').on('child_changed', (snapshot) => {
+            const orderId = snapshot.key;
+            const newData = snapshot.val();
+            if (newData.completed === true && currentOrderKeys.has(orderId)) {
+                removeOrderFromScreen(orderId);
+                if (currentOrderKeys.size === 0) showEmptyState();
+            } else if (newData.completed === false && !currentOrderKeys.has(orderId)) {
+                // 如果订单被改回未完成（例如管理员操作），重新显示
+                addOrderToScreen(orderId, newData);
+                hideEmptyState();
+            }
+        });
+        // 监听订单删除（可选，如果未来有物理删除需求）
+        database.ref('orders').on('child_removed', (snapshot) => {
+            const orderId = snapshot.key;
+            removeOrderFromScreen(orderId);
+            if (currentOrderKeys.size === 0) showEmptyState();
+        });
+    }
+
+    function monitorConnection() {
+        database.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('✅ Firebase 已连接');
+                updateLastUpdate();
+            } else {
+                console.warn('⚠️ Firebase 断开连接');
+                showEmptyState('⚠️ 网络连接中，正在重连...');
+            }
+        });
+    }
+
+    function init() {
+        ordersContainer.innerHTML = '<div class="loading">⏳ 连接厨房数据库...</div>';
+        subscribeToOrders();
+        monitorConnection();
+        setInterval(() => { if (currentOrderKeys.size > 0) updateLastUpdate(); }, 10000);
+    }
+    init();
+</script>
+</body>
+</html>
