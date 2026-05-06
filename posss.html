@@ -124,7 +124,7 @@
 
     <div class="pos-grid">
         <div class="menu-panel">
-            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋 主菜</div>
+            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋 铜锅</div>
             <div class="menu-items" id="menuList"></div>
         </div>
         <div class="cart-panel">
@@ -178,7 +178,7 @@
             catMain: '🍜 主菜',
             catSide: '🥗 小菜',
             catExtra: '➕ 额外添加',
-            mainTitle: '📋 主菜',
+            mainTitle: '📋 铜锅',
             sideTitle: '🥢 小菜',
             extraTitle: '✨ 额外添加',
             cartHeader: '🛒 当前订单',
@@ -235,7 +235,7 @@
             catMain: '🍜 Main Course',
             catSide: '🥗 Side Dishes',
             catExtra: '➕ Extras',
-            mainTitle: '📋 Main Course',
+            mainTitle: '📋 POT',
             sideTitle: '🥢 Side Dishes',
             extraTitle: '✨ Extras',
             cartHeader: '🛒 Current Order',
@@ -444,7 +444,7 @@
         items.forEach(item => {
             const card = document.createElement('div');
             card.className = 'menu-card';
-            card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">¥${item.price}</div>`;
+            card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">$${item.price}</div>`;
             card.addEventListener('click', () => addToCart(item));
             menuContainer.appendChild(card);
         });
@@ -490,13 +490,13 @@
         if (!cartContainer) return;
         if (cart.length === 0) {
             cartContainer.innerHTML = `<div style="color:#aa9f93; text-align:center;">${translations[currentLang].emptyCart}</div>`;
-            totalSpan.innerText = '¥0.00';
+            totalSpan.innerText = '$0.00';
             return;
         }
         let html = '';
         cart.forEach(item => {
             html += `<div class="cart-item">
-                <div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>¥${item.price}</div></div>
+                <div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>$${item.price}</div></div>
                 <div class="cart-item-controls">
                     <button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button>
                     <span class="cart-qty">${item.qty}</span>
@@ -506,7 +506,7 @@
             </div>`;
         });
         cartContainer.innerHTML = html;
-        totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
+        totalSpan.innerText = `$${calcTotal().toFixed(2)}`;
         document.querySelectorAll('.btn-qty').forEach(btn => {
             btn.addEventListener('click', e => {
                 e.stopPropagation();
