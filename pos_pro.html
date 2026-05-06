@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 重置订单号功能</title>
+    <title>智慧柜台POS · 订单历史销售总额统计</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
@@ -75,11 +75,47 @@
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 40px; }
         .login-box button { width: 100%; margin-top: 15px; }
         .login-error { color: #c62828; margin-top: 10px; }
+        /* 新增销售统计卡片样式 */
+        .sales-stats {
+            background: #f8f4ef;
+            border-radius: 28px;
+            padding: 14px 20px;
+            margin: 16px 0 12px 0;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ffddb0;
+            font-weight: 500;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .stats-item {
+            background: white;
+            padding: 8px 18px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: baseline;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .stats-label {
+            font-size: 0.9rem;
+            color: #8b6b42;
+        }
+        .stats-amount {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c6e2c;
+            letter-spacing: 0.5px;
+        }
         @media (max-width: 780px) {
             .pos-container { padding: 16px; }
             .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
             .modal-content { width: 95%; padding: 16px; }
             .last-order-number { font-size: 1.2rem; }
+            .stats-amount { font-size: 1.2rem; }
+            .stats-item { padding: 4px 12px; }
         }
     </style>
 </head>
@@ -124,7 +160,7 @@
 
     <div class="pos-grid">
         <div class="menu-panel">
-            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋 主菜</div>
+            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋 铜锅</div>
             <div class="menu-items" id="menuList"></div>
         </div>
         <div class="cart-panel">
@@ -156,6 +192,8 @@
                 <button id="clearAllOrdersBtn" class="clear-all-btn"><span data-lang="clearAllBtn">🗑️ 一键清除所有订单</span></button>
             </div>
         </h2>
+        <!-- 新增：当日+前一日销售总额统计卡片 -->
+        <div id="salesStatsContainer" class="sales-stats"></div>
         <div style="overflow-x: auto;">
             <table class="order-table">
                 <thead id="orderTableHead"></thead>
@@ -178,7 +216,7 @@
             catMain: '🍜 主菜',
             catSide: '🥗 小菜',
             catExtra: '➕ 额外添加',
-            mainTitle: '📋 主菜',
+            mainTitle: '📋 铜锅',
             sideTitle: '🥢 小菜',
             extraTitle: '✨ 额外添加',
             cartHeader: '🛒 当前订单',
@@ -224,7 +262,13 @@
             gettingOrderNo: '📡 获取订单号...',
             sending: '📡 发送中...',
             lastOrderLabel: '📋 最后一单',
-            lastTableLabel: '🏷️ 桌号'
+            lastTableLabel: '🏷️ 桌号',
+            // 新增销售统计字段
+            todayTotalLabel: '📅 今日销售总额',
+            yesterdayTotalLabel: '⏪ 昨日销售总额',
+            // 清除密码验证字段
+            clearPasswordPrompt: '🔐 请输入操作密码以清除所有订单：',
+            clearPasswordError: '❌ 密码错误，操作已取消'
         },
         'en': {
             loginTitle: '🔐 System Login',
@@ -235,7 +279,7 @@
             catMain: '🍜 Main Course',
             catSide: '🥗 Side Dishes',
             catExtra: '➕ Extras',
-            mainTitle: '📋 Main Course',
+            mainTitle: '📋 POT',
             sideTitle: '🥢 Side Dishes',
             extraTitle: '✨ Extras',
             cartHeader: '🛒 Current Order',
@@ -281,7 +325,11 @@
             gettingOrderNo: '📡 Getting order number...',
             sending: '📡 Sending...',
             lastOrderLabel: '📋 Last Order',
-            lastTableLabel: '🏷️ Table'
+            lastTableLabel: '🏷️ Table',
+            todayTotalLabel: '📅 Today\'s Sales',
+            yesterdayTotalLabel: '⏪ Yesterday\'s Sales',
+            clearPasswordPrompt: '🔐 Please enter operation password to clear all orders:',
+            clearPasswordError: '❌ Incorrect password, operation cancelled'
         }
     };
 
@@ -302,6 +350,7 @@
     };
 
     let currentLang = 'zh-CN';
+    const LOGIN_PASSWORD = "123456";   // 与登录密码保持一致，用于清除订单验证
 
     function updateStaticTexts() {
         document.querySelectorAll('[data-lang]').forEach(el => {
@@ -322,6 +371,10 @@
         const lastTableLabelSpan = document.querySelector('#lastOrderCard .last-order-label:last-child');
         if (lastOrderLabelSpan) lastOrderLabelSpan.innerText = translations[currentLang].lastOrderLabel;
         if (lastTableLabelSpan) lastTableLabelSpan.innerText = translations[currentLang].lastTableLabel;
+        // 若模态框打开，更新销售统计文案及数字（重新渲染统计区域）
+        if (modal && modal.style.display === 'block') {
+            renderHistoryTable(); // 刷新会更新销售额统计区域语言和数字
+        }
     }
 
     function getMenuItemName(id) {
@@ -341,7 +394,6 @@
     }
 
     // ========== 登录 ==========
-    const LOGIN_PASSWORD = "123456";
     const loginOverlay = document.getElementById('loginOverlay');
     const mainContent = document.getElementById('mainContent');
     const passwordInput = document.getElementById('passwordInput');
@@ -376,7 +428,7 @@
     const ordersRef = database.ref('orders');
     const counterRef = database.ref('orderCounter');
 
-    // 菜单基础数据（已修正逗号）
+    // 菜单基础数据
     const MENU_BASE = {
         main: [
             { id: 1, price: 8.90, cat: "main" },
@@ -426,6 +478,51 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
+    // 辅助: 获取ISO时间字符串对应本地日期YYYY-MM-DD (基于浏览器时区)
+    function getLocalDateString(isoString) {
+        if (!isoString) return null;
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 计算今日和昨日销售总额 (基于所有订单)
+    function computeDailyTotals(orders) {
+        const today = new Date();
+        const todayStr = getLocalDateString(today.toISOString());
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = getLocalDateString(yesterday.toISOString());
+        
+        let todayTotal = 0, yesterdayTotal = 0;
+        for (const order of orders) {
+            if (!order.time) continue;
+            const orderDateStr = getLocalDateString(order.time);
+            if (orderDateStr === todayStr) {
+                todayTotal += (order.total && typeof order.total === 'number') ? order.total : 0;
+            } else if (orderDateStr === yesterdayStr) {
+                yesterdayTotal += (order.total && typeof order.total === 'number') ? order.total : 0;
+            }
+        }
+        return { todayTotal, yesterdayTotal };
+    }
+
+    // 更新销售统计UI
+    function updateSalesStats(orders) {
+        const container = document.getElementById('salesStatsContainer');
+        if (!container) return;
+        const { todayTotal, yesterdayTotal } = computeDailyTotals(orders);
+        const todayLabel = translations[currentLang].todayTotalLabel || '📅 今日销售总额';
+        const yesterdayLabel = translations[currentLang].yesterdayTotalLabel || '⏪ 昨日销售总额';
+        container.innerHTML = `
+            <div class="stats-item"><span class="stats-label">${todayLabel}</span><span class="stats-amount">¥${todayTotal.toFixed(2)}</span></div>
+            <div class="stats-item"><span class="stats-label">${yesterdayLabel}</span><span class="stats-amount">¥${yesterdayTotal.toFixed(2)}</span></div>
+        `;
+    }
+
     function getCurrentMenu() {
         const result = {};
         for (let cat in MENU_BASE) {
@@ -444,7 +541,7 @@
         items.forEach(item => {
             const card = document.createElement('div');
             card.className = 'menu-card';
-            card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">¥${item.price}</div>`;
+            card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">$${item.price}</div>`;
             card.addEventListener('click', () => addToCart(item));
             menuContainer.appendChild(card);
         });
@@ -490,13 +587,13 @@
         if (!cartContainer) return;
         if (cart.length === 0) {
             cartContainer.innerHTML = `<div style="color:#aa9f93; text-align:center;">${translations[currentLang].emptyCart}</div>`;
-            totalSpan.innerText = '¥0.00';
+            totalSpan.innerText = '$0.00';
             return;
         }
         let html = '';
         cart.forEach(item => {
             html += `<div class="cart-item">
-                <div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>¥${item.price}</div></div>
+                <div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>$${item.price}</div></div>
                 <div class="cart-item-controls">
                     <button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button>
                     <span class="cart-qty">${item.qty}</span>
@@ -506,7 +603,7 @@
             </div>`;
         });
         cartContainer.innerHTML = html;
-        totalSpan.innerText = `¥${calcTotal().toFixed(2)}`;
+        totalSpan.innerText = `$${calcTotal().toFixed(2)}`;
         document.querySelectorAll('.btn-qty').forEach(btn => {
             btn.addEventListener('click', e => {
                 e.stopPropagation();
@@ -604,7 +701,7 @@
 
     async function renderHistoryTable() {
         const tbody = document.getElementById('historyTbody');
-        tbody.innerHTML = `<td><td colspan="7">${translations[currentLang].loadingHistory}<\/td><\/tr>`;
+        tbody.innerHTML = `<tr><td colspan="7">${translations[currentLang].loadingHistory}<\/td><\/tr>`;
         const thead = document.getElementById('orderTableHead');
         if (thead) {
             thead.innerHTML = `<tr>
@@ -619,6 +716,8 @@
         }
         try {
             const orders = await fetchAllOrders();
+            // 更新销售统计 (新增)
+            updateSalesStats(orders);
             if (orders.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7">${translations[currentLang].noOrders}<\/td><\/tr>`;
                 return;
@@ -676,8 +775,20 @@
         URL.revokeObjectURL(link.href);
     }
 
+    // 修改清除所有订单：添加密码验证
     async function clearAllOrders() {
+        // 1. 先确认用户意图
         if (!confirm(translations[currentLang].confirmClear)) return;
+        
+        // 2. 弹出密码输入框
+        const pwd = prompt(translations[currentLang].clearPasswordPrompt);
+        if (pwd === null) return; // 用户取消
+        if (pwd !== LOGIN_PASSWORD) {
+            alert(translations[currentLang].clearPasswordError);
+            return;
+        }
+        
+        // 3. 执行清除操作
         try {
             await ordersRef.remove();
             await counterRef.remove();
@@ -739,7 +850,7 @@
         historyBtn.addEventListener('click', openModal);
         closeModal.addEventListener('click', closeModalFunc);
         exportExcelBtn.addEventListener('click', exportToExcel);
-        clearAllOrdersBtn.addEventListener('click', clearAllOrders);
+        clearAllOrdersBtn.addEventListener('click', clearAllOrders);   // 使用带密码验证的函数
         resetCounterBtn.addEventListener('click', resetOrderCounter);
         window.addEventListener('click', e => { if (e.target === modal) closeModalFunc(); });
         database.ref('.info/connected').on('value', snap => console.log(snap.val() ? '✅ Firebase已连接' : '⚠️ 未连接'));
