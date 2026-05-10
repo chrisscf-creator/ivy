@@ -1,329 +1,222 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>取餐显示 · 已完成订单</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>厨房显示系统 Kitchen Display</title>
 
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
-        body {
-            background: #0b1a1f;
-            color: #eef4ea;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            padding: 16px;
-            min-height: 100vh;
-        }
+body{
+    background:#101820;
+    color:white;
+    font-family:system-ui;
+    padding:20px;
+}
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+.container{
+    max-width:1600px;
+    margin:auto;
+}
 
-        /* 顶部 */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            padding: 12px 20px;
-            background: #13242c;
-            border-radius: 60px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
+.header{
+    background:#1b2a35;
+    padding:20px;
+    border-radius:24px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:15px;
+}
 
-        .header h1 {
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #ffd966;
-        }
+.header h1{
+    font-size:2rem;
+    color:#ffd54f;
+}
 
-        .header h1:before {
-            content: "✅";
-            font-size: 2rem;
-        }
+.stats{
+    display:flex;
+    gap:20px;
+    font-size:1rem;
+}
 
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+.stats span{
+    color:#4caf50;
+    font-weight:bold;
+}
 
-        .stats {
-            display: flex;
-            gap: 20px;
-            font-size: 0.95rem;
-            color: #bcd0d0;
-        }
+.orders-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+    gap:20px;
+}
 
-        .stats span {
-            color: #ffb347;
-            font-weight: bold;
-        }
+.order-card{
+    background:#1c2c38;
+    border-left:8px solid #ff9800;
+    border-radius:24px;
+    padding:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    animation:fadeIn 0.3s ease;
+}
 
-        .btn-clear {
-            background: #5a3e3e;
-            color: #ffb3b3;
-            border: none;
-            padding: 8px 22px;
-            border-radius: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 0.85rem;
-        }
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
 
-        .btn-clear:hover {
-            background: #7a4a4a;
-            transform: scale(1.02);
-        }
+.order-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+    gap:10px;
+}
 
-        /* 网格 */
-        .orders-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 18px;
-        }
+.order-number{
+    background:#ff9800;
+    color:black;
+    padding:6px 18px;
+    border-radius:40px;
+    font-size:1.4rem;
+    font-weight:bold;
+}
 
-        /* 卡片 */
-        .order-card {
-            background: #1a2f33;
-            border-radius: 28px;
-            padding: 20px 22px;
-            border-left: 8px solid #2ecc71;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-            animation: popIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
-            transition: 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
+.table-number{
+    background:#2e7d32;
+    padding:6px 18px;
+    border-radius:40px;
+    font-size:1.2rem;
+    font-weight:bold;
+}
 
-        .order-card::after {
-            content: "✅";
-            position: absolute;
-            bottom: -10px;
-            right: -5px;
-            font-size: 5rem;
-            opacity: 0.06;
-            pointer-events: none;
-        }
+.order-time{
+    color:#ccc;
+    font-size:0.9rem;
+    margin-bottom:15px;
+}
 
-        @keyframes popIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.8) translateY(30px);
-            }
+.items-list{
+    margin-top:10px;
+}
 
-            100% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
+.item-row{
+    display:flex;
+    justify-content:space-between;
+    padding:8px 0;
+    border-bottom:1px solid #2f4554;
+}
 
-        .order-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(46,204,113,0.15);
-        }
+.item-name{
+    font-size:1rem;
+}
 
-        /* 订单号 */
-        .order-number {
-            background: #2ecc71;
-            color: #0b1a1f;
-            font-weight: 800;
-            font-size: 1.8rem;
-            padding: 4px 20px;
-            border-radius: 60px;
-            display: inline-block;
-            letter-spacing: 1px;
-        }
+.item-qty{
+    color:#ffd54f;
+    font-weight:bold;
+}
 
-        .table-number {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #ffd966;
-            background: #2ecc7120;
-            padding: 4px 20px;
-            border-radius: 60px;
-            display: inline-block;
-        }
+.total{
+    margin-top:15px;
+    font-size:1.2rem;
+    text-align:right;
+    color:#4caf50;
+    font-weight:bold;
+}
 
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 12px;
-            border-bottom: 1px dashed #3a5a5a;
-            padding-bottom: 10px;
-        }
+.payment{
+    margin-top:10px;
+    color:#90caf9;
+    font-size:0.95rem;
+}
 
-        .order-header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
+.complete-btn{
+    width:100%;
+    margin-top:18px;
+    padding:14px;
+    border:none;
+    border-radius:18px;
+    background:#4caf50;
+    color:white;
+    font-size:1rem;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.2s;
+}
 
-        .complete-time {
-            font-size: 0.85rem;
-            color: #9bb5b5;
-            background: #0f2227;
-            padding: 4px 14px;
-            border-radius: 30px;
-        }
+.complete-btn:hover{
+    background:#66bb6a;
+    transform:scale(1.02);
+}
 
-        /* 明细 */
-        .items-list {
-            margin: 12px 0 8px 0;
-        }
+.empty{
+    text-align:center;
+    padding:80px 20px;
+    background:#1b2a35;
+    border-radius:30px;
+    color:#8aa0b3;
+    font-size:1.4rem;
+}
 
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid #2a4848;
-            font-size: 0.95rem;
-        }
+.loading{
+    text-align:center;
+    padding:60px;
+    font-size:1.3rem;
+    color:#ffd54f;
+}
 
-        .item-qty {
-            color: #ffb347;
-            font-weight: bold;
-        }
+@media(max-width:700px){
 
-        .order-total {
-            text-align: right;
-            margin-top: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #7effb3;
-            border-top: 1px solid #2a4848;
-            padding-top: 10px;
-        }
+    body{
+        padding:10px;
+    }
 
-        /* 已取餐按钮 */
-        .pickup-btn {
-            width: 100%;
-            margin-top: 14px;
-            padding: 12px;
-            border: none;
-            border-radius: 16px;
-            background: #27ae60;
-            color: white;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
+    .header{
+        flex-direction:column;
+        text-align:center;
+    }
 
-        .pickup-btn:hover {
-            background: #2ecc71;
-            transform: scale(1.02);
-        }
+    .orders-grid{
+        grid-template-columns:1fr;
+    }
 
-        /* 空状态 */
-        .empty-state {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 80px 20px;
-            background: #13242c;
-            border-radius: 40px;
-            color: #6b9b9b;
-            font-size: 1.4rem;
-        }
-
-        .empty-state .big {
-            font-size: 3rem;
-            display: block;
-            margin-bottom: 15px;
-        }
-
-        /* 加载 */
-        .loading {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding: 50px;
-            color: #ffb347;
-            font-size: 1.2rem;
-        }
-
-        /* 手机 */
-        @media (max-width: 700px) {
-            body {
-                padding: 10px;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-
-            .header h1 {
-                font-size: 1.4rem;
-                justify-content: center;
-            }
-
-            .stats {
-                justify-content: center;
-            }
-
-            .orders-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .order-number {
-                font-size: 1.4rem;
-            }
-
-            .table-number {
-                font-size: 1.6rem;
-            }
-        }
-    </style>
+}
+</style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <!-- 顶部 -->
     <div class="header">
-        <h1>取餐完成板</h1>
+        <h1>👨‍🍳 厨房显示系统</h1>
 
-        <div class="header-actions">
-
-            <div class="stats">
-                <div>📦 已完成：<span id="completedCount">0</span></div>
-                <div>🕒 更新：<span id="lastUpdate">--:--</span></div>
-            </div>
-
-            <button class="btn-clear" id="clearBtn">
-                🗑️ 清屏（仅隐藏）
-            </button>
-
+        <div class="stats">
+            <div>📦 制作中：<span id="orderCount">0</span></div>
+            <div>🕒 更新时间：<span id="updateTime">--:--</span></div>
         </div>
     </div>
 
-    <!-- 订单 -->
     <div id="ordersGrid" class="orders-grid">
         <div class="loading">
-            ⏳ 正在加载已完成订单...
+            ⏳ 正在加载订单...
         </div>
     </div>
 
@@ -331,432 +224,213 @@
 
 <script>
 
-    // Firebase
-    const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_DOMAIN",
-        databaseURL: "YOUR_DATABASE_URL",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_BUCKET",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId: "YOUR_APP_ID"
-    };
+const firebaseConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "create-for-payment",
+    storageBucket: "create-for-payment.firebasestorage.app",
+    messagingSenderId: "505063429802",
+    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+    measurementId: "G-SHP91WNP0H"
+};
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const database = firebase.database();
+
+const ordersRef = database.ref('orders');
+
+const grid = document.getElementById('ordersGrid');
+
+const orderCount = document.getElementById('orderCount');
+
+const updateTime = document.getElementById('updateTime');
+
+function updateClock() {
+
+    updateTime.textContent =
+        new Date().toLocaleTimeString([],{
+            hour:'2-digit',
+            minute:'2-digit'
+        });
+}
+
+function escapeHtml(str){
+
+    if(!str) return '';
+
+    return String(str)
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+}
+
+function formatTime(time){
+
+    if(!time) return '--:--';
+
+    try{
+
+        return new Date(time).toLocaleTimeString([],{
+            hour:'2-digit',
+            minute:'2-digit'
+        });
+
+    }catch{
+
+        return '--:--';
     }
+}
 
-    const database = firebase.database();
-    const allOrdersRef = database.ref('orders');
+function createOrderCard(orderId,data){
 
-    const grid = document.getElementById('ordersGrid');
-    const completedCountSpan = document.getElementById('completedCount');
-    const lastUpdateSpan = document.getElementById('lastUpdate');
-    const clearBtn = document.getElementById('clearBtn');
+    const card = document.createElement('div');
 
-    const completedOrders = new Map();
+    card.className = 'order-card';
 
-    // 更新时间
-    function updateTime() {
-        lastUpdateSpan.textContent =
-            new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-    }
+    let itemsHtml = '';
 
-    // 更新数量
-    function updateCount() {
-        completedCountSpan.textContent = completedOrders.size;
-    }
+    if(data.items && Array.isArray(data.items)){
 
-    // 防 XSS
-    function escapeHtml(str) {
-        if (!str) return '';
+        data.items.forEach(item=>{
 
-        return String(str).replace(/[&<>]/g, m =>
-            m === '&'
-                ? '&amp;'
-                : m === '<'
-                ? '&lt;'
-                : '&gt;'
-        );
-    }
-
-    // 时间格式
-    function formatTime(timeVal) {
-
-        if (!timeVal) return '--:--';
-
-        try {
-
-            const d = new Date(timeVal);
-
-            if (!isNaN(d.getTime())) {
-                return d.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-            }
-
-            return String(timeVal).slice(0, 8);
-
-        } catch (e) {
-
-            return String(timeVal).slice(0, 8);
-
-        }
-    }
-
-    // 创建卡片
-    function createCompletedCard(orderId, data) {
-
-        const card = document.createElement('div');
-
-        card.className = 'order-card';
-        card.dataset.id = orderId;
-
-        const orderNum =
-            data.orderNumber
-                ? `#${data.orderNumber}`
-                : `#${orderId.slice(-5)}`;
-
-        const tableText =
-            data.table
-                ? `桌 ${data.table}`
-                : '🥡 外带';
-
-        const doneTime =
-            data.completedAt ||
-            data.timestamp ||
-            data.time ||
-            '';
-
-        const timeStr = formatTime(doneTime);
-
-        // 菜品
-        let itemsHtml = '';
-
-        if (data.items && Array.isArray(data.items)) {
-
-            data.items.forEach(item => {
-
-                const name = escapeHtml(item.name);
-                const qty = item.qty || 1;
-
-                itemsHtml += `
-                    <div class="item-row">
-                        <span>🍽️ ${name}</span>
-                        <span class="item-qty">×${qty}</span>
-                    </div>
-                `;
-            });
-
-        } else {
-
-            itemsHtml = `
+            itemsHtml += `
                 <div class="item-row">
-                    <span>（无明细）</span>
+                    <div class="item-name">
+                        🍽️ ${escapeHtml(item.name)}
+                    </div>
+
+                    <div class="item-qty">
+                        ×${item.qty || 1}
+                    </div>
                 </div>
             `;
-        }
+        });
+    }
 
-        const total =
-            data.total !== undefined &&
-            data.total !== null
-                ? Number(data.total).toFixed(2)
-                : '—';
+    card.innerHTML = `
 
-        card.dataset.total = total;
+        <div class="order-top">
 
-        card.innerHTML = `
-            <div class="order-header">
-
-                <div class="order-header-left">
-
-                    <span class="order-number">
-                        ${escapeHtml(orderNum)}
-                    </span>
-
-                    <span class="table-number">
-                        ${escapeHtml(tableText)}
-                    </span>
-
-                </div>
-
-                <span class="complete-time">
-                    ✅ ${timeStr}
-                </span>
-
+            <div class="order-number">
+                #${data.orderNumber || '---'}
             </div>
 
-            <div class="items-list">
-                ${itemsHtml}
+            <div class="table-number">
+                ${escapeHtml(data.table || '外带')}
             </div>
 
-            <div class="order-total">
-                💰 合计：¥${total}
-            </div>
+        </div>
 
-            <button
-                class="pickup-btn"
-                onclick="markAsPickedUp('${orderId}')"
-            >
-                ✅ 已取餐
-            </button>
-        `;
+        <div class="order-time">
+            🕒 ${formatTime(data.time)}
+        </div>
 
-        return card;
-    }
+        <div class="items-list">
+            ${itemsHtml}
+        </div>
 
-    // 添加卡片
-    function addCard(orderId, data) {
+        <div class="payment">
+            💳 ${escapeHtml(data.paymentMethod || 'Cash')}
+        </div>
 
-        if (completedOrders.has(orderId)) return;
+        <div class="total">
+            💰 $${Number(data.total || 0).toFixed(2)}
+        </div>
 
-        const card = createCompletedCard(orderId, data);
+        <button class="complete-btn"
+            onclick="completeOrder('${orderId}')">
 
-        const firstCard = grid.querySelector('.order-card');
+            ✅ 完成订单
 
-        if (firstCard) {
-            grid.insertBefore(card, firstCard);
-        } else {
-            grid.appendChild(card);
-        }
+        </button>
+    `;
 
-        completedOrders.set(orderId, card);
+    return card;
+}
 
-        updateCount();
-        updateTime();
+function renderOrders(allData){
 
-        hideEmptyState();
-    }
+    grid.innerHTML = '';
 
-    // 删除卡片
-    function removeCard(orderId) {
-
-        const card = completedOrders.get(orderId);
-
-        if (card) {
-
-            card.remove();
-
-            completedOrders.delete(orderId);
-
-            updateCount();
-            updateTime();
-
-            if (completedOrders.size === 0) {
-                showEmptyState();
-            }
-        }
-    }
-
-    // 空状态
-    function showEmptyState(msg = '🎉 暂无已完成订单') {
-
-        let emptyEl = document.getElementById('emptyState');
-
-        if (!emptyEl) {
-
-            emptyEl = document.createElement('div');
-
-            emptyEl.id = 'emptyState';
-            emptyEl.className = 'empty-state';
-
-            grid.appendChild(emptyEl);
-        }
-
-        emptyEl.innerHTML = `
-            <span class="big">✅</span>
-            ${msg}
-        `;
-
-        emptyEl.style.display = 'block';
-    }
-
-    function hideEmptyState() {
-
-        const emptyEl = document.getElementById('emptyState');
-
-        if (emptyEl) {
-            emptyEl.style.display = 'none';
-        }
-    }
-
-    // 顾客已取餐
-    function markAsPickedUp(orderId) {
-
-        database.ref('orders/' + orderId).update({
-
-            pickedUp: true,
-            pickedUpAt: Date.now()
-
-        }).then(() => {
-
-            console.log('订单已取餐:', orderId);
-
-        }).catch(err => {
-
-            console.error('更新失败:', err);
-
-        });
-    }
-
-    // Firebase 监听
-    function initFirebaseListeners() {
-
-        allOrdersRef.on('value', snapshot => {
-
-            const allData = snapshot.val();
-
-            if (!allData) {
-
-                grid.innerHTML = '';
-
-                completedOrders.clear();
-
-                updateCount();
-
-                showEmptyState('📭 数据库暂无订单');
-
-                return;
-            }
-
-            const currentKeys = new Set(Object.keys(allData));
-
-            // 删除不存在
-            for (const key of completedOrders.keys()) {
-
-                if (!currentKeys.has(key)) {
-                    removeCard(key);
-                }
-            }
-
-            let hasCompleted = false;
-
-            for (const [key, data] of Object.entries(allData)) {
-
-                // 只显示：
-                // completed=true
-                // pickedUp != true
-
-                if (
-                    data.completed === true &&
-                    data.pickedUp !== true
-                ) {
-
-                    hasCompleted = true;
-
-                    if (!completedOrders.has(key)) {
-
-                        addCard(key, data);
-
-                    } else {
-
-                        const oldCard = completedOrders.get(key);
-
-                        const newTotal = data.total;
-                        const oldTotal = oldCard.dataset.total;
-
-                        if (String(newTotal) !== String(oldTotal)) {
-
-                            removeCard(key);
-                            addCard(key, data);
-                        }
-                    }
-
-                } else {
-
-                    // 已取餐 → 删除
-                    if (completedOrders.has(key)) {
-                        removeCard(key);
-                    }
-                }
-            }
-
-            if (!hasCompleted && completedOrders.size === 0) {
-
-                showEmptyState('🎉 暂无已完成订单');
-
-            } else {
-
-                hideEmptyState();
-            }
-
-            // 去掉 loading
-            const loader = grid.querySelector('.loading');
-
-            if (loader) loader.remove();
-
-            updateCount();
-            updateTime();
-        });
-
-        // child_changed
-        allOrdersRef.on('child_changed', snapshot => {
-
-            const data = snapshot.val();
-            const key = snapshot.key;
-
-            if (
-                data.completed === true &&
-                data.pickedUp !== true
-            ) {
-
-                removeCard(key);
-                addCard(key, data);
-
-            } else {
-
-                removeCard(key);
-            }
-        });
-
-        // child_removed
-        allOrdersRef.on('child_removed', snapshot => {
-
-            const key = snapshot.key;
-
-            removeCard(key);
-        });
-    }
-
-    // 清屏（仅前端）
-    clearBtn.addEventListener('click', () => {
-
-        for (const [key, card] of completedOrders.entries()) {
-            card.remove();
-        }
-
-        completedOrders.clear();
-
-        updateCount();
-
-        showEmptyState('🧹 已清屏，新订单仍会显示');
-
-        updateTime();
-    });
-
-    // 启动
-    function init() {
+    if(!allData){
 
         grid.innerHTML = `
-            <div class="loading">
-                ⏳ 正在加载已完成订单...
+            <div class="empty">
+                📭 暂无订单
             </div>
         `;
 
-        initFirebaseListeners();
+        orderCount.textContent = 0;
 
-        setInterval(updateTime, 15000);
+        return;
     }
 
-    init();
+    let count = 0;
+
+    const entries = Object.entries(allData).reverse();
+
+    entries.forEach(([key,data])=>{
+
+        // 只显示未完成订单
+        if(data.completed !== true){
+
+            count++;
+
+            const card = createOrderCard(key,data);
+
+            grid.appendChild(card);
+        }
+    });
+
+    orderCount.textContent = count;
+
+    if(count === 0){
+
+        grid.innerHTML = `
+            <div class="empty">
+                🎉 当前没有制作中的订单
+            </div>
+        `;
+    }
+
+    updateClock();
+}
+
+function completeOrder(orderId){
+
+    database.ref('orders/' + orderId).update({
+
+        completed:true,
+        completedAt:Date.now()
+
+    }).then(()=>{
+
+        console.log('订单完成');
+
+    }).catch(err=>{
+
+        console.error(err);
+
+        alert('更新失败');
+    });
+}
+
+ordersRef.on('value',(snapshot)=>{
+
+    const data = snapshot.val();
+
+    renderOrders(data);
+});
+
+setInterval(updateClock,15000);
+
+updateClock();
 
 </script>
 
 </body>
 </html>
-```
