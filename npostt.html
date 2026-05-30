@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Food Order - TT1</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background-image: url('https://images.unsplash.com/photo-1546069901-ba9599a7e63c');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .menu-box {
+    width: 420px;
+    max-width: 100%;
+    padding: 25px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 24px;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+    font-weight: 500;
+  }
+
+  .back-btn {
+    display: inline-block;
+    background: #6c757d;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 30px;
+    text-decoration: none;
+    margin-bottom: 15px;
+    font-size: 14px;
+    transition: 0.2s;
+  }
+  .back-btn:hover { background: #5a6268; }
+
+  h2 {
+    margin: 5px 0 0;
+    color: #2d2f36;
+  }
+
+  .table-badge {
+    background: #ffb400;
+    display: inline-block;
+    padding: 5px 16px;
+    border-radius: 40px;
+    font-weight: bold;
+    color: #1e1e1e;
+    margin: 8px 0;
+  }
+
+  .lang-buttons {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0 10px;
+  }
+  .lang-btn {
+    width: auto;
+    padding: 6px 18px;
+    background: #e9ecef;
+    color: #2c3e50;
+    border-radius: 50px;
+    font-weight: bold;
+    margin: 0;
+  }
+  .lang-btn:hover { background: #dee2e6; }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: 0.1s;
+  }
+  label:hover { background: #e9ecef; }
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ffb400;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 15px;
+    background: #ffb400;
+    color: #1e1e1e;
+    border: none;
+    border-radius: 40px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover {
+    background: #e6a200;
+    transform: scale(0.98);
+  }
+
+  #total {
+    font-size: 18px;
+    font-weight: bold;
+    text-align: right;
+    margin: 12px 0 0;
+    padding-top: 8px;
+    border-top: 2px dashed #ddd;
+  }
+
+  .order-confirm {
+    display: none;
+    background: #2e7d32;
+    color: white;
+    padding: 16px;
+    margin-top: 20px;
+    border-radius: 20px;
+    text-align: center;
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px);}
+    to { opacity: 1; transform: translateY(0);}
+  }
+
+  #kitchenSection, #qrSection { display: none; }
+  .order {
+    background: #fff;
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 16px;
+    border-left: 5px solid #ffb400;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .order button {
+    width: auto;
+    margin-top: 10px;
+    background: #e53935;
+    color: white;
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  hr { margin: 15px 0; }
+  .info-text { font-size: 13px; color: #555; margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="menu-box">
+
+<a class="back-btn" href="https://chrisscf-creator.github.io/ivy/nmain.htm">← Back</a>
+
+<h2>🍽️ Tu Tu Kueh</h2>
+<div class="table-badge" id="tableBadge">📌 Table: <span id="tableNo"></span></div>
+
+<!-- LANGUAGE TOGGLE -->
+<div class="lang-buttons">
+  <button class="lang-btn" onclick="setLang('en')">🇬🇧 EN</button>
+  <button class="lang-btn" onclick="setLang('zh')">🇨🇳 中文</button>
+</div>
+
+<h3 id="menuTitle">📋 Menu</h3>
+<div id="menu"></div>
+
+<button id="submitBtn" onclick="submitOrder()">📝 Submit Order</button>
+
+<p id="total">💰 Total: $0.00</p>
+
+<div class="order-confirm" id="orderConfirm">
+  <h3 id="confirmTitle">✅ Order Submitted!</h3>
+  <p>🧾 Order No: <strong id="showOrderNo"></strong></p>
+  <p>🪑 Table: <strong id="showTable"></strong></p>
+  <p>💵 Total: $<span id="showTotal"></span></p>
+  <small id="waitText">⏳ Kitchen is preparing your food</small>
+</div>
+
+</div>
+
+<div id="kitchenSection">
+  <h2>👨‍🍳 Kitchen Orders</h2>
+  <div id="orders"></div>
+</div>
+
+<div id="qrSection">
+  <h2>📱 Table QR</h2>
+  <input type="text" id="tableInput" placeholder="Table number (eg: TT1)">
+  <button onclick="generateQR()">Generate QR Code</button>
+  <div id="qrcode"></div>
+</div>
+
+<script>
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
+  authDomain: "restaurants-cs.firebaseapp.com",
+  databaseURL: "https://restaurants-cs-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "restaurants-cs",
+  storageBucket: "restaurants-cs.firebasestorage.app",
+  messagingSenderId: "209872919844",
+  appId: "1:209872919844:web:c1730801cd51d615e867b1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ---------- 🟢 MODIFICATION: FORCE TABLE = "TT1" ----------
+// Get table from URL, but we will OVERRIDE to TT1 for this page.
+// This ensures orders are submitted with table "TT1" and displayed as "TT1"
+const urlParams = new URLSearchParams(location.search);
+let requestedTable = urlParams.get('table');
+
+// FORCED TABLE IDENTIFIER: "TT1" (as per requirement: table number TT1)
+const FORCED_TABLE = "TT1";
+
+// Override: always use TT1 regardless of URL param
+const activeTable = FORCED_TABLE;
+
+// For kitchen/admin views: check if kitchen or admin mode
+const isKitchen = urlParams.get('kitchen');
+const isAdmin = urlParams.get('admin');
+
+// Show/hide sections based on mode
+if (!isKitchen) document.getElementById('kitchenSection').style.display = 'none';
+if (!isAdmin) document.getElementById('qrSection').style.display = 'none';
+
+// Display table number on UI
+document.getElementById('tableNo').innerText = activeTable;
+// Also update badge if needed
+const tableBadgeSpan = document.getElementById('tableNo');
+if(tableBadgeSpan) tableBadgeSpan.innerText = activeTable;
+
+// For order confirmation & logs we will always use TT1
+let lang = "en";
+let currentOrderNo = 1;
+
+// ========== MENU DATA (unchanged) ==========
+const menuData = [
+  {en:"TuTu Kueh (5pcs)Coconut", zh:"嘟嘟糕(5个)椰子", price:6.30},
+  {en:"TuTu Kueh (5pcs)Peanut", zh:"嘟嘟糕(5个)花生", price:6.30},
+  {en:"TuTu Kueh (5pcs)Plain", zh:"嘟嘟糕(5个)原味", price:6.30}
+];
+
+// Render menu items
+function renderMenu(){
+  const box = document.getElementById("menu");
+  if(!box) return;
+  box.innerHTML = "";
+
+  menuData.forEach((m, idx) => {
+    const label = document.createElement("label");
+    label.innerHTML = `
+      <input type="checkbox" data-i="${idx}" data-price="${m.price}" onchange="updateTotal()">
+      <span>${idx+1}) ${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
+    `;
+    box.appendChild(label);
+  });
+}
+
+function setLang(l){
+  lang = l;
+  const menuTitle = document.getElementById("menuTitle");
+  if(menuTitle) menuTitle.innerText = (l === "en" ? "📋 Menu" : "📋 菜单");
+  const submitBtn = document.getElementById("submitBtn");
+  if(submitBtn) submitBtn.innerText = (l === "en" ? "📝 Submit Order" : "📝 提交订单");
+  const confirmTitle = document.getElementById("confirmTitle");
+  if(confirmTitle) confirmTitle.innerText = (l === "en" ? "✅ Order Submitted!" : "✅ 订单已提交");
+  const waitText = document.getElementById("waitText");
+  if(waitText) waitText.innerText = (l === "en" ? "⏳ Kitchen is preparing your food" : "⏳ 厨房正在准备您的餐点");
+  renderMenu();
+  updateTotal();
+}
+
+function updateTotal(){
+  let total = 0;
+  document.querySelectorAll("input[type=checkbox]:checked").forEach(cb => {
+    total += parseFloat(cb.dataset.price);
+  });
+  const totalEl = document.getElementById("total");
+  if(totalEl){
+    totalEl.innerText = lang === "en" ? `💰 Total: $${total.toFixed(2)}` : `💰 总额: $${total.toFixed(2)}`;
+  }
+}
+
+// Load order counter from Firebase
+db.ref('orderCounter').once('value').then(snap => {
+  if(snap.val()) currentOrderNo = snap.val();
+}).catch(e => console.warn(e));
+
+// SUBMIT ORDER - with TABLE = "TT1" forced
+function submitOrder(){
+  const items = document.querySelectorAll("input[type=checkbox]:checked");
+  if(items.length === 0){
+    alert(lang === "en" ? "❗ Please select at least one item" : "❗ 请至少选择一项餐点");
+    return;
+  }
+
+  let total = 0;
+  let list = [];
+
+  items.forEach(chk => {
+    const idx = parseInt(chk.dataset.i);
+    const m = menuData[idx];
+    if(m){
+      total += m.price;
+      list.push({ en: m.en, zh: m.zh });
+    }
+  });
+
+  // Generate new order number
+  let orderNo = currentOrderNo;
+  currentOrderNo++;
+  db.ref('orderCounter').set(currentOrderNo).catch(e => console.warn(e));
+
+  // 🟢 KEY CHANGE: table field is FORCED_TABLE ("TT1") instead of URL param
+  const orderData = {
+    orderNo: orderNo,
+    table: FORCED_TABLE,     // <--- TABLE NUMBER FIXED TO "TT1"
+    items: list,
+    total: total.toFixed(2),
+    time: new Date().toLocaleTimeString(),
+    status: "New",           // Adding status for kitchen display integration
+    timestamp: Date.now()
+  };
+
+  // Push to Firebase orders
+  db.ref('orders').push(orderData)
+    .then(() => {
+      // Show confirmation
+      document.getElementById("showOrderNo").innerText = orderNo;
+      document.getElementById("showTable").innerText = FORCED_TABLE;
+      document.getElementById("showTotal").innerText = total.toFixed(2);
+      document.getElementById("orderConfirm").style.display = "block";
+
+      const submitBtn = document.getElementById("submitBtn");
+      if(submitBtn) submitBtn.innerText = lang === "en" ? "✅ Order Sent" : "✅ 已发送";
+
+      // Auto scroll to confirmation
+      document.getElementById("orderConfirm").scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+      // Optional: clear checkboxes after order (better UX)
+      document.querySelectorAll("input[type=checkbox]:checked").forEach(cb => cb.checked = false);
+      updateTotal();
+
+      // Hide confirmation after 5 seconds? optional but fine
+      setTimeout(() => {
+        if(document.getElementById("orderConfirm")){
+          // don't hide aggressively, but keep visible, user can close? we keep but fine.
+        }
+      }, 3000);
+    })
+    .catch(err => {
+      console.error("Order submit error:", err);
+      alert(lang === "en" ? "Failed to submit order" : "订单提交失败");
+    });
+}
+
+// ========== KITCHEN DISPLAY (shows ALL orders, but we keep filter optional) ==========
+// This kitchen view will show all tables including TT1. For consistency, the main requirement
+// from first question was to modify kitchen software to show only "TB 1", but here 
+// we are modifying the QR order page to use TT1. However this page might be used alongside kitchen.
+// For completeness, we keep the kitchen panel functional, but doesn't conflict.
+function loadOrders(){
+  db.ref("orders").on("value", snapshot => {
+    const data = snapshot.val();
+    const ordersDiv = document.getElementById("orders");
+    if(!ordersDiv) return;
+    ordersDiv.innerHTML = "";
+
+    if(!data){
+      ordersDiv.innerHTML = lang === "en" ? "✨ No orders" : "✨ 暂无订单";
+      return;
+    }
+
+    // Convert to array for display
+    const ordersList = Object.entries(data);
+    if(ordersList.length === 0){
+      ordersDiv.innerHTML = lang === "en" ? "✨ No orders" : "✨ 暂无订单";
+      return;
+    }
+
+    for(let [orderId, order] of ordersList){
+      const orderCard = document.createElement("div");
+      orderCard.className = "order";
+      // Display item names based on current language
+      const itemNames = order.items ? order.items.map(it => lang === "en" ? it.en : it.zh).join(", ") : "No items";
+      orderCard.innerHTML = `
+        <b>🧾 Order #${order.orderNo || '??'}</b><br>
+        🪑 Table: <strong style="color:#e67e22;">${order.table || '-'}</strong><br>
+        💲 Total: $${order.total || '0.00'}<br>
+        📦 Items: ${itemNames}<br>
+        ⏱️ Time: ${order.time || ''}<br>
+        🏷️ Status: ${order.status || 'New'}
+      `;
+      const doneBtn = document.createElement("button");
+      doneBtn.innerText = lang === "en" ? "✅ Complete Order" : "✅ 完成订单";
+      doneBtn.style.background = "#e53935";
+      doneBtn.style.marginTop = "10px";
+      doneBtn.onclick = () => {
+        if(confirm(lang === "en" ? `Remove order #${order.orderNo}?` : `删除订单 #${order.orderNo}?`)){
+          db.ref(`orders/${orderId}`).remove().catch(e => console.warn(e));
+        }
+      };
+      orderCard.appendChild(doneBtn);
+      ordersDiv.appendChild(orderCard);
+    }
+  });
+}
+
+// QR CODE generation (optional for admin) – now uses TT1 as default hint if input empty
+function generateQR(){
+  let inputTable = document.getElementById("tableInput").value.trim();
+  let qrTable = inputTable === "" ? FORCED_TABLE : inputTable;
+  // Generate QR that points to this page with table param = qrTable, but main page will still force TT1? 
+  // Actually current page overrides to TT1 always, but QR could be used for other tables if needed. 
+  // For consistency, we generate QR with table number, but when opened it will still force TT1 due to override.
+  // That's fine; ensures that any QR pointing here will show TT1.
+  const qrUrl = location.origin + location.pathname + "?table=" + encodeURIComponent(qrTable);
+  const qrContainer = document.getElementById("qrcode");
+  if(qrContainer){
+    qrContainer.innerHTML = ""; // clear previous
+    QRCode.toCanvas(qrContainer, qrUrl, { width: 180, margin: 2 }, function(err){
+      if(err) console.error("QR error", err);
+    });
+  }
+}
+
+// Force update for any language changes and init
+window.updateTotal = updateTotal;
+window.setLang = setLang;
+window.submitOrder = submitOrder;
+window.generateQR = generateQR;
+
+// Initialize menu + language
+setLang("en");
+
+// Listen to realtime orders for kitchen panel if visible
+if(isKitchen){
+  loadOrders();
+} else if(document.getElementById("kitchenSection") && isKitchen === null){
+  // not displayed anyway
+}
+
+// Additional: set document title to reflect TT1
+document.title = `Order Food - Table ${FORCED_TABLE}`;
+
+// Optional: Display persistent note that table is fixed
+const noteSpan = document.createElement("div");
+noteSpan.className = "info-text";
+noteSpan.innerHTML = `🔒 <strong>Table ${FORCED_TABLE}</strong> — All orders will be assigned to this table.`;
+const menuBox = document.querySelector(".menu-box");
+if(menuBox && !document.querySelector(".info-fixed")){
+  noteSpan.classList.add("info-fixed");
+  menuBox.appendChild(noteSpan);
+}
+
+// Also ensure back button works correctly (relative)
+console.log(`✅ QR Order page active — Table number forced to: ${FORCED_TABLE}`);
+</script>
+
+</body>
+</html>
