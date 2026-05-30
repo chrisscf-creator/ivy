@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Court Ordering</title>
+    <style>
+        :root {
+            --primary-color: #ff6b6b;
+            --bg-color: #f8f9fa;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 28px;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(255,255,255,0.85);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #333; margin-bottom: 5px; }
+        .wallet-banner {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .stall-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            border: 1px solid #eee;
+        }
+        .stall-card:active {
+            transform: scale(0.95);
+            background-color: #f0f0f0;
+        }
+        .stall-icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Campus Canteen</h1>
+    <p>Select a stall to start ordering</p>
+</header>
+
+<div class="wallet-banner">
+    <div>
+        <small>My Balance</small>
+        <div style="font-size: 20px; font-weight: bold;">$25.50</div>
+    </div>
+    <button style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 15px; border-radius: 20px;">Top Up</button>
+</div>
+
+<div class="grid-container">
+    <a href="https://chrisscf-creator.github.io/ivy/npostt.html" class="stall-card">
+        <span class="stall-icon">🍥</span>
+        Tu Tu Kueh
+    </a>
+    <a href="https://chrisscf-creator.github.io/ivy/npostb.html" class="stall-card">
+        <span class="stall-icon">🍜</span>
+        Toast Box
+    </a>
+    <a href="https://chrisscf-creator.github.io/ivy/npostbd.html" class="stall-card">
+        <span class="stall-icon">🥤</span>
+        Drink
+    </a>
+    <a href="https://chrisscf-creator.github.io/ivy/nposhk.html" class="stall-card">
+        <span class="stall-icon">🍗</span>
+        HK Roast
+    </a>
+</div>
+
+</body>
+</html
