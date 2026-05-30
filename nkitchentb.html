@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Kitchen Display - Table TB1 Only</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #0f1115;
+      color: #f0f2f5;
+    }
+
+    /* header with filter badge */
+    h1 {
+      text-align: center;
+      padding: 16px;
+      background: #1c1f26;
+      margin: 0;
+      font-size: 1.8rem;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-badge {
+      background: #2c313e;
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      font-weight: normal;
+      border-left: 3px solid #ffb400;
+    }
+
+    .filter-badge span {
+      color: #ffb400;
+      font-weight: bold;
+      font-family: monospace;
+      font-size: 1rem;
+    }
+
+    /* 3 column layout */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      padding: 16px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .col {
+      background: #1a1d24;
+      border-radius: 20px;
+      padding: 12px;
+      height: calc(100vh - 110px);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .col h2 {
+      text-align: center;
+      border-bottom: 2px solid #2c313e;
+      padding-bottom: 12px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-weight: 600;
+      font-size: 1.5rem;
+    }
+
+    .order-list {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* custom scrollbar */
+    .order-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .order-list::-webkit-scrollbar-track {
+      background: #262a35;
+      border-radius: 8px;
+    }
+    .order-list::-webkit-scrollbar-thumb {
+      background: #ffb400;
+      border-radius: 8px;
+    }
+
+    /* order card */
+    .order {
+      background: #262a35;
+      margin: 12px 0;
+      padding: 14px;
+      border-radius: 16px;
+      border-left: 5px solid #ffb400;
+      transition: all 0.1s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .order b {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+      color: #ffb970;
+    }
+
+    .order div {
+      margin: 5px 0;
+      font-size: 0.9rem;
+    }
+
+    .items {
+      font-size: 0.85rem;
+      color: #cfd4e3;
+      background: #1e2129;
+      padding: 8px;
+      border-radius: 12px;
+      margin: 8px 0;
+      line-height: 1.4;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 0;
+      border: none;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.85rem;
+      transition: 0.15s;
+    }
+
+    .prep {
+      background: #ff9800;
+      color: #1e1e1e;
+    }
+    .prep:hover {
+      background: #fb8c00;
+      transform: scale(0.98);
+    }
+
+    .ready {
+      background: #4caf50;
+      color: white;
+    }
+    .ready:hover {
+      background: #43a047;
+    }
+
+    .done {
+      background: #e53935;
+      color: white;
+    }
+    .done:hover {
+      background: #d32f2f;
+    }
+
+    .empty {
+      text-align: center;
+      color: #8e8ea0;
+      margin-top: 40px;
+      font-style: italic;
+      padding: 20px;
+      background: #1a1d24;
+      border-radius: 20px;
+    }
+
+    /* tablet / mobile adjustment */
+    @media (max-width: 780px) {
+      .board {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .col {
+        height: auto;
+        max-height: 65vh;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: #5f6375;
+      padding: 12px;
+      border-top: 1px solid #23272f;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>
+  🍳 Kitchen Display 
+  <div class="filter-badge">
+    🔍 Filter: Table <span>TB1</span> only
+  </div>
+</h1>
+
+<div class="board">
+  <!-- NEW column -->
+  <div class="col">
+    <h2>🆕 New</h2>
+    <div class="order-list" id="newList"></div>
+  </div>
+
+  <!-- PREPARING column -->
+  <div class="col">
+    <h2>⚙️ Preparing</h2>
+    <div class="order-list" id="prepList"></div>
+  </div>
+
+  <!-- READY column -->
+  <div class="col">
+    <h2>✅ Ready</h2>
+    <div class="order-list" id="readyList"></div>
+  </div>
+</div>
+<div class="footer-note">
+  ⚡ Only orders with <strong>Table = "TB1"</strong> are shown. Other tables are ignored.
+</div>
+
+<script>
+  // ---------- FIREBASE CONFIGURATION ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
+    authDomain: "restaurants-cs.firebaseapp.com",
+    databaseURL: "https://restaurants-cs-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "restaurants-cs",
+    storageBucket: "restaurants-cs.firebasestorage.app",
+    messagingSenderId: "209872919844",
+    appId: "1:209872919844:web:c1730801cd51d615e867b1"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  // Reference to orders node
+  const ordersRef = database.ref("orders");
+
+  // ---------- MODIFIED: Target table identifier is "TB1" (without space) ----------
+  // Now matches both "TB1" and "TB 1" for compatibility with the QR order page
+  const TARGET_TABLE_EXACT = "TB1";
+  const TARGET_TABLE_WITH_SPACE = "TB 1";
+
+  /**
+   * Check if order belongs to table TB1
+   * Supports both "TB1" and "TB 1" formats to ensure compatibility
+   * This ensures orders from the QR page (which sends "TB1") are displayed
+   */
+  function isTargetTable(tableValue) {
+    if (!tableValue && tableValue !== 0) return false;
+    
+    // Convert to string and clean
+    let tableStr = String(tableValue).trim().replace(/\s+/g, ' ');
+    
+    // Normalize for comparison: uppercase and remove extra spaces
+    const normalized = tableStr.toUpperCase().replace(/\s+/g, '');
+    
+    // Check against both "TB1" and "TB1" (normalized removes spaces)
+    // Also check original string for "TB 1" format
+    const matchesTB1 = normalized === "TB1";
+    const matchesTB1WithSpace = tableStr.toUpperCase() === "TB 1";
+    
+    return matchesTB1 || matchesTB1WithSpace;
+  }
+
+  /**
+   * formatItems - handles array, string, object with en/zh fields, etc.
+   * Returns HTML-friendly string with <br> separators.
+   */
+  function formatItems(items) {
+    if (!items) return "📭 No items";
+
+    // If it's an array
+    if (Array.isArray(items)) {
+      if (items.length === 0) return "🛒 Empty order";
+      const formatted = items.map(item => {
+        if (typeof item === "string") return item;
+        // case: { en: "Burger", zh: "汉堡" } -> show en or zh
+        if (item && typeof item === "object") {
+          if (item.en) return item.en;
+          if (item.zh) return item.zh;
+          // try name field
+          if (item.name) return item.name;
+          // fallback
+          return JSON.stringify(item);
+        }
+        return String(item);
+      }).join(" • ");
+      return formatted;
+    }
+
+    // If it's a plain string
+    if (typeof items === "string") {
+      return items.replace(/,/g, " • ");
+    }
+
+    // If it's an object but not array
+    if (typeof items === "object") {
+      try {
+        const values = Object.values(items).filter(v => v !== null && v !== undefined);
+        if (values.length) {
+          return values.map(v => {
+            if (typeof v === "string") return v;
+            if (v && v.en) return v.en;
+            if (v && v.zh) return v.zh;
+            return String(v).substring(0, 30);
+          }).join(" • ");
+        }
+      } catch(e) {}
+      return "📋 Custom items";
+    }
+
+    return String(items);
+  }
+
+  // Helper: generate safe display time
+  function getDisplayTime(order) {
+    if (order.timestamp) return new Date(order.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if (order.time) return order.time;
+    return "";
+  }
+
+  // RENDER FUNCTION: only orders that match table "TB1"
+  function renderKitchen(snapshot) {
+    const ordersData = snapshot.val();
+    const newContainer = document.getElementById("newList");
+    const prepContainer = document.getElementById("prepList");
+    const readyContainer = document.getElementById("readyList");
+
+    // Clear containers
+    if (newContainer) newContainer.innerHTML = "";
+    if (prepContainer) prepContainer.innerHTML = "";
+    if (readyContainer) readyContainer.innerHTML = "";
+
+    // counters to show empty states
+    let newCount = 0, prepCount = 0, readyCount = 0;
+
+    if (!ordersData) {
+      // show empty messages in all columns
+      if (newContainer) newContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
+      if (prepContainer) prepContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
+      if (readyContainer) readyContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
+      return;
+    }
+
+    // iterate through each order ID
+    for (const [orderId, order] of Object.entries(ordersData)) {
+      // ---- FILTER CORE: only show table = TB1 (supports both "TB1" and "TB 1") ----
+      const tableValue = order.table;
+      if (!isTargetTable(tableValue)) {
+        // Skip any order that does not have table = TB1 (including missing/null/other tables)
+        continue;
+      }
+
+      // Extract order data
+      const orderNumber = order.orderNo || orderId.slice(-6) || "N/A";
+      const status = order.status || "New";
+      const total = (order.total !== undefined && order.total !== null) ? parseFloat(order.total).toFixed(2) : "0.00";
+      const itemsFormatted = formatItems(order.items);
+      const timeString = getDisplayTime(order);
+      
+      // Display table value (show as TB1 for consistency)
+      let displayTable = order.table;
+      if (displayTable && displayTable.toUpperCase().replace(/\s+/g, '') === "TB1") {
+        displayTable = "TB1";
+      }
+
+      // Create order card div
+      const cardDiv = document.createElement("div");
+      cardDiv.className = "order";
+
+      // Build inner structure (table displayed prominently)
+      cardDiv.innerHTML = `
+        <b>🍽️ Order #${orderNumber}</b>
+        <div>📌 Table: <strong style="color:#ffb400;">${displayTable}</strong></div>
+        <div class="items">📋 ${itemsFormatted}</div>
+        <div>💰 Total: $${total}</div>
+        ${timeString ? `<div>⏱️ ${timeString}</div>` : ""}
+      `;
+
+      // Create dynamic action button based on status
+      const actionBtn = document.createElement("button");
+
+      // ---- status handling + assign to column ----
+      if (!status || status === "New") {
+        actionBtn.innerText = "🔪 Start Cooking";
+        actionBtn.className = "prep";
+        actionBtn.onclick = () => {
+          database.ref(`orders/${orderId}`).update({ status: "Preparing" })
+            .catch(err => console.warn("Update failed", err));
+        };
+        cardDiv.appendChild(actionBtn);
+        if (newContainer) newContainer.appendChild(cardDiv);
+        newCount++;
+      } 
+      else if (status === "Preparing") {
+        actionBtn.innerText = "✅ Mark Ready";
+        actionBtn.className = "ready";
+        actionBtn.onclick = () => {
+          database.ref(`orders/${orderId}`).update({ status: "Ready" })
+            .catch(err => console.warn("Update failed", err));
+        };
+        cardDiv.appendChild(actionBtn);
+        if (prepContainer) prepContainer.appendChild(cardDiv);
+        prepCount++;
+      }
+      else if (status === "Ready") {
+        actionBtn.innerText = "✔️ Complete & Remove";
+        actionBtn.className = "done";
+        actionBtn.onclick = () => {
+          if (confirm(`Remove order #${orderNumber} from kitchen?`)) {
+            database.ref(`orders/${orderId}`).remove()
+              .catch(err => console.warn("Remove error", err));
+          }
+        };
+        cardDiv.appendChild(actionBtn);
+        if (readyContainer) readyContainer.appendChild(cardDiv);
+        readyCount++;
+      }
+      else {
+        // any other unknown status – treat as fallback
+        actionBtn.innerText = "⚡ Update to Preparing";
+        actionBtn.className = "prep";
+        actionBtn.onclick = () => {
+          database.ref(`orders/${orderId}`).update({ status: "Preparing" });
+        };
+        cardDiv.appendChild(actionBtn);
+        if (newContainer) newContainer.appendChild(cardDiv);
+        newCount++;
+      }
+    }
+
+    // After loop, if any column is empty show friendly message
+    if (newCount === 0 && newContainer) {
+      newContainer.innerHTML = "<div class='empty'>🍽️ No new orders for TB1</div>";
+    }
+    if (prepCount === 0 && prepContainer) {
+      prepContainer.innerHTML = "<div class='empty'>👨‍🍳 No preparing orders (TB1)</div>";
+    }
+    if (readyCount === 0 && readyContainer) {
+      readyContainer.innerHTML = "<div class='empty'>🎉 No ready orders for TB1</div>";
+    }
+  }
+
+  // ---- Real-time listener with filtering ----
+  // Attach value event listener to "orders" node
+  ordersRef.on("value", (snapshot) => {
+    renderKitchen(snapshot);
+  }, (error) => {
+    console.error("Firebase read error:", error);
+    // show error on UI gracefully
+    const containers = ["newList", "prepList", "readyList"];
+    containers.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = "<div class='empty'>⚠️ Connection error. Check console.</div>";
+    });
+  });
+
+  // Optional: extra confirmation that filter is active: initial console info
+  console.log("Kitchen display active — ONLY showing table: TB1 (supports both TB1 and TB 1 formats)");
+</script>
+
+</body>
+</html>
