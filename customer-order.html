@@ -118,6 +118,14 @@
             font-size: 16px;
             color: #333;
         }
+        .logout-btn {
+            background: #e74c3c;
+            border: 1px solid white;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +157,11 @@
         <div>
             <small>My Balance</small>
             <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
+        </div>
+        <!-- 充值按钮 + 退出登录按钮 -->
+        <div style="display:flex; gap:10px;">
+            <button style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 15px; border-radius: 20px;">Top Up</button>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
         </div>
     </div>
 
@@ -212,10 +225,11 @@
     const payAmount = document.getElementById("payAmount");
     const genQrBtn = document.getElementById("genQrBtn");
     const qrBox = document.getElementById("qrBox");
+    const logoutBtn = document.getElementById("logoutBtn");
 
     let currentUser = localStorage.getItem("currentUser") || "";
 
-    // 页面加载时自动登录
+    // 页面加载自动登录
     window.onload = function () {
         if (currentUser) {
             const users = getUsers();
@@ -225,7 +239,7 @@
         }
     };
 
-    // 切换
+    // 面板切换
     goRegisterBtn.onclick = () => {
         loginPanel.classList.add("hide");
         registerPanel.classList.remove("hide");
@@ -258,7 +272,7 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 登录（记住状态）
+    // 登录并记住状态
     loginBtn.onclick = () => {
         const phone = loginPhone.value.trim();
         const pwd = loginPwd.value.trim();
@@ -274,7 +288,18 @@
         balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
     };
 
-    // 生成二维码（修复稳定版）
+    // 退出登录
+    logoutBtn.onclick = () => {
+        localStorage.removeItem("currentUser");
+        currentUser = "";
+        mainPage.classList.add("hide");
+        loginPanel.classList.remove("hide");
+        loginPhone.value = "";
+        loginPwd.value = "";
+        qrBox.innerHTML = "";
+    };
+
+    // 生成二维码
     genQrBtn.onclick = async () => {
         const amt = parseFloat(payAmount.value);
         if (isNaN(amt) || amt <= 0) {
@@ -285,8 +310,25 @@
         qrBox.innerHTML = "";
 
         try {
-            const canvas = await QRCode.create(qrText, { width: 200 });
-            qrBox.appendChild(canvas);
+            // 生成二维码（稳定版）
+genQrBtn.onclick = function () {
+  const amt = parseFloat(payAmount.value);
+  if (isNaN(amt) || amt <= 0) {
+    alert("Please enter valid amount");
+    return;
+  }
+  const qrText = `admin-topup|${currentUser}|${amt.toFixed(2)}`;
+  qrBox.innerHTML = "";
+
+  let canvas = document.createElement("canvas");
+  new QRCode(canvas, {
+    text: qrText,
+    width: 200,
+    height: 200
+  });
+  qrBox.appendChild(canvas);
+  qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
+};
             qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
         } catch (e) {
             qrBox.innerHTML = "<p style='color:red'>QR Error</p>";
