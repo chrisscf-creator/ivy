@@ -130,6 +130,7 @@
 </head>
 <body>
 
+<!-- 这里已经去掉了 hide，默认显示登录面板 -->
 <div id="loginPanel" class="auth-card">
     <h2>Login</h2>
     <input type="text" id="loginPhone" placeholder="Phone Number">
@@ -158,7 +159,6 @@
             <small>My Balance</small>
             <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
         </div>
-        <!-- 充值按钮 + 退出登录按钮 -->
         <div style="display:flex; gap:10px;">
             <button style="background: rgba(255,255,255,0.2); border: 1px solid white; color: white; padding: 5px 15px; border-radius: 20px;">Top Up</button>
             <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -194,7 +194,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script>
-    // 数据存储
     function getUsers() {
         return JSON.parse(localStorage.getItem("users")) || {};
     }
@@ -208,7 +207,6 @@
         localStorage.setItem("userAccounts", JSON.stringify(accounts));
     }
 
-    // DOM
     const loginPanel = document.getElementById("loginPanel");
     const registerPanel = document.getElementById("registerPanel");
     const mainPage = document.getElementById("mainPage");
@@ -229,17 +227,16 @@
 
     let currentUser = localStorage.getItem("currentUser") || "";
 
-    // 页面加载自动登录
     window.onload = function () {
         if (currentUser) {
             const users = getUsers();
             loginPanel.classList.add("hide");
+            registerPanel.classList.add("hide");
             mainPage.classList.remove("hide");
             balanceDisplay.innerText = `$${users[currentUser].balance.toFixed(2)}`;
         }
     };
 
-    // 面板切换
     goRegisterBtn.onclick = () => {
         loginPanel.classList.add("hide");
         registerPanel.classList.remove("hide");
@@ -249,7 +246,6 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 注册
     registerBtn.onclick = () => {
         const phone = regPhone.value.trim();
         const pwd = regPwd.value.trim();
@@ -272,7 +268,6 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 登录并记住状态
     loginBtn.onclick = () => {
         const phone = loginPhone.value.trim();
         const pwd = loginPwd.value.trim();
@@ -283,12 +278,12 @@
         currentUser = phone;
         localStorage.setItem("currentUser", currentUser);
         loginPanel.classList.add("hide");
+        registerPanel.classList.add("hide");
         mainPage.classList.remove("hide");
         const users = getUsers();
         balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
     };
 
-    // 退出登录
     logoutBtn.onclick = () => {
         localStorage.removeItem("currentUser");
         currentUser = "";
@@ -299,40 +294,27 @@
         qrBox.innerHTML = "";
     };
 
-    // 生成二维码
-    genQrBtn.onclick = async () => {
+    genQrBtn.onclick = function () {
         const amt = parseFloat(payAmount.value);
         if (isNaN(amt) || amt <= 0) {
             alert("Please enter valid amount");
             return;
         }
+        if (!currentUser) {
+            alert("Please login first");
+            return;
+        }
         const qrText = `admin-topup|${currentUser}|${amt.toFixed(2)}`;
         qrBox.innerHTML = "";
 
-        try {
-            // 生成二维码（稳定版）
-genQrBtn.onclick = function () {
-  const amt = parseFloat(payAmount.value);
-  if (isNaN(amt) || amt <= 0) {
-    alert("Please enter valid amount");
-    return;
-  }
-  const qrText = `admin-topup|${currentUser}|${amt.toFixed(2)}`;
-  qrBox.innerHTML = "";
-
-  let canvas = document.createElement("canvas");
-  new QRCode(canvas, {
-    text: qrText,
-    width: 200,
-    height: 200
-  });
-  qrBox.appendChild(canvas);
-  qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
-};
-            qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
-        } catch (e) {
-            qrBox.innerHTML = "<p style='color:red'>QR Error</p>";
-        }
+        let canvas = document.createElement("canvas");
+        new QRCode(canvas, {
+            text: qrText,
+            width: 200,
+            height: 200
+        });
+        qrBox.appendChild(canvas);
+        qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
     };
 </script>
 
