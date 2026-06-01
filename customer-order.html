@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Court Ordering</title>
+    <style>
+        :root {
+            --primary-color: #ff6b6b;
+            --bg-color: #f8f9fa;
+        }
+        html, body {
+            height: 100%;
+        }
+        body {
+            font-family: -apple-system, sans-serif;
+            background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 28px;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: rgba(255,255,255,0.85);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #333; margin-bottom: 5px; }
+        .wallet-banner {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .stall-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+            border: 1px solid #eee;
+        }
+        .stall-card:active {
+            transform: scale(0.95);
+            background-color: #f0f0f0;
+        }
+        .stall-icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* 登录注册面板 */
+        .auth-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 400px;
+            margin: 50px auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .auth-card h2 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .auth-card input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .auth-card button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: #6e8efb;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .auth-card .link-btn {
+            background: none;
+            color: #6e8efb;
+            text-decoration: underline;
+            font-weight: normal;
+        }
+        .hide { display: none !important; }
+
+        /* 充值二维码区域 */
+        .topup-box {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .topup-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 登录面板 -->
+<div id="loginPanel" class="auth-card">
+    <h2>Login</h2>
+    <input type="text" id="loginPhone" placeholder="Phone Number">
+    <input type="password" id="loginPwd" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button class="link-btn" id="goRegisterBtn">Register New Account</button>
+</div>
+
+<!-- 注册面板 -->
+<div id="registerPanel" class="auth-card hide">
+    <h2>Register</h2>
+    <input type="text" id="regPhone" placeholder="Phone Number">
+    <input type="password" id="regPwd" placeholder="Password">
+    <input type="password" id="regConfirmPwd" placeholder="Confirm Password">
+    <button id="registerBtn">Register</button>
+    <button class="link-btn" id="goLoginBtn">Back to Login</button>
+</div>
+
+<!-- 主页面 -->
+<div id="mainPage" class="hide">
+    <header>
+        <h1>Campus Canteen</h1>
+        <p>Select a stall to start ordering</p>
+    </header>
+
+    <div class="wallet-banner">
+        <div>
+            <small>My Balance</small>
+            <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
+        </div>
+    </div>
+
+    <!-- 充值金额 + 生成二维码 -->
+    <div class="topup-box">
+        <h3>Top Up (Scan by Admin)</h3>
+        <input type="number" id="payAmount" placeholder="Enter amount $" min="0.01" step="0.01"
+            style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd; box-sizing:border-box;">
+        <button id="genQrBtn"
+            style="width:100%; padding:12px; margin-top:8px; border-radius:8px; background:#6e8efb; color:white; border:none; font-weight:bold;">
+            Generate Payment QR
+        </button>
+        <div id="qrBox" style="text-align:center; margin-top:15px;"></div>
+    </div>
+
+    <div class="grid-container">
+        <a href="https://chrisscf-creator.github.io/ivy/npostt.html" class="stall-card">
+            <span class="stall-icon">🍥</span>Tu Tu Kueh
+        </a>
+        <a href="https://chrisscf-creator.github.io/ivy/npostb.html" class="stall-card">
+            <span class="stall-icon">🍜</span>Toast Box
+        </a>
+        <a href="https://chrisscf-creator.github.io/ivy/npostbd.html" class="stall-card">
+            <span class="stall-icon">🥤</span>Drink
+        </a>
+        <a href="https://chrisscf-creator.github.io/ivy/nposhk.html" class="stall-card">
+            <span class="stall-icon">🍗</span>HK Roast
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script>
+    // 用户数据
+    function getUsers() {
+        return JSON.parse(localStorage.getItem("users")) || {};
+    }
+    function saveUsers(users) {
+        localStorage.setItem("users", JSON.stringify(users));
+    }
+    function getAccounts() {
+        return JSON.parse(localStorage.getItem("userAccounts")) || {};
+    }
+    function saveAccounts(accounts) {
+        localStorage.setItem("userAccounts", JSON.stringify(accounts));
+    }
+
+    // DOM
+    const loginPanel = document.getElementById("loginPanel");
+    const registerPanel = document.getElementById("registerPanel");
+    const mainPage = document.getElementById("mainPage");
+    const loginPhone = document.getElementById("loginPhone");
+    const loginPwd = document.getElementById("loginPwd");
+    const loginBtn = document.getElementById("loginBtn");
+    const goRegisterBtn = document.getElementById("goRegisterBtn");
+    const regPhone = document.getElementById("regPhone");
+    const regPwd = document.getElementById("regPwd");
+    const regConfirmPwd = document.getElementById("regConfirmPwd");
+    const registerBtn = document.getElementById("registerBtn");
+    const goLoginBtn = document.getElementById("goLoginBtn");
+    const balanceDisplay = document.getElementById("balanceDisplay");
+    const payAmount = document.getElementById("payAmount");
+    const genQrBtn = document.getElementById("genQrBtn");
+    const qrBox = document.getElementById("qrBox");
+
+    let currentUser = "";
+
+    // 切换页面
+    goRegisterBtn.onclick = () => {
+        loginPanel.classList.add("hide");
+        registerPanel.classList.remove("hide");
+    };
+    goLoginBtn.onclick = () => {
+        registerPanel.classList.add("hide");
+        loginPanel.classList.remove("hide");
+    };
+
+    // 注册
+    registerBtn.onclick = () => {
+        const phone = regPhone.value.trim();
+        const pwd = regPwd.value.trim();
+        const cpwd = regConfirmPwd.value.trim();
+        if (!phone || !pwd || !cpwd) { alert("Fill all fields"); return; }
+        if (pwd !== cpwd) { alert("Password not match"); return; }
+
+        const acc = getAccounts();
+        if (acc[phone]) { alert("Phone registered"); return; }
+
+        acc[phone] = pwd;
+        saveAccounts(acc);
+
+        const users = getUsers();
+        if (!users[phone]) users[phone] = { balance: 0 };
+        saveUsers(users);
+
+        alert("Register success!");
+        registerPanel.classList.add("hide");
+        loginPanel.classList.remove("hide");
+    };
+
+    // 登录
+    loginBtn.onclick = () => {
+        const phone = loginPhone.value.trim();
+        const pwd = loginPwd.value.trim();
+        const acc = getAccounts();
+        if (!phone || !pwd) { alert("Enter phone & password"); return; }
+        if (!acc[phone] || acc[phone] !== pwd) { alert("Wrong info"); return; }
+
+        currentUser = phone;
+        loginPanel.classList.add("hide");
+        mainPage.classList.remove("hide");
+        const users = getUsers();
+        balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
+    };
+
+    // 生成充值二维码（修复版）
+    genQrBtn.onclick = () => {
+        const amt = parseFloat(payAmount.value);
+        if (isNaN(amt) || amt <= 0) {
+            alert("Enter valid amount");
+            return;
+        }
+        const qrText = `admin-topup|${currentUser}|${amt.toFixed(2)}`;
+        qrBox.innerHTML = "<p>Generating...</p>"; // 提示
+
+        // 正确用法：toCanvas(text, options, callback)
+        QRCode.toCanvas(qrText, { width: 200 }, (err, canvas) => {
+            if (err) {
+                console.error(err);
+                qrBox.innerHTML = "<p style='color:red;'>Generate failed</p>";
+                return;
+            }
+            qrBox.innerHTML = ""; // 清空
+            qrBox.appendChild(canvas);
+            qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Scan to pay $${amt.toFixed(2)} to admin</p>`;
+        });
+    };
+</script>
+
+</body>
+</html>
