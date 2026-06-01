@@ -67,7 +67,6 @@
             display: block;
         }
 
-        /* 登录注册面板 */
         .auth-card {
             background: white;
             padding: 30px;
@@ -108,7 +107,6 @@
         }
         .hide { display: none !important; }
 
-        /* 充值二维码区域 */
         .topup-box {
             background: white;
             padding: 18px;
@@ -124,7 +122,6 @@
 </head>
 <body>
 
-<!-- 登录面板 -->
 <div id="loginPanel" class="auth-card">
     <h2>Login</h2>
     <input type="text" id="loginPhone" placeholder="Phone Number">
@@ -133,7 +130,6 @@
     <button class="link-btn" id="goRegisterBtn">Register New Account</button>
 </div>
 
-<!-- 注册面板 -->
 <div id="registerPanel" class="auth-card hide">
     <h2>Register</h2>
     <input type="text" id="regPhone" placeholder="Phone Number">
@@ -143,7 +139,6 @@
     <button class="link-btn" id="goLoginBtn">Back to Login</button>
 </div>
 
-<!-- 主页面 -->
 <div id="mainPage" class="hide">
     <header>
         <h1>Campus Canteen</h1>
@@ -157,7 +152,6 @@
         </div>
     </div>
 
-    <!-- 充值金额 + 生成二维码 -->
     <div class="topup-box">
         <h3>Top Up (Scan by Admin)</h3>
         <input type="number" id="payAmount" placeholder="Enter amount $" min="0.01" step="0.01"
@@ -187,7 +181,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script>
-    // 用户数据
+    // 数据存储
     function getUsers() {
         return JSON.parse(localStorage.getItem("users")) || {};
     }
@@ -219,9 +213,19 @@
     const genQrBtn = document.getElementById("genQrBtn");
     const qrBox = document.getElementById("qrBox");
 
-    let currentUser = "";
+    let currentUser = localStorage.getItem("currentUser") || "";
 
-    // 切换页面
+    // 页面加载时自动登录
+    window.onload = function () {
+        if (currentUser) {
+            const users = getUsers();
+            loginPanel.classList.add("hide");
+            mainPage.classList.remove("hide");
+            balanceDisplay.innerText = `$${users[currentUser].balance.toFixed(2)}`;
+        }
+    };
+
+    // 切换
     goRegisterBtn.onclick = () => {
         loginPanel.classList.add("hide");
         registerPanel.classList.remove("hide");
@@ -254,7 +258,7 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 登录
+    // 登录（记住状态）
     loginBtn.onclick = () => {
         const phone = loginPhone.value.trim();
         const pwd = loginPwd.value.trim();
@@ -263,33 +267,30 @@
         if (!acc[phone] || acc[phone] !== pwd) { alert("Wrong info"); return; }
 
         currentUser = phone;
+        localStorage.setItem("currentUser", currentUser);
         loginPanel.classList.add("hide");
         mainPage.classList.remove("hide");
         const users = getUsers();
         balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
     };
 
-    // 生成充值二维码（修复版）
-    genQrBtn.onclick = () => {
+    // 生成二维码（修复稳定版）
+    genQrBtn.onclick = async () => {
         const amt = parseFloat(payAmount.value);
         if (isNaN(amt) || amt <= 0) {
-            alert("Enter valid amount");
+            alert("Please enter valid amount");
             return;
         }
         const qrText = `admin-topup|${currentUser}|${amt.toFixed(2)}`;
-        qrBox.innerHTML = "<p>Generating...</p>"; // 提示
+        qrBox.innerHTML = "";
 
-        // 正确用法：toCanvas(text, options, callback)
-        QRCode.toCanvas(qrText, { width: 200 }, (err, canvas) => {
-            if (err) {
-                console.error(err);
-                qrBox.innerHTML = "<p style='color:red;'>Generate failed</p>";
-                return;
-            }
-            qrBox.innerHTML = ""; // 清空
+        try {
+            const canvas = await QRCode.create(qrText, { width: 200 });
             qrBox.appendChild(canvas);
-            qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Scan to pay $${amt.toFixed(2)} to admin</p>`;
-        });
+            qrBox.innerHTML += `<p style="margin:8px 0 0 0;">Amount: $${amt.toFixed(2)}</p>`;
+        } catch (e) {
+            qrBox.innerHTML = "<p style='color:red'>QR Error</p>";
+        }
     };
 </script>
 
