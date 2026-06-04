@@ -88,7 +88,6 @@
             display: block;
         }
 
-        /* 登录注册面板 */
         .auth-card {
             background: white;
             padding: 30px;
@@ -129,7 +128,6 @@
         }
         .hide { display: none !important; }
 
-        /* 弹窗样式 */
         .modal {
             position: fixed;
             top:0; left:0; right:0; bottom:0;
@@ -148,28 +146,11 @@
             text-align: center;
         }
         .modal-card img {
-            width: 200px;
-            height: 200px;
-            margin: 15px 0;
+            width: 220px;
+            height: 220px;
+            margin: 15px auto;
+            display:block;
             border: 1px solid #eee;
-        }
-        .amount-input {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border:1px solid #ddd;
-            margin:10px 0;
-            box-sizing: border-box;
-        }
-        .confirm-btn {
-            background: #28a745;
-            color:white;
-            border:none;
-            padding:12px 25px;
-            border-radius: 8px;
-            margin:5px;
-            cursor: pointer;
         }
         .close-btn {
             background: #6c757d;
@@ -184,7 +165,6 @@
 </head>
 <body>
 
-<!-- 登录面板 -->
 <div id="loginPanel" class="auth-card">
     <h2>Login</h2>
     <input type="text" id="loginPhone" placeholder="Phone Number">
@@ -193,7 +173,6 @@
     <button class="link-btn" id="goRegisterBtn">Register New Account</button>
 </div>
 
-<!-- 注册面板 -->
 <div id="registerPanel" class="auth-card hide">
     <h2>Register</h2>
     <input type="text" id="regPhone" placeholder="Phone Number">
@@ -203,12 +182,11 @@
     <button class="link-btn" id="goLoginBtn">Back to Login</button>
 </div>
 
-<!-- 主点餐页面 -->
 <div id="mainPage" class="hide">
     <header>
         <h1>Campus Canteen</h1>
         <p>Select a stall to start ordering</p>
-        <button class="logout-btn" id="logoutBtn">Logout 退出</button>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
     </header>
 
     <div class="wallet-banner">
@@ -217,225 +195,120 @@
             <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
         </div>
         <div>
-            <button class="wallet-btn" id="topUpBtn">Top Up 充值</button>
-            <button class="wallet-btn" id="payBtn">Pay 消费</button>
+            <button class="wallet-btn" id="topUpBtn">Top Up</button>
+            <button class="wallet-btn" id="payBtn">Pay</button>
         </div>
     </div>
 
     <div class="grid-container">
-        <div class="stall-card">
-            <span class="stall-icon">🍥</span>Tu Tu Kueh
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🍜</span>Toast Box
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🥤</span>Drink
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🍗</span>HK Roast
-        </div>
+        <div class="stall-card"><span class="stall-icon">🍥</span><br>Tu Tu Kueh</div>
+        <div class="stall-card"><span class="stall-icon">🍜</span><br>Toast Box</div>
+        <div class="stall-card"><span class="stall-icon">🥤</span><br>Drink</div>
+        <div class="stall-card"><span class="stall-icon">🍗</span><br>HK Roast</div>
     </div>
 </div>
 
-<!-- 充值弹窗 -->
-<div id="topUpModal" class="modal hide">
+<!-- 充值弹窗：只显示二维码，顾客不能输入金额 -->
+<div id="topModal" class="modal hide">
     <div class="modal-card">
-        <h2>Top Up 充值</h2>
-        <input type="number" class="amount-input" id="topUpAmount" placeholder="Enter top up amount" min="1">
-        <button class="confirm-btn" id="createTopQr">Generate QR</button>
-        <img id="topQrImg" class="hide">
-        <button class="close-btn" id="closeTopUp">Close</button>
+        <h2>Top Up QR</h2>
+        <img id="topQr">
+        <p>Show to cashier to top up</p>
+        <button class="close-btn" id="closeTop">Close</button>
     </div>
 </div>
 
 <!-- 消费弹窗 -->
 <div id="payModal" class="modal hide">
     <div class="modal-card">
-        <h2>Pay 消费</h2>
-        <input type="number" class="amount-input" id="payAmount" placeholder="Enter pay amount" min="1">
-        <button class="confirm-btn" id="createPayQr">Generate QR</button>
-        <img id="payQrImg" class="hide">
-        <button class="close-btn" id="closePay">Close</button>
+        <h2>Payment QR</h2>
+        <input type="number" id="payAmt" placeholder="Enter Amount" style="width:100%;padding:10px;margin:10px 0">
+        <button onclick="generatePayQr()" style="background:#28a745;color:white;padding:10px 20px;border:none;border-radius:8px;">Generate QR</button>
+        <img id="payQr" class="hide" style="margin:10px auto">
+        <button class="close-btn" onclick="payModal.classList.add('hide')">Close</button>
     </div>
 </div>
 
 <script>
-    // 用户账户永久存储
-    const USER_KEY = "usersData";
-    const SESSION_KEY = "userSession";
+const USER_DB = "usersData";
+const LOGIN_SESSION = "loggedInUser";
 
-    function getUsers() {
-        return JSON.parse(localStorage.getItem(USER_KEY)) || {};
-    }
-    function saveUsers(users) {
-        localStorage.setItem(USER_KEY, JSON.stringify(users));
-    }
-    // 会话存储（保持登录）
-    function setSession(phone){
-        localStorage.setItem(SESSION_KEY,phone);
-    }
-    function getSession(){
-        return localStorage.getItem(SESSION_KEY)||"";
-    }
-    function clearSession(){
-        localStorage.removeItem(SESSION_KEY);
-    }
+function getUsers() { return JSON.parse(localStorage.getItem(USER_DB)) || {}; }
+function saveUsers(u) { localStorage.setItem(USER_DB, JSON.stringify(u)); }
+function setLogin(u) { localStorage.setItem(LOGIN_SESSION, u); }
+function getLogin() { return localStorage.getItem(LOGIN_SESSION) || ""; }
+function logout() { localStorage.removeItem(LOGIN_SESSION); location.reload(); }
 
-    // DOM绑定
-    const loginPanel = document.getElementById("loginPanel");
-    const registerPanel = document.getElementById("registerPanel");
-    const mainPage = document.getElementById("mainPage");
+let user = getLogin();
+let users = getUsers();
 
-    const loginPhone = document.getElementById("loginPhone");
-    const loginPwd = document.getElementById("loginPwd");
-    const loginBtn = document.getElementById("loginBtn");
-    const goRegisterBtn = document.getElementById("goRegisterBtn");
-
-    const regPhone = document.getElementById("regPhone");
-    const regPwd = document.getElementById("regPwd");
-    const regConfirmPwd = document.getElementById("regConfirmPwd");
-    const registerBtn = document.getElementById("registerBtn");
-    const goLoginBtn = document.getElementById("goLoginBtn");
-
-    const balanceDisplay = document.getElementById("balanceDisplay");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const topUpBtn = document.getElementById("topUpBtn");
-    const payBtn = document.getElementById("payBtn");
-
-    const topUpModal = document.getElementById("topUpModal");
-    const topUpAmount = document.getElementById("topUpAmount");
-    const createTopQr = document.getElementById("createTopQr");
-    const topQrImg = document.getElementById("topQrImg");
-    const closeTopUp = document.getElementById("closeTopUp");
-
-    const payModal = document.getElementById("payModal");
-    const payAmount = document.getElementById("payAmount");
-    const createPayQr = document.getElementById("createPayQr");
-    const payQrImg = document.getElementById("payQrImg");
-    const closePay = document.getElementById("closePay");
-
-    let currentUser = "";
-
-    // 页面初始化：读取会话，自动登录（刷新不退出）
-    window.onload = ()=>{
-        const savedPhone = getSession();
-        const userList = getUsers();
-        if(savedPhone && userList[savedPhone]){
-            currentUser = savedPhone;
-            loginPanel.classList.add("hide");
-            registerPanel.classList.add("hide");
-            mainPage.classList.remove("hide");
-            balanceDisplay.innerText = `$${userList[savedPhone].balance.toFixed(2)}`;
-        }
-    }
-
-    // 注册/登录面板切换
-    goRegisterBtn.onclick = () => {
+// 自动登录 & 自动刷新余额（每2秒更新一次）
+window.onload = function() {
+    user = getLogin();
+    users = getUsers();
+    if(user && users[user]) {
         loginPanel.classList.add("hide");
-        registerPanel.classList.remove("hide");
-    };
-    goLoginBtn.onclick = () => {
-        registerPanel.classList.add("hide");
-        loginPanel.classList.remove("hide");
-    };
-
-    // 注册（账号永久保存）
-    registerBtn.onclick = () => {
-        const phone = regPhone.value.trim();
-        const pwd = regPwd.value.trim();
-        const cpwd = regConfirmPwd.value.trim();
-
-        if (!phone || !pwd || !cpwd) {
-            alert("Please fill all fields");
-            return;
-        }
-        if (pwd !== cpwd) {
-            alert("Password not match");
-            return;
-        }
-
-        const users = getUsers();
-        if (users[phone]) {
-            alert("Phone already registered");
-            return;
-        }
-        users[phone] = { password: pwd, balance: 0 };
-        saveUsers(users);
-        alert("Register success! Please login.");
-        registerPanel.classList.add("hide");
-        loginPanel.classList.remove("hide");
-    };
-
-    // 登录：写入会话，持久登录
-    loginBtn.onclick = () => {
-        const phone = loginPhone.value.trim();
-        const pwd = loginPwd.value.trim();
-        const users = getUsers();
-
-        if (!phone || !pwd) {
-            alert("Please enter phone and password");
-            return;
-        }
-        if (users[phone] && users[phone].password === pwd) {
-            currentUser = phone;
-            setSession(phone);
-            loginPanel.classList.add("hide");
-            mainPage.classList.remove("hide");
-            balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
-        } else {
-            alert("Wrong phone or password");
-        }
-    };
-
-    // 退出登录：清空会话，返回登录页
-    logoutBtn.onclick = ()=>{
-        clearSession();
-        currentUser = "";
-        mainPage.classList.add("hide");
-        loginPanel.classList.remove("hide");
-        loginPhone.value = "";
-        loginPwd.value = "";
+        mainPage.classList.remove("hide");
+        refreshBalance();
     }
+    setInterval(refreshBalance, 2000);
+};
 
-    // 充值弹窗逻辑
-    topUpBtn.onclick = () => {
-        topUpModal.classList.remove("hide");
-        topQrImg.classList.add("hide");
-        topUpAmount.value = "";
-    };
-    closeTopUp.onclick = () => {
-        topUpModal.classList.add("hide");
-    };
-    createTopQr.onclick = () => {
-        const amt = topUpAmount.value;
-        if (!amt || Number(amt) < 1) {
-            alert("Please enter valid amount");
-            return;
-        }
-        topQrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TOP:${currentUser}:${amt}`;
-        topQrImg.classList.remove("hide");
-    };
+function refreshBalance() {
+    users = getUsers();
+    user = getLogin();
+    if(user && users[user]) {
+        balanceDisplay.innerText = "$" + users[user].balance.toFixed(2);
+    }
+}
 
-    // 消费弹窗逻辑
-    payBtn.onclick = () => {
-        payModal.classList.remove("hide");
-        payQrImg.classList.add("hide");
-        payAmount.value = "";
-    };
-    closePay.onclick = () => {
-        payModal.classList.add("hide");
-    };
-    createPayQr.onclick = () => {
-        const amt = payAmount.value;
-        if (!amt || Number(amt) < 1) {
-            alert("Please enter valid amount");
-            return;
-        }
-        payQrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PAY:${currentUser}:${amt}`;
-        payQrImg.classList.remove("hide");
-    };
+// 充值：只弹出二维码，不输入金额
+topUpBtn.onclick = function() {
+    topModal.classList.remove("hide");
+    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:" + user;
+};
+closeTop.onclick = () => topModal.classList.add("hide");
+
+// 消费
+payBtn.onclick = () => { payModal.classList.remove("hide"); payQr.classList.add("hide"); }
+function generatePayQr() {
+    let amt = payAmt.value;
+    if(!amt || amt < 1) return alert("Enter valid amount");
+    payQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:"+user+":"+amt;
+    payQr.classList.remove("hide");
+}
+
+// 登录注册逻辑
+goRegisterBtn.onclick = () => { loginPanel.classList.add("hide"); registerPanel.classList.remove("hide"); }
+goLoginBtn.onclick = () => { registerPanel.classList.add("hide"); loginPanel.classList.remove("hide"); }
+
+registerBtn.onclick = function() {
+    let p = regPhone.value.trim();
+    let pw = regPwd.value;
+    let cpw = regConfirmPwd.value;
+    if(!p||!pw||pw!=cpw) return alert("Check input");
+    let u = getUsers();
+    if(u[p]) return alert("Already registered");
+    u[p] = {password:pw, balance:0};
+    saveUsers(u);
+    alert("Success! Please login.");
+    registerPanel.classList.add("hide");
+    loginPanel.classList.remove("hide");
+};
+
+loginBtn.onclick = function() {
+    let p = loginPhone.value.trim();
+    let pw = loginPwd.value;
+    let u = getUsers();
+    if(u[p] && u[p].password == pw) {
+        setLogin(p);
+        location.reload();
+    } else {
+        alert("Invalid login");
+    }
+};
+
+logoutBtn.onclick = logout;
 </script>
-
 </body>
 </html>
