@@ -3,428 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Court Ordering POS</title>
+    <title>顾客点餐消费端</title>
     <style>
-        :root {
-            --primary-color: #ff6b6b;
-            --bg-color: #f8f9fa;
-        }
-        html, body {
-            height: 100%;
-        }
+        :root {--primary-color: #ff6b6b;--bg-color: #f8f9fa;}
+        html, body {height: 100%;}
         body {
-            font-family: -apple-system, sans-serif;
+            font-family: Arial, sans-serif;
             background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-            margin: 0;
-            padding: 28px;
+            background-size: cover;background-position: center;background-attachment: fixed;
+            margin: 0;padding: 20px;
         }
-        header {
-            text-align: center;
-            padding: 20px 0;
-            background: rgba(255,255,255,0.85);
-            border-radius: 12px;
-            margin-bottom: 20px;
+        .auth-card {background: white;padding: 30px;border-radius: 16px;max-width: 400px;margin: 50px auto;}
+        .auth-card input, .auth-card button {width: 100%;padding: 12px;margin: 8px 0;border-radius: 8px;border:1px solid #ddd}
+        .auth-card button {background:#4285F4;color:white;border:none;font-weight:bold}
+        .link-btn {background:none!important;color:#4285F4!important;text-decoration:underline}
+        .hide {display:none}
+        header {text-align:center;background:rgba(255,255,255,0.9);padding:20px;border-radius:12px;margin-bottom:20px}
+        .balance-box {
+            background:linear-gradient(135deg,#6e8efb,#a777e3);color:white;padding:20px;border-radius:16px;margin-bottom:20px;
+            display:flex;justify-content:space-between;align-items:center
         }
-        h1 { color: #333; margin-bottom: 5px; }
-        .wallet-banner {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            color: white;
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap:10px;
-        }
-        .wallet-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid white;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .stall-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-            border: 1px solid #eee;
-        }
-        .stall-card:active {
-            transform: scale(0.95);
-            background-color: #f0f0f0;
-        }
-        .stall-icon {
-            font-size: 30px;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        /* 登录注册面板样式 */
-        .auth-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 400px;
-            margin: 50px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .auth-card h2 {
-            text-align: center;
-            color: #333;
-            margin-top: 0;
-        }
-        .auth-card input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-sizing: border-box;
-        }
-        .auth-card button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            background: #6e8efb;
-            color: white;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .auth-card .link-btn {
-            background: none;
-            color: #6e8efb;
-            text-decoration: underline;
-            font-weight: normal;
-        }
-        .hide { display: none !important; }
-
-        /* 充值/消费弹窗 */
-        .modal {
-            position: fixed;
-            top:0; left:0; right:0; bottom:0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-        .modal-card {
-            background: white;
-            width: 90%;
-            max-width: 380px;
-            padding: 25px;
-            border-radius: 20px;
-            text-align: center;
-        }
-        .modal-card img {
-            width: 200px;
-            height: 200px;
-            margin: 15px 0;
-            border: 1px solid #eee;
-        }
-        .amount-input {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border:1px solid #ddd;
-            margin:10px 0;
-            box-sizing: border-box;
-        }
-        .confirm-btn {
-            background: #28a745;
-            color:white;
-            border:none;
-            padding:12px 25px;
-            border-radius: 8px;
-            margin:5px;
-            cursor: pointer;
-        }
-        .close-btn {
-            background: #6c757d;
-            color:white;
-            border:none;
-            padding:12px 25px;
-            border-radius: 8px;
-            margin:5px;
-            cursor: pointer;
-        }
+        .balance-box button {background:rgba(255,255,255,0.2);color:white;border:1px solid white;padding:10px 16px;border-radius:20px}
+        .modal {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
+        .modal-body {background:white;padding:30px;border-radius:20px;text-align:center}
+        .modal-body img {width:220px;height:220px;margin:10px 0}
+        .modal-body input {width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
+        .modal-body button {padding:12px 24px;margin:5px;border-radius:8px;border:none;color:white}
+        .btn-confirm {background:#28a745}
+        .btn-close {background:#6c757d}
     </style>
 </head>
 <body>
 
-<!-- 登录面板 -->
-<div id="loginPanel" class="auth-card">
-    <h2>Login</h2>
-    <input type="text" id="loginPhone" placeholder="Phone Number">
-    <input type="password" id="loginPwd" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <button class="link-btn" id="goRegisterBtn">Register New Account</button>
+<div id="login" class="auth-card">
+    <h2>会员登录</h2>
+    <input id="phone" placeholder="手机号">
+    <input id="pwd" type="password" placeholder="密码">
+    <button id="loginBtn">登录</button>
+    <button class="link-btn" id="goReg">注册新账号</button>
 </div>
 
-<!-- 注册面板 -->
-<div id="registerPanel" class="auth-card hide">
-    <h2>Register</h2>
-    <input type="text" id="regPhone" placeholder="Phone Number">
-    <input type="password" id="regPwd" placeholder="Password">
-    <input type="password" id="regConfirmPwd" placeholder="Confirm Password">
-    <button id="registerBtn">Register</button>
-    <button class="link-btn" id="goLoginBtn">Back to Login</button>
+<div id="reg" class="auth-card hide">
+    <h2>注册</h2>
+    <input id="rPhone" placeholder="手机号">
+    <input id="rPwd" placeholder="密码">
+    <input id="rPwd2" placeholder="确认密码">
+    <button id="regBtn">注册</button>
+    <button class="link-btn" id="goLogin">返回登录</button>
 </div>
 
-<!-- 主点餐页面（默认隐藏，登录后显示） -->
-<div id="mainPage" class="hide">
-    <header>
-        <h1>Campus Canteen</h1>
-        <p>Select a stall to start ordering</p>
-    </header>
-
-    <div class="wallet-banner">
+<div id="main" class="hide">
+    <header><h1>Food Court POS</h1></header>
+    <div class="balance-box">
+        <div>余额: <h2 id="bal">$0.00</h2></div>
         <div>
-            <small>My Balance</small>
-            <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
-        </div>
-        <div>
-            <button class="wallet-btn" id="topUpBtn">Top Up 充值</button>
-            <button class="wallet-btn" id="payBtn">Pay 消费</button>
+            <button id="topQrBtn">充值二维码</button>
+            <button id="payQrBtn">消费二维码</button>
         </div>
     </div>
+</div>
 
-    <div class="grid-container">
-        <a href="https://chrisscf-creator.github.io/ivy/npostt.html" class="stall-card">
-            <span class="stall-icon">🍥</span>
-            Tu Tu Kueh
-        </a>
-        <a href="https://chrisscf-creator.github.io/ivy/npostb.html" class="stall-card">
-            <span class="stall-icon">🍜</span>
-            Toast Box
-        </a>
-        <a href="https://chrisscf-creator.github.io/ivy/npostbd.html" class="stall-card">
-            <span class="stall-icon">🥤</span>
-            Drink
-        </a>
-        <a href="https://chrisscf-creator.github.io/ivy/nposhk.html" class="stall-card">
-            <span class="stall-icon">🍗</span>
-            HK Roast
-        </a>
+<div id="topModal" class="modal hide">
+    <div class="modal-body">
+        <h3>给我充值</h3>
+        <img id="topQr">
+        <p>请商家扫码充值</p>
+        <button class="btn-close" onclick="topModal.classList.add('hide')">关闭</button>
     </div>
 </div>
 
-<!-- 充值弹窗 -->
-<div id="topUpModal" class="modal hide">
-    <div class="modal-card">
-        <h2>Top Up 充值</h2>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=TOPUP" alt="Top Up QR">
-        <p>Scan QR to pay</p>
-        <input type="number" class="amount-input" id="topUpAmount" placeholder="Enter top up amount" min="1">
-        <button class="confirm-btn" id="confirmTopUp">Confirm Top Up</button>
-        <button class="close-btn" id="closeTopUp">Close</button>
-    </div>
-</div>
-
-<!-- 消费弹窗 -->
 <div id="payModal" class="modal hide">
-    <div class="modal-card">
-        <h2>Pay 消费</h2>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PAYMENT" alt="Pay QR">
-        <p>Scan QR to pay</p>
-        <input type="number" class="amount-input" id="payAmount" placeholder="Enter pay amount" min="1">
-        <button class="confirm-btn" id="confirmPay">Confirm Pay</button>
-        <button class="close-btn" id="closePay">Close</button>
+    <div class="modal-body">
+        <h3>付款码</h3>
+        <img id="payQr">
+        <input type="number" id="payAmt" placeholder="输入消费金额" min="1">
+        <button class="btn-confirm" id="genPayBtn">生成付款码</button>
+        <button class="btn-close" onclick="payModal.classList.add('hide')">关闭</button>
     </div>
 </div>
 
 <script>
-    // 本地存储用户账号
-    function getUsers() {
-        return JSON.parse(localStorage.getItem("users")) || {};
-    }
-    function saveUsers(users) {
-        localStorage.setItem("users", JSON.stringify(users));
-    }
+function users() { return JSON.parse(localStorage.userData||'{}') }
+function save(u) { localStorage.userData=JSON.stringify(u) }
+let now=''
 
-    // DOM
-    const loginPanel = document.getElementById("loginPanel");
-    const registerPanel = document.getElementById("registerPanel");
-    const mainPage = document.getElementById("mainPage");
+goLogin.onclick=()=>{reg.classList.add('hide');login.classList.remove('hide')}
+goReg.onclick=()=>{login.classList.add('hide');reg.classList.remove('hide')}
 
-    // 登录
-    const loginPhone = document.getElementById("loginPhone");
-    const loginPwd = document.getElementById("loginPwd");
-    const loginBtn = document.getElementById("loginBtn");
-    const goRegisterBtn = document.getElementById("goRegisterBtn");
+regBtn.onclick=()=>{
+    let p=rPhone.value, pw=rPwd.value, pw2=rPwd2.value
+    if(!p||!pw||pw!=pw2) return alert('填写正确')
+    let u=users()
+    if(u[p]) return alert('已注册')
+    u[p]={pwd:pw,bal:0}
+    save(u)
+    alert('注册成功')
+    reg.classList.add('hide');login.classList.remove('hide')
+}
 
-    // 注册
-    const regPhone = document.getElementById("regPhone");
-    const regPwd = document.getElementById("regPwd");
-    const regConfirmPwd = document.getElementById("regConfirmPwd");
-    const registerBtn = document.getElementById("registerBtn");
-    const goLoginBtn = document.getElementById("goLoginBtn");
+loginBtn.onclick=()=>{
+    let p=phone.value, pw=pwd.value, u=users()
+    if(!u[p]||u[p].pwd!=pw) return alert('账号密码错误')
+    now=p
+    login.classList.add('hide');main.classList.remove('hide')
+    bal.innerText='$'+u[p].bal.toFixed(2)
+}
 
-    // 余额 & 按钮
-    const balanceDisplay = document.getElementById("balanceDisplay");
-    const topUpBtn = document.getElementById("topUpBtn");
-    const payBtn = document.getElementById("payBtn");
+topQrBtn.onclick=()=>{
+    topModal.classList.remove('hide')
+    topQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:${now}`
+}
 
-    // 充值弹窗
-    const topUpModal = document.getElementById("topUpModal");
-    const topUpAmount = document.getElementById("topUpAmount");
-    const confirmTopUp = document.getElementById("confirmTopUp");
-    const closeTopUp = document.getElementById("closeTopUp");
+genPayBtn.onclick=()=>{
+    let amt=payAmt.value
+    if(!amt||amt<1) return alert('输入金额')
+    payQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:${now}:${amt}`
+}
 
-    // 消费弹窗
-    const payModal = document.getElementById("payModal");
-    const payAmount = document.getElementById("payAmount");
-    const confirmPay = document.getElementById("confirmPay");
-    const closePay = document.getElementById("closePay");
-
-    let currentUser = "";
-
-    // 切换页面
-    goRegisterBtn.onclick = () => {
-        loginPanel.classList.add("hide");
-        registerPanel.classList.remove("hide");
-    };
-    goLoginBtn.onclick = () => {
-        registerPanel.classList.add("hide");
-        loginPanel.classList.remove("hide");
-    };
-
-    // 注册功能
-    registerBtn.onclick = () => {
-        const phone = regPhone.value.trim();
-        const pwd = regPwd.value.trim();
-        const cpwd = regConfirmPwd.value.trim();
-
-        if (!phone || !pwd || !cpwd) {
-            alert("Please fill all fields");
-            return;
-        }
-        if (pwd !== cpwd) {
-            alert("Password not match");
-            return;
-        }
-
-        const users = getUsers();
-        if (users[phone]) {
-            alert("Phone already registered");
-            return;
-        }
-
-        // 新用户默认余额 0
-        users[phone] = {
-            password: pwd,
-            balance: 0
-        };
-        saveUsers(users);
-
-        alert("Register success! Please login.");
-        registerPanel.classList.add("hide");
-        loginPanel.classList.remove("hide");
-    };
-
-    // 登录功能
-    loginBtn.onclick = () => {
-        const phone = loginPhone.value.trim();
-        const pwd = loginPwd.value.trim();
-        const users = getUsers();
-
-        if (!phone || !pwd) {
-            alert("Please enter phone and password");
-            return;
-        }
-
-        if (users[phone] && users[phone].password === pwd) {
-            currentUser = phone;
-            loginPanel.classList.add("hide");
-            mainPage.classList.remove("hide");
-            updateBalance(); // 显示余额
-        } else {
-            alert("Wrong phone or password");
-        }
-    };
-
-    // 更新余额显示
-    function updateBalance() {
-        const users = getUsers();
-        if(currentUser && users[currentUser]){
-            balanceDisplay.innerText = `$${users[currentUser].balance.toFixed(2)}`;
-        }
-    }
-
-    // 打开充值弹窗
-    topUpBtn.onclick = () => {
-        topUpModal.classList.remove("hide");
-        topUpAmount.value = "";
-    };
-    // 关闭充值
-    closeTopUp.onclick = () => {
-        topUpModal.classList.add("hide");
-    };
-    // 确认充值
-    confirmTopUp.onclick = () => {
-        const amount = parseFloat(topUpAmount.value);
-        if(isNaN(amount) || amount <= 0){
-            alert("Please enter valid amount");
-            return;
-        }
-        const users = getUsers();
-        users[currentUser].balance += amount;
-        saveUsers(users);
-        updateBalance();
-        alert("Top Up Success!\nAmount: $" + amount.toFixed(2));
-        topUpModal.classList.add("hide");
-    };
-
-    // 打开消费弹窗
-    payBtn.onclick = () => {
-        payModal.classList.remove("hide");
-        payAmount.value = "";
-    };
-    // 关闭消费
-    closePay.onclick = () => {
-        payModal.classList.add("hide");
-    };
-    // 确认消费
-    confirmPay.onclick = () => {
-        const amount = parseFloat(payAmount.value);
-        if(isNaN(amount) || amount <= 0){
-            alert("Please enter valid amount");
-            return;
-        }
-        const users = getUsers();
-        if(users[currentUser].balance < amount){
-            alert("Insufficient balance!");
-            return;
-        }
-        users[currentUser].balance -= amount;
-        saveUsers(users);
-        updateBalance();
-        alert("Payment Success!\nAmount: $" + amount.toFixed(2));
-        payModal.classList.add("hide");
-    };
+payQrBtn.onclick=()=>{payModal.classList.remove('hide');payQr.src=''}
 </script>
-
 </body>
 </html>
