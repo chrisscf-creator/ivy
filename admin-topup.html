@@ -1,461 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - TopUp / Scan / Refund</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f7ff;
-            padding: 30px;
-            max-width: 480px;
-            margin: 0 auto;
-        }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        h1, h3 {
-            color: #2c3e50;
-            text-align: center;
-            margin-top: 0;
-        }
-        h1 { font-size: 22px; }
-        h3 { font-size: 16px; margin:20px 0 10px; }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        button {
-            background: #6e8efb;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-        }
-        button:hover {
-            background: #5579e7;
-        }
-        .btn-danger {
-            background: #e74c3c;
-        }
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-        .btn-success {
-            background: #27ae60;
-        }
-        .btn-success:hover {
-            background: #1e8449;
-        }
-        .btn-warning {
-            background: #f39c12;
-        }
-        .btn-warning:hover {
-            background: #d35400;
-        }
-        .btn-secondary {
-            background: #95a5a6;
-        }
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-        .info {
-            font-size: 15px;
-            line-height: 1.6;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f8f9ff;
-            border-radius: 8px;
-        }
-        .log-box {
-            margin-top: 10px;
-            max-height: 180px;
-            overflow-y: auto;
-            font-size: 13px;
-            color: #333;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 8px;
-        }
-        .log-item {
-            padding: 6px 0;
-            border-bottom: 1px solid #eee;
-            line-height: 1.5;
-        }
-        .hide { display: none; }
-        .filter-row {
-            display: flex;
-            gap: 8px;
-        }
-        .filter-row input {
-            flex: 1;
-            margin: 8px 0;
-        }
-        .filter-row button {
-            width: 100px;
-            flex-shrink: 0;
-        }
-        #video {
-            width: 100%;
-            border-radius: 8px;
-            background: #000;
-            margin:10px 0;
-        }
-        .split-line {
-            height:1px;
-            background:#ddd;
-            margin:25px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商家充值系统</title>
+<style>
+*{box-sizing:border-box;font-family:Arial}
+body{background:#f0f4ff;padding:30px;margin:0}
+.box{max-width:420px;margin:0 auto;background:#fff;padding:30px;border-radius:16px;box-shadow:0 3px 15px #00000015}
+h2{text-align:center;color:#3366ff;margin-top:0}
+input{width:100%;padding:13px;margin:8px 0;border:1px #ddd solid;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;border:none;border-radius:8px;margin:8px 0;font-weight:bold;font-size:16px;cursor:pointer}
+.btn-topup{background:#2563eb;color:#fff}
+.btn-close{background:#999;color:#fff}
+.qr-box{text-align:center;margin:15px 0}
+.qr-box img{width:220px;height:220px;border:1px #eee solid;border-radius:8px}
+.hide{display:none}
+</style>
 </head>
-
 <body>
-<div class="card">
-    <!-- 登录 -->
-    <div id="login">
-        <h1>Admin Login</h1>
-        <input type="password" id="pwd" placeholder="Password">
-        <button id="loginBtn">Login</button>
-    </div>
+<div class="box">
+    <h2>会员储值充值（商家端）</h2>
+    <input id="phone" placeholder="输入会员手机号">
+    <input id="money" type="number" min="1" placeholder="输入充值金额">
+    <button class="btn-topup" id="createQrBtn">生成充值二维码</button>
 
-    <!-- 主面板 -->
-    <div id="panel" class="hide">
-        <h3>Scan QR Code (Payment)</h3>
-        <video id="video" autoplay playsinline></video>
-        <button class="btn-success" id="stopScanBtn">Stop Scan</button>
-
-        <div class="split-line"></div>
-
-        <h1>User Balance Management</h1>
-
-        <input type="text" id="phone" placeholder="Enter user phone number">
-        <button id="findBtn">Find User</button>
-
-        <div class="info" id="info">
-            Before Balance: $0.00<br>
-            Amount: $0.00<br>
-            After Balance: $0.00
-        </div>
-
-        <!-- 充值 -->
-        <input type="number" id="amount" placeholder="Top up amount" min="1" step="0.01">
-        <button id="topupBtn">Confirm Top Up</button>
-
-        <!-- 退款 -->
-        <input type="number" id="refundAmount" placeholder="Refund amount" min="1" step="0.01">
-        <button class="btn-warning" id="refundBtn">Confirm Refund</button>
-
-        <!-- 筛选 -->
-        <div class="filter-row">
-            <input type="text" id="filterPhone" placeholder="Filter by phone">
-            <button id="filterBtn">Filter</button>
-        </div>
-        <button id="resetFilterBtn">Show All Records</button>
-        <button id="clearLogBtn" class="btn-danger">Clear All Records</button>
-
-        <!-- 日志 -->
-        <h3>Recharge Log</h3>
-        <div class="log-box" id="log"></div>
-
-        <h3>Payment Deduct Log</h3>
-        <div class="log-box" id="deductLog"></div>
-
-        <h3>Refund Log</h3>
-        <div class="log-box" id="refundLog"></div>
-
-        <div class="split-line"></div>
-
-        <!-- 修改密码区域 -->
-        <h3>Change Admin Password</h3>
-        <input type="password" id="oldPwd" placeholder="Old Password">
-        <input type="password" id="newPwd" placeholder="New Password">
-        <input type="password" id="confirmNewPwd" placeholder="Confirm New Password">
-        <button class="btn-secondary" id="changePwdBtn">Change Password</button>
+    <div id="qrWrap" class="hide qr-box">
+        <p>请顾客扫码完成充值</p>
+        <img id="qrImg" src="">
+        <button class="btn-topup" id="confirmAdd">确认到账，增加余额</button>
+        <button class="btn-close" id="cancel">关闭</button>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-    // 初始默认密码
-    const DEFAULT_PASS = "123456";
-    // 从本地取密码，没有就用默认
-    function getAdminPass() {
-        return localStorage.getItem("adminPass") || DEFAULT_PASS;
-    }
-    function setAdminPass(newPass) {
-        localStorage.setItem("adminPass", newPass);
-    }
+//会员数据统一存储
+function getUserAll(){return JSON.parse(localStorage.getItem("userData"))||{}}
+function saveUser(obj){localStorage.setItem("userData",JSON.stringify(obj))}
+let nowPhone="",nowAmt=0;
+const phone=document.getElementById("phone");
+const money=document.getElementById("money");
+const createQrBtn=document.getElementById("createQrBtn");
+const qrWrap=document.getElementById("qrWrap");
+const qrImg=document.getElementById("qrImg");
+const confirmAdd=document.getElementById("confirmAdd");
+const cancel=document.getElementById("cancel");
 
-    let video, canvas, ctx, scanInterval;
+//生成充值二维码
+createQrBtn.onclick=()=>{
+    let p=phone.value.trim();
+    let m=Number(money.value);
+    if(!p||isNaN(m)||m<=0){alert("填写正确手机号和金额");return}
+    nowPhone=p;nowAmt=m;
+    //动态二维码链接：携带手机号+金额参数
+    let qrData=`RECHARGE|${p}|${m}`;
+    qrImg.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrData)}`;
+    qrWrap.classList.remove("hide");
+}
 
-    const login = document.getElementById('login');
-    const panel = document.getElementById('panel');
-    const pwd = document.getElementById('pwd');
-    const loginBtn = document.getElementById('loginBtn');
-    const phone = document.getElementById('phone');
-    const findBtn = document.getElementById('findBtn');
-    const info = document.getElementById('info');
-    const amount = document.getElementById('amount');
-    const topupBtn = document.getElementById('topupBtn');
-    const refundAmount = document.getElementById('refundAmount');
-    const refundBtn = document.getElementById('refundBtn');
-    const log = document.getElementById('log');
-    const deductLog = document.getElementById('deductLog');
-    const refundLog = document.getElementById('refundLog');
-    const filterPhone = document.getElementById('filterPhone');
-    const filterBtn = document.getElementById('filterBtn');
-    const resetFilterBtn = document.getElementById('resetFilterBtn');
-    const clearLogBtn = document.getElementById('clearLogBtn');
-    const videoEl = document.getElementById('video');
-    const stopScanBtn = document.getElementById('stopScanBtn');
-
-    // 修改密码相关
-    const oldPwd = document.getElementById('oldPwd');
-    const newPwd = document.getElementById('newPwd');
-    const confirmNewPwd = document.getElementById('confirmNewPwd');
-    const changePwdBtn = document.getElementById('changePwdBtn');
-
-    function getUsers() {
-        return JSON.parse(localStorage.getItem("users")) || {};
-    }
-    function saveUsers(users) {
-        localStorage.setItem("users", JSON.stringify(users));
-    }
-    function getTopUpLogs() {
-        return JSON.parse(localStorage.getItem("topupLogs")) || [];
-    }
-    function saveTopUpLogs(logs) {
-        localStorage.setItem("topupLogs", JSON.stringify(logs));
-    }
-    function getDeductLogs() {
-        return JSON.parse(localStorage.getItem("deductLogs")) || [];
-    }
-    function saveDeductLogs(logs) {
-        localStorage.setItem("deductLogs", JSON.stringify(logs));
-    }
-    function getRefundLogs() {
-        return JSON.parse(localStorage.getItem("refundLogs")) || [];
-    }
-    function saveRefundLogs(logs) {
-        localStorage.setItem("refundLogs", JSON.stringify(logs));
-    }
-
-    let currentPhone = "";
-
-    // 登录
-    loginBtn.onclick = () => {
-        if (pwd.value === getAdminPass()) {
-            login.classList.add("hide");
-            panel.classList.remove("hide");
-            refreshAllLogs();
-            startScan();
-        } else {
-            alert("Wrong password");
-        }
-    };
-
-    // 修改密码
-    changePwdBtn.onclick = () => {
-        const o = oldPwd.value.trim();
-        const n = newPwd.value.trim();
-        const c = confirmNewPwd.value.trim();
-        if (!o || !n || !c) return alert("Please fill all fields");
-        if (o !== getAdminPass()) return alert("Old password incorrect");
-        if (n !== c) return alert("New password not match");
-        if (n.length < 4) return alert("New password at least 4 chars");
-
-        setAdminPass(n);
-        alert("Password changed! Please login again.");
-        // 退出到登录页
-        panel.classList.add("hide");
-        login.classList.remove("hide");
-        pwd.value = "";
-        oldPwd.value = "";
-        newPwd.value = "";
-        confirmNewPwd.value = "";
-        stopScan();
-    };
-
-    findBtn.onclick = () => {
-        const phoneVal = phone.value.trim();
-        if (!phoneVal) { alert("Enter phone"); return; }
-        const users = getUsers();
-        if (!users[phoneVal]) { alert("User not found"); currentPhone = ""; return; }
-        currentPhone = phoneVal;
-        info.innerHTML = `Before Balance: $${users[phoneVal].balance.toFixed(2)}<br>Amount: $0.00<br>After Balance: $${users[phoneVal].balance.toFixed(2)}`;
-    };
-
-    // 充值
-    topupBtn.onclick = () => {
-        const amt = parseFloat(amount.value);
-        if (!currentPhone) { alert("Find user first"); return; }
-        if (isNaN(amt) || amt <= 0) { alert("Invalid amount"); return; }
-        const users = getUsers();
-        const before = users[currentPhone].balance;
-        const after = before + amt;
-        users[currentPhone].balance = after;
-        saveUsers(users);
-
-        const now = new Date();
-        const logRecord = {
-            phone: currentPhone,
-            date: now.toLocaleDateString(),
-            time: now.toLocaleTimeString(),
-            before: before, topup: amt, after: after
-        };
-        const logs = getTopUpLogs();
-        logs.unshift(logRecord);
-        saveTopUpLogs(logs);
-
-        info.innerHTML = `Before Balance: $${before.toFixed(2)}<br>Top Up: $${amt.toFixed(2)}<br>After: $${after.toFixed(2)}`;
-        amount.value = "";
-        refreshAllLogs();
-        alert("Top Up Success!");
-    };
-
-    // 退款
-    refundBtn.onclick = () => {
-        const amt = parseFloat(refundAmount.value);
-        if (!currentPhone) { alert("Find user first"); return; }
-        if (isNaN(amt) || amt <= 0) { alert("Invalid refund amount"); return; }
-
-        const users = getUsers();
-        const before = users[currentPhone].balance;
-        const after = before + amt;
-        users[currentPhone].balance = after;
-        saveUsers(users);
-
-        const now = new Date();
-        const logRecord = {
-            phone: currentPhone,
-            date: now.toLocaleDateString(),
-            time: now.toLocaleTimeString(),
-            before: before, refund: amt, after: after
-        };
-        const logs = getRefundLogs();
-        logs.unshift(logRecord);
-        saveRefundLogs(logs);
-
-        info.innerHTML = `Before Balance: $${before.toFixed(2)}<br>Refund: $${amt.toFixed(2)}<br>After: $${after.toFixed(2)}`;
-        refundAmount.value = "";
-        refreshAllLogs();
-        alert("Refund Success!");
-    };
-
-    function refreshAllLogs(key = "") {
-        refreshLogDisplay(key);
-        refreshDeductLog(key);
-        refreshRefundLog(key);
-    }
-
-    function refreshLogDisplay(filterKey = "") {
-        const logs = getTopUpLogs();
-        let html = "";
-        logs.forEach(item => {
-            if (filterKey && !item.phone.includes(filterKey)) return;
-            html += `<div class="log-item">${item.date} ${item.time}<br>User: ${item.phone}<br>Before: $${item.before.toFixed(2)} | +$${item.topup.toFixed(2)} | After: $${item.after.toFixed(2)}</div>`;
-        });
-        log.innerHTML = html || "<div style='text-align:center'>No record</div>";
-    }
-
-    function refreshDeductLog(filterKey = "") {
-        const logs = getDeductLogs();
-        let html = "";
-        logs.forEach(item => {
-            if (filterKey && !item.phone.includes(filterKey)) return;
-            html += `<div class="log-item">${item.date} ${item.time}<br>User: ${item.phone}<br>Before: $${item.before.toFixed(2)} | -$${item.deduct.toFixed(2)} | After: $${item.after.toFixed(2)}</div>`;
-        });
-        deductLog.innerHTML = html || "<div style='text-align:center'>No record</div>";
-    }
-
-    function refreshRefundLog(filterKey = "") {
-        const logs = getRefundLogs();
-        let html = "";
-        logs.forEach(item => {
-            if (filterKey && !item.phone.includes(filterKey)) return;
-            html += `<div class="log-item">${item.date} ${item.time}<br>User: ${item.phone}<br>Before: $${item.before.toFixed(2)} | REFUND $${item.refund.toFixed(2)} | After: $${item.after.toFixed(2)}</div>`;
-        });
-        refundLog.innerHTML = html || "<div style='text-align:center'>No record</div>";
-    }
-
-    filterBtn.onclick = () => {
-        const key = filterPhone.value.trim();
-        refreshAllLogs(key);
-    };
-    resetFilterBtn.onclick = () => {
-        filterPhone.value = "";
-        refreshAllLogs("");
-    };
-    clearLogBtn.onclick = () => {
-        if (!confirm("Clear all records?")) return;
-        saveTopUpLogs([]);
-        saveDeductLogs([]);
-        saveRefundLogs([]);
-        refreshAllLogs("");
-        alert("Cleared");
-    };
-
-    // ========== 扫码 ==========
-    function startScan() {
-        canvas = document.createElement('canvas');
-        ctx = canvas.getContext('2d');
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => {
-            videoEl.srcObject = stream;
-            scanInterval = setInterval(scanQR, 300);
-        });
-    }
-    function scanQR() {
-        if (videoEl.readyState !== videoEl.HAVE_ENOUGH_DATA) return;
-        canvas.width = videoEl.videoWidth;
-        canvas.height = videoEl.videoHeight;
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-        if (code) {
-            stopScan();
-            handlePayData(code.data);
-        }
-    }
-    function stopScan() {
-        clearInterval(scanInterval);
-        if (videoEl.srcObject) videoEl.srcObject.getTracks().forEach(t=>t.stop());
-    }
-    stopScanBtn.onclick = stopScan;
-
-    function handlePayData(raw) {
-        const arr = raw.split('|');
-        if (arr.length !== 2) return alert("Invalid QR");
-        const phoneNum = arr[0];
-        const deductAmt = parseFloat(arr[1]);
-        const users = getUsers();
-        if (!users[phoneNum]) return alert("User not exist");
-        const beforeBal = users[phoneNum].balance;
-        if (beforeBal < deductAmt) return alert("Insufficient balance");
-        const afterBal = beforeBal - deductAmt;
-        users[phoneNum].balance = afterBal;
-        saveUsers(users);
-
-        const now = new Date();
-        const deductLogs = getDeductLogs();
-        deductLogs.unshift({
-            phone: phoneNum,
-            date: now.toLocaleDateString(),
-            time: now.toLocaleTimeString(),
-            before: beforeBal, deduct: deductAmt, after: afterBal
-        });
-        saveDeductLogs(deductLogs);
-        refreshAllLogs();
-        alert(`Payment Success!\nUser: ${phoneNum}\nAmount: $${deductAmt.toFixed(2)}`);
-    }
+//充值成功加余额
+confirmAdd.onclick=()=>{
+    let user=getUserAll();
+    if(!user[nowPhone]) user[nowPhone]={pwd:"123456",balance:0};
+    user[nowPhone].balance+=nowAmt;
+    saveUser(user);
+    alert(`充值成功！${nowPhone}新增$${nowAmt.toFixed(2)}，当前余额$${user[nowPhone].balance.toFixed(2)}`);
+    qrWrap.classList.add("hide");
+    phone.value="";money.value="";
+}
+cancel.onclick=()=>qrWrap.classList.add("hide");
 </script>
 </body>
 </html>
