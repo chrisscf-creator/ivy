@@ -3,149 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>顾客点餐消费端</title>
+    <title>Customer POS</title>
     <style>
-        :root {--primary-color: #ff6b6b;--bg-color: #f8f9fa;}
-        html, body {height: 100%;}
-        body {
-            font-family: Arial, sans-serif;
-            background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
-            background-size: cover;background-position: center;background-attachment: fixed;
-            margin: 0;padding: 20px;
-        }
-        .auth-card {background: white;padding: 30px;border-radius: 16px;max-width: 400px;margin: 50px auto;}
-        .auth-card input, .auth-card button {width: 100%;padding: 12px;margin: 8px 0;border-radius: 8px;border:1px solid #ddd}
-        .auth-card button {background:#4285F4;color:white;border:none;font-weight:bold}
-        .link-btn {background:none!important;color:#4285F4!important;text-decoration:underline}
-        .hide {display:none}
-        header {text-align:center;background:rgba(255,255,255,0.9);padding:20px;border-radius:12px;margin-bottom:20px}
-        .balance-box {
-            background:linear-gradient(135deg,#6e8efb,#a777e3);color:white;padding:20px;border-radius:16px;margin-bottom:20px;
+        *{box-sizing:border-box}
+        body{font-family:Arial;margin:0;background:#f0f0f0}
+        .auth-card{background:white;padding:25px;border-radius:16px;max-width:400px;margin:50px auto}
+        .auth-card input,.auth-card button{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #ddd}
+        .auth-card button{background:#4285F4;color:white;border:none}
+        .link-btn{background:none!important;color:#4285F4!important;text-decoration:underline}
+        .hide{display:none}
+        #main{padding:20px}
+        header{text-align:center;background:white;padding:20px;border-radius:12px;margin-bottom:20px}
+        .balance-box{
+            background:#4285F4;color:white;padding:20px;border-radius:16px;margin-bottom:20px;
             display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px
         }
-        .balance-box button {background:rgba(255,255,255,0.2);color:white;border:1px solid white;padding:10px 16px;border-radius:20px;cursor:pointer}
-        .grid-container {display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px}
-        .stall-card {background:#fff;padding:20px;border-radius:12px;text-align:center;font-weight:bold;box-shadow:0 3px 6px #00000012;border:1px solid #eee}
-        .stall-icon {font-size:32px;margin-bottom:8px;display:block}
-        .modal {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99}
-        .modal-body {background:white;padding:30px;border-radius:20px;text-align:center;max-width:350px;width:90%}
-        .modal-body img {width:220px;height:220px;margin:10px 0}
-        .modal-body input {width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-        .modal-body button {padding:12px 24px;margin:5px;border-radius:8px;border:none;color:white;cursor:pointer}
-        .btn-confirm {background:#28a745}
-        .btn-close {background:#6c757d}
+        .balance-box button{background:white;color:#4285F4;border:none;padding:10px 16px;border-radius:20px;font-weight:bold}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px}
+        .stall{background:white;padding:20px;border-radius:12px;text-align:center}
+        .stall .icon{font-size:30px;margin-bottom:10px}
+        .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
+        .modal-body{background:white;padding:25px;border-radius:20px;width:90%;max-width:350px;text-align:center}
+        .modal-body input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
+        .modal-body button{padding:12px 20px;margin:5px;border-radius:8px;border:none}
+        .btn-confirm{background:#28a745;color:white}
+        .btn-close{background:#6c757d;color:white}
+        .qr-code{width:220px;height:220px;margin:10px auto;background:#f5f5f5;display:flex;align-items:center;justify-content:center}
     </style>
 </head>
+
 <body>
 
-<div id="login" class="auth-card">
-    <h2>会员登录</h2>
-    <input id="phone" placeholder="手机号">
-    <input id="pwd" type="password" placeholder="密码">
-    <button id="loginBtn">登录</button>
-    <button class="link-btn" id="goReg">注册新账号</button>
+<!-- 登录 -->
+<div id="loginPanel" class="auth-card">
+    <h2>Login</h2>
+    <input id="loginPhone" placeholder="Phone">
+    <input id="loginPwd" type="password" placeholder="Password">
+    <button id="loginBtn">Login</button>
+    <button class="link-btn" id="goReg">Register</button>
 </div>
 
-<div id="reg" class="auth-card hide">
-    <h2>注册</h2>
-    <input id="rPhone" placeholder="手机号">
-    <input id="rPwd" placeholder="密码">
-    <input id="rPwd2" placeholder="确认密码">
-    <button id="regBtn">注册</button>
-    <button class="link-btn" id="goLogin">返回登录</button>
+<!-- 注册 -->
+<div id="regPanel" class="auth-card hide">
+    <h2>Register</h2>
+    <input id="regPhone" placeholder="Phone">
+    <input id="regPwd" type="password" placeholder="Password">
+    <input id="regPwd2" type="password" placeholder="Confirm Password">
+    <button id="regBtn">Register</button>
+    <button class="link-btn" id="goLogin">Back to Login</button>
 </div>
 
-<div id="main" class="hide">
-    <header><h1>Food Court POS</h1><p>选择对应档口点餐</p></header>
+<!-- 主页面 -->
+<div id="mainPage" class="hide">
+    <header>
+        <h1>Food Court POS</h1>
+    </header>
+
     <div class="balance-box">
-        <div>余额: <h2 id="bal">$0.00</h2></div>
+        <div>Balance: <h2 id="balance">$0.00</h2></div>
         <div>
-            <button id="topQrBtn">充值</button>
-            <button id="payQrBtn">消费</button>
+            <button id="topUpBtn">Top Up</button>
+            <button id="payBtn">Pay</button>
         </div>
     </div>
-    <div class="grid-container">
-        <div class="stall-card"><span class="stall-icon">🍥</span>Tu Tu Kueh</div>
-        <div class="stall-card"><span class="stall-icon">🍜</span>Toast Box</div>
-        <div class="stall-card"><span class="stall-icon">🥤</span>Drink</div>
-        <div class="stall-card"><span class="stall-icon">🍗</span>HK Roast</div>
+
+    <div class="grid">
+        <div class="stall"><div class="icon">🍥</div>Tu Tu Kueh</div>
+        <div class="stall"><div class="icon">🍜</div>Toast Box</div>
+        <div class="stall"><div class="icon">🥤</div>Drink</div>
+        <div class="stall"><div class="icon">🍗</div>HK Roast</div>
     </div>
 </div>
 
-<!-- 充值弹窗：先输入金额 → 再生成二维码 -->
+<!-- 充值弹窗 -->
 <div id="topModal" class="modal hide">
     <div class="modal-body">
-        <h3>充值</h3>
-        <input type="number" id="topAmt" placeholder="输入充值金额" min="1">
-        <button class="btn-confirm" id="genTopBtn">生成充值二维码</button>
-        <img id="topQr" class="hide">
-        <button class="btn-close" onclick="topModal.classList.add('hide')">关闭</button>
+        <h3>Top Up</h3>
+        <input type="number" id="topAmt" placeholder="Enter Amount" min="1">
+        <button class="btn-confirm" id="genTopQr">Generate QR</button>
+        <div class="qr-code" id="topQr" class="hide"></div>
+        <button class="btn-close" id="closeTop">Close</button>
     </div>
 </div>
 
-<!-- 消费弹窗：先输入金额 → 再生成二维码 -->
+<!-- 消费弹窗 -->
 <div id="payModal" class="modal hide">
     <div class="modal-body">
-        <h3>消费付款</h3>
-        <input type="number" id="payAmt" placeholder="输入消费金额" min="1">
-        <button class="btn-confirm" id="genPayBtn">生成付款二维码</button>
-        <img id="payQr" class="hide">
-        <button class="btn-close" onclick="payModal.classList.add('hide')">关闭</button>
+        <h3>Pay</h3>
+        <input type="number" id="payAmt" placeholder="Enter Amount" min="1">
+        <button class="btn-confirm" id="genPayQr">Generate QR</button>
+        <div class="qr-code" id="payQr" class="hide"></div>
+        <button class="btn-close" id="closePay">Close</button>
     </div>
 </div>
 
 <script>
-function users() { return JSON.parse(localStorage.userData||'{}') }
-function save(u) { localStorage.userData=JSON.stringify(u) }
-let now=''
+function getUsers(){return JSON.parse(localStorage.getItem("userData"))||{}}
+function saveUsers(u){localStorage.setItem("userData",JSON.stringify(u))}
 
-goLogin.onclick=()=>{reg.classList.add('hide');login.classList.remove('hide')}
-goReg.onclick=()=>{login.classList.add('hide');reg.classList.remove('hide')}
+let currentUser=""
 
+// 切换
+goReg.onclick=()=>{loginPanel.classList.add("hide");regPanel.classList.remove("hide")}
+goLogin.onclick=()=>{regPanel.classList.add("hide");loginPanel.classList.remove("hide")}
+
+// 注册
 regBtn.onclick=()=>{
-    let p=rPhone.value.trim(), pw=rPwd.value.trim(), pw2=rPwd2.value.trim()
-    if(!p||!pw||pw!=pw2) return alert('请完整填写信息')
-    let u=users()
-    if(u[p]) return alert('已注册')
-    u[p]={pwd:pw,bal:0}
-    save(u)
-    alert('注册成功，请登录')
-    reg.classList.add('hide');login.classList.remove('hide')
+    let p=regPhone.value.trim()
+    let pw=regPwd.value.trim()
+    let pw2=regPwd2.value.trim()
+    if(!p||!pw||pw!=pw2){alert("Please fill correctly");return}
+    let u=getUsers()
+    if(u[p]){alert("Already registered");return}
+    u[p]={pwd:pw,balance:0}
+    saveUsers(u)
+    alert("Registered! Please login.")
+    regPanel.classList.add("hide");loginPanel.classList.remove("hide")
 }
 
+// 登录
 loginBtn.onclick=()=>{
-    let p=phone.value.trim(), pw=pwd.value.trim(), u=users()
-    if(!u[p]||u[p].pwd!=pw) return alert('账号或密码错误')
-    now=p
-    login.classList.add('hide');main.classList.remove('hide')
-    bal.innerText='$'+u[p].bal.toFixed(2)
+    let p=loginPhone.value.trim()
+    let pw=loginPwd.value.trim()
+    let u=getUsers()
+    if(!u[p]||u[p].pwd!=pw){alert("Invalid login");return}
+    currentUser=p
+    loginPanel.classList.add("hide");mainPage.classList.remove("hide")
+    balance.innerText="$"+u[p].balance.toFixed(2)
 }
 
-// ================== 充值逻辑（正确）==================
-topQrBtn.onclick=()=>{
-    topModal.classList.remove('hide');
-    topQr.classList.add('hide');
-    topAmt.value='';
+// ------------------ 充值 ------------------
+topUpBtn.onclick=()=>{
+    topModal.classList.remove("hide")
+    topQr.classList.add("hide")
+    topAmt.value=""
 }
-genTopBtn.onclick=()=>{
+closeTop.onclick=()=>{topModal.classList.add("hide")}
+genTopQr.onclick=()=>{
     let amt=topAmt.value.trim()
-    if(!amt||amt<1) return alert('请输入金额')
-    topQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:${now}:${amt}`
-    topQr.classList.remove('hide')
+    if(!amt||amt<1){alert("Enter valid amount");return}
+    topQr.classList.remove("hide")
+    topQr.innerText="TOP:"+currentUser+":"+amt
 }
 
-// ================== 消费逻辑（正确）==================
-payQrBtn.onclick=()=>{
-    payModal.classList.remove('hide');
-    payQr.classList.add('hide');
-    payAmt.value='';
+// ------------------ 消费 ------------------
+payBtn.onclick=()=>{
+    payModal.classList.remove("hide")
+    payQr.classList.add("hide")
+    payAmt.value=""
 }
-genPayBtn.onclick=()=>{
+closePay.onclick=()=>{payModal.classList.add("hide")}
+genPayQr.onclick=()=>{
     let amt=payAmt.value.trim()
-    if(!amt||amt<1) return alert('请输入金额')
-    payQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:${now}:${amt}`
-    payQr.classList.remove('hide')
+    if(!amt||amt<1){alert("Enter valid amount");return}
+    payQr.classList.remove("hide")
+    payQr.innerText="PAY:"+currentUser+":"+amt
 }
 </script>
+
 </body>
 </html>
