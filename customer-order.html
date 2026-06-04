@@ -21,14 +21,17 @@
         header {text-align:center;background:rgba(255,255,255,0.9);padding:20px;border-radius:12px;margin-bottom:20px}
         .balance-box {
             background:linear-gradient(135deg,#6e8efb,#a777e3);color:white;padding:20px;border-radius:16px;margin-bottom:20px;
-            display:flex;justify-content:space-between;align-items:center
+            display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px
         }
-        .balance-box button {background:rgba(255,255,255,0.2);color:white;border:1px solid white;padding:10px 16px;border-radius:20px}
-        .modal {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
-        .modal-body {background:white;padding:30px;border-radius:20px;text-align:center}
+        .balance-box button {background:rgba(255,255,255,0.2);color:white;border:1px solid white;padding:10px 16px;border-radius:20px;cursor:pointer}
+        .grid-container {display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:20px}
+        .stall-card {background:#fff;padding:20px;border-radius:12px;text-align:center;font-weight:bold;box-shadow:0 3px 6px #00000012;border:1px solid #eee}
+        .stall-icon {font-size:32px;margin-bottom:8px;display:block}
+        .modal {position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99}
+        .modal-body {background:white;padding:30px;border-radius:20px;text-align:center;max-width:350px;width:90%}
         .modal-body img {width:220px;height:220px;margin:10px 0}
         .modal-body input {width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-        .modal-body button {padding:12px 24px;margin:5px;border-radius:8px;border:none;color:white}
+        .modal-body button {padding:12px 24px;margin:5px;border-radius:8px;border:none;color:white;cursor:pointer}
         .btn-confirm {background:#28a745}
         .btn-close {background:#6c757d}
     </style>
@@ -53,30 +56,45 @@
 </div>
 
 <div id="main" class="hide">
-    <header><h1>Food Court POS</h1></header>
+    <header><h1>Food Court POS</h1><p>选择对应档口点餐</p></header>
     <div class="balance-box">
         <div>余额: <h2 id="bal">$0.00</h2></div>
         <div>
-            <button id="topQrBtn">充值二维码</button>
-            <button id="payQrBtn">消费二维码</button>
+            <button id="topQrBtn">生成充值二维码</button>
+            <button id="payQrBtn">生成消费付款码</button>
+        </div>
+    </div>
+    <!--档口仅展示名称，删除全部超链接跳转-->
+    <div class="grid-container">
+        <div class="stall-card">
+            <span class="stall-icon">🍥</span>Tu Tu Kueh
+        </div>
+        <div class="stall-card">
+            <span class="stall-icon">🍜</span>Toast Box
+        </div>
+        <div class="stall-card">
+            <span class="stall-icon">🥤</span>Drink
+        </div>
+        <div class="stall-card">
+            <span class="stall-icon">🍗</span>HK Roast
         </div>
     </div>
 </div>
 
 <div id="topModal" class="modal hide">
     <div class="modal-body">
-        <h3>给我充值</h3>
+        <h3>会员充值二维码</h3>
         <img id="topQr">
-        <p>请商家扫码充值</p>
+        <p>交由商家扫码完成储值</p>
         <button class="btn-close" onclick="topModal.classList.add('hide')">关闭</button>
     </div>
 </div>
 
 <div id="payModal" class="modal hide">
     <div class="modal-body">
-        <h3>付款码</h3>
+        <h3>消费付款二维码</h3>
         <img id="payQr">
-        <input type="number" id="payAmt" placeholder="输入消费金额" min="1">
+        <input type="number" id="payAmt" placeholder="输入本次消费金额" min="1">
         <button class="btn-confirm" id="genPayBtn">生成付款码</button>
         <button class="btn-close" onclick="payModal.classList.add('hide')">关闭</button>
     </div>
@@ -91,19 +109,19 @@ goLogin.onclick=()=>{reg.classList.add('hide');login.classList.remove('hide')}
 goReg.onclick=()=>{login.classList.add('hide');reg.classList.remove('hide')}
 
 regBtn.onclick=()=>{
-    let p=rPhone.value, pw=rPwd.value, pw2=rPwd2.value
-    if(!p||!pw||pw!=pw2) return alert('填写正确')
+    let p=rPhone.value.trim(), pw=rPwd.value.trim(), pw2=rPwd2.value.trim()
+    if(!p||!pw||pw!=pw2) return alert('请完整填写信息，两次密码保持一致')
     let u=users()
-    if(u[p]) return alert('已注册')
+    if(u[p]) return alert('该手机号已注册账号')
     u[p]={pwd:pw,bal:0}
     save(u)
-    alert('注册成功')
+    alert('注册成功，请登录账号')
     reg.classList.add('hide');login.classList.remove('hide')
 }
 
 loginBtn.onclick=()=>{
-    let p=phone.value, pw=pwd.value, u=users()
-    if(!u[p]||u[p].pwd!=pw) return alert('账号密码错误')
+    let p=phone.value.trim(), pw=pwd.value.trim(), u=users()
+    if(!u[p]||u[p].pwd!=pw) return alert('手机号或密码错误')
     now=p
     login.classList.add('hide');main.classList.remove('hide')
     bal.innerText='$'+u[p].bal.toFixed(2)
@@ -115,12 +133,12 @@ topQrBtn.onclick=()=>{
 }
 
 genPayBtn.onclick=()=>{
-    let amt=payAmt.value
-    if(!amt||amt<1) return alert('输入金额')
+    let amt=payAmt.value.trim()
+    if(!amt||Number(amt)<1) return alert('请填写有效消费金额')
     payQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:${now}:${amt}`
 }
 
-payQrBtn.onclick=()=>{payModal.classList.remove('hide');payQr.src=''}
+payQrBtn.onclick=()=>{payModal.classList.remove('hide');payQr.src='';payAmt.value=''}
 </script>
 </body>
 </html>
