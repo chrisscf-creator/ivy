@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Court Ordering</title>
+    <title>Food Court Order Pro</title>
     <style>
         :root {
             --primary-color: #ff6b6b;
@@ -28,6 +28,18 @@
             background: rgba(255,255,255,0.85);
             border-radius: 12px;
             margin-bottom: 20px;
+            position:relative;
+        }
+        .logout-btn{
+            position:absolute;
+            right:15px;
+            top:15px;
+            background:#ff5252;
+            color:#fff;
+            border:none;
+            padding:6px 14px;
+            border-radius:18px;
+            cursor:pointer;
         }
         h1 { color: #333; margin-bottom: 5px; }
         .wallet-banner {
@@ -40,7 +52,7 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap:10px;
         }
         .wallet-btn {
             background: rgba(255,255,255,0.2);
@@ -60,7 +72,6 @@
             padding: 20px;
             border-radius: 12px;
             text-align: center;
-            text-decoration: none;
             color: #333;
             font-weight: bold;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -77,6 +88,7 @@
             display: block;
         }
 
+        /* 登录注册面板 */
         .auth-card {
             background: white;
             padding: 30px;
@@ -196,6 +208,7 @@
     <header>
         <h1>Campus Canteen</h1>
         <p>Select a stall to start ordering</p>
+        <button class="logout-btn" id="logoutBtn">Logout 退出</button>
     </header>
 
     <div class="wallet-banner">
@@ -248,15 +261,28 @@
 </div>
 
 <script>
-    // 本地存储用户账号
+    // 用户账户永久存储
+    const USER_KEY = "usersData";
+    const SESSION_KEY = "userSession";
+
     function getUsers() {
-        return JSON.parse(localStorage.getItem("users")) || {};
+        return JSON.parse(localStorage.getItem(USER_KEY)) || {};
     }
     function saveUsers(users) {
-        localStorage.setItem("users", JSON.stringify(users));
+        localStorage.setItem(USER_KEY, JSON.stringify(users));
+    }
+    // 会话存储（保持登录）
+    function setSession(phone){
+        localStorage.setItem(SESSION_KEY,phone);
+    }
+    function getSession(){
+        return localStorage.getItem(SESSION_KEY)||"";
+    }
+    function clearSession(){
+        localStorage.removeItem(SESSION_KEY);
     }
 
-    // DOM
+    // DOM绑定
     const loginPanel = document.getElementById("loginPanel");
     const registerPanel = document.getElementById("registerPanel");
     const mainPage = document.getElementById("mainPage");
@@ -273,6 +299,7 @@
     const goLoginBtn = document.getElementById("goLoginBtn");
 
     const balanceDisplay = document.getElementById("balanceDisplay");
+    const logoutBtn = document.getElementById("logoutBtn");
     const topUpBtn = document.getElementById("topUpBtn");
     const payBtn = document.getElementById("payBtn");
 
@@ -290,7 +317,20 @@
 
     let currentUser = "";
 
-    // 切换页面
+    // 页面初始化：读取会话，自动登录（刷新不退出）
+    window.onload = ()=>{
+        const savedPhone = getSession();
+        const userList = getUsers();
+        if(savedPhone && userList[savedPhone]){
+            currentUser = savedPhone;
+            loginPanel.classList.add("hide");
+            registerPanel.classList.add("hide");
+            mainPage.classList.remove("hide");
+            balanceDisplay.innerText = `$${userList[savedPhone].balance.toFixed(2)}`;
+        }
+    }
+
+    // 注册/登录面板切换
     goRegisterBtn.onclick = () => {
         loginPanel.classList.add("hide");
         registerPanel.classList.remove("hide");
@@ -300,7 +340,7 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 注册功能
+    // 注册（账号永久保存）
     registerBtn.onclick = () => {
         const phone = regPhone.value.trim();
         const pwd = regPwd.value.trim();
@@ -320,7 +360,6 @@
             alert("Phone already registered");
             return;
         }
-
         users[phone] = { password: pwd, balance: 0 };
         saveUsers(users);
         alert("Register success! Please login.");
@@ -328,7 +367,7 @@
         loginPanel.classList.remove("hide");
     };
 
-    // 登录功能
+    // 登录：写入会话，持久登录
     loginBtn.onclick = () => {
         const phone = loginPhone.value.trim();
         const pwd = loginPwd.value.trim();
@@ -338,9 +377,9 @@
             alert("Please enter phone and password");
             return;
         }
-
         if (users[phone] && users[phone].password === pwd) {
             currentUser = phone;
+            setSession(phone);
             loginPanel.classList.add("hide");
             mainPage.classList.remove("hide");
             balanceDisplay.innerText = `$${users[phone].balance.toFixed(2)}`;
@@ -349,7 +388,17 @@
         }
     };
 
-    // ================== 充值功能 ==================
+    // 退出登录：清空会话，返回登录页
+    logoutBtn.onclick = ()=>{
+        clearSession();
+        currentUser = "";
+        mainPage.classList.add("hide");
+        loginPanel.classList.remove("hide");
+        loginPhone.value = "";
+        loginPwd.value = "";
+    }
+
+    // 充值弹窗逻辑
     topUpBtn.onclick = () => {
         topUpModal.classList.remove("hide");
         topQrImg.classList.add("hide");
@@ -360,7 +409,7 @@
     };
     createTopQr.onclick = () => {
         const amt = topUpAmount.value;
-        if (!amt || amt < 1) {
+        if (!amt || Number(amt) < 1) {
             alert("Please enter valid amount");
             return;
         }
@@ -368,7 +417,7 @@
         topQrImg.classList.remove("hide");
     };
 
-    // ================== 消费功能 ==================
+    // 消费弹窗逻辑
     payBtn.onclick = () => {
         payModal.classList.remove("hide");
         payQrImg.classList.add("hide");
@@ -379,7 +428,7 @@
     };
     createPayQr.onclick = () => {
         const amt = payAmount.value;
-        if (!amt || amt < 1) {
+        if (!amt || Number(amt) < 1) {
             alert("Please enter valid amount");
             return;
         }
