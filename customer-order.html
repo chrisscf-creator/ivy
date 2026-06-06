@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Campus Canteen - Customer Order</title>
+    <title>Campus Canteen - 顾客点餐系统</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,6 @@
             align-items: center;
             min-height: 100vh;
         }
-        /* main app container */
         .app-container {
             max-width: 1200px;
             width: 100%;
@@ -26,9 +25,7 @@
             border-radius: 2rem;
             box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
             overflow: hidden;
-            transition: all 0.2s;
         }
-        /* header & login panel */
         .header {
             background: #2c3e2f;
             color: white;
@@ -42,7 +39,6 @@
         .logo h1 {
             margin: 0;
             font-size: 1.6rem;
-            letter-spacing: -0.3px;
         }
         .logo p {
             margin: 0;
@@ -83,6 +79,10 @@
             background: #e0e0e0;
             color: #2c3e2f;
         }
+        button.primary {
+            background: #2c6e2f;
+            color: white;
+        }
         button:hover {
             transform: scale(0.97);
             opacity: 0.9;
@@ -92,13 +92,17 @@
             text-align: center;
             background: #fef9e6;
         }
-        .login-card {
-            max-width: 320px;
+        .login-card, .register-card {
+            max-width: 350px;
             margin: 0 auto;
             background: white;
             padding: 1.8rem;
             border-radius: 2rem;
             box-shadow: 0 5px 12px rgba(0,0,0,0.05);
+        }
+        .register-card {
+            margin-top: 20px;
+            background: #fef9f0;
         }
         input {
             width: 100%;
@@ -123,7 +127,6 @@
             text-align: center;
             cursor: pointer;
             box-shadow: 0 6px 12px rgba(0,0,0,0.05);
-            transition: 0.1s linear;
             border: 1px solid #f0e2cf;
         }
         .stall-card.selected {
@@ -144,7 +147,7 @@
             background: #fef5e8;
             border-radius: 1.2rem;
             padding: 0.8rem 1rem;
-            width: 200px;
+            width: 220px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -172,11 +175,26 @@
             color: #c0392b;
             font-weight: 500;
         }
+        .success-msg {
+            color: #2c6e2f;
+        }
         footer {
             text-align: center;
             font-size: 0.7rem;
             padding: 1rem;
             color: #8f7a5c;
+        }
+        .switch-mode {
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        .switch-mode a {
+            color: #2c6e2f;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        hr {
+            margin: 15px 0;
         }
         @media (max-width: 700px) {
             .header { flex-direction: column; align-items: stretch; text-align: center;}
@@ -185,20 +203,13 @@
     </style>
 </head>
 <body>
-<div class="app-container" id="appRoot">
-    <!-- dynamic rendering via JS -->
-</div>
+<div class="app-container" id="appRoot"></div>
 
 <script>
-    // ---------- DATA ----------
-    // users store: username -> {password, balance}
-    const users = {
-        user: { password: "pass", balance: 0 },
-        alice: { password: "123", balance: 15.5 },
-        bob: { password: "bob123", balance: 8 }
-    };
-
-    // Menu catalog per stall (stallId -> array of items)
+    // 用户数据存储结构
+    let users = {};
+    
+    // 菜单数据
     const menuCatalog = {
         "tutu": {
             name: "🍥 Tu Tu Kueh",
@@ -234,30 +245,35 @@
         }
     };
 
-    let currentUser = null;     // logged username
+    let currentUser = null;
+    let selectedStallId = "tutu";
+    let showRegister = false;  // 切换登录/注册界面
 
-    // Helper: save updated users (simulate persistence)
-    function persistUsers() {
-        // already in memory, but we keep localStorage optional? no need; global users object works during session.
-        // However to simulate between "topup only software", we could use same localStorage key.
-        // To make both "apps" work together, we save to localStorage with key "campus_users".
-        localStorage.setItem("campus_users", JSON.stringify(users));
-    }
+    // 加载本地存储的用户数据
     function loadUsersFromStorage() {
         const stored = localStorage.getItem("campus_users");
         if(stored) {
             try{
-                const parsed = JSON.parse(stored);
-                Object.assign(users, parsed);
+                users = JSON.parse(stored);
             }catch(e){}
-        } else {
-            // initial persist
+        }
+        // 如果没有数据，创建默认测试账号
+        if(Object.keys(users).length === 0) {
+            users = {
+                user: { password: "pass", balance: 0 },
+                alice: { password: "123", balance: 15.5 },
+                bob: { password: "bob123", balance: 8 }
+            };
             persistUsers();
         }
     }
-    loadUsersFromStorage();
+    
+    function persistUsers() {
+        localStorage.setItem("campus_users", JSON.stringify(users));
+        // 触发 storage 事件，让其他窗口（收银台）同步
+        window.dispatchEvent(new StorageEvent('storage', { key: 'campus_users', newValue: JSON.stringify(users) }));
+    }
 
-    // update user balance and save
     function setUserBalance(username, newBalance) {
         if(users[username]) {
             users[username].balance = newBalance;
@@ -269,79 +285,154 @@
         return users[username] ? users[username].balance : 0;
     }
 
-    // helper to refresh UI after login/logout/order/topup
-    let selectedStallId = "tutu";   // default stall
+    // 注册新用户
+    function registerUser(username, password) {
+        // 验证用户名
+        if(!username || username.trim() === "") {
+            return { success: false, message: "❌ 用户名不能为空！" };
+        }
+        if(username.length < 3) {
+            return { success: false, message: "❌ 用户名至少3个字符！" };
+        }
+        if(!password || password.length < 3) {
+            return { success: false, message: "❌ 密码至少3个字符！" };
+        }
+        if(users[username]) {
+            return { success: false, message: "❌ 用户名已存在！" };
+        }
+        // 注册新用户，余额为0
+        users[username] = {
+            password: password,
+            balance: 0
+        };
+        persistUsers();
+        return { success: true, message: "✅ 注册成功！请登录。" };
+    }
 
-    // DOM element refs
     let root = document.getElementById("appRoot");
 
     function render() {
         if(!currentUser) {
-            renderLoginScreen();
+            renderLoginRegisterScreen();
         } else {
             renderMainApp();
         }
     }
 
-    function renderLoginScreen() {
-        root.innerHTML = `
-            <div class="login-area">
-                <div class="login-card">
-                    <h2>🍽️ Customer Order</h2>
-                    <p>Login to order & pay with balance</p>
-                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
-                    <input type="password" id="loginPassword" placeholder="Password">
-                    <button id="doLoginBtn" style="width:100%; margin-top:12px;">Login</button>
-                    <p style="font-size:12px; margin-top:20px;">Demo: user / pass &nbsp;&nbsp; alice / 123</p>
+    function renderLoginRegisterScreen() {
+        if(!showRegister) {
+            // 登录界面
+            root.innerHTML = `
+                <div class="login-area">
+                    <div class="login-card">
+                        <h2>🍽️ 校园食堂点餐系统</h2>
+                        <p>登录后点餐，使用余额支付</p>
+                        <input type="text" id="loginUsername" placeholder="用户名" autocomplete="off">
+                        <input type="password" id="loginPassword" placeholder="密码">
+                        <button id="doLoginBtn" class="primary" style="width:100%; margin-top:12px;">登录</button>
+                        <div class="switch-mode">
+                            🔰 还没有账号？ <a id="showRegisterLink">立即注册</a>
+                        </div>
+                        <hr>
+                        <p style="font-size:12px; margin-top:10px;">测试账号：user / pass &nbsp;&nbsp; alice / 123</p>
+                    </div>
                 </div>
-            </div>
-        `;
-        document.getElementById("doLoginBtn")?.addEventListener("click", () => {
-            const user = document.getElementById("loginUsername").value.trim();
-            const pwd = document.getElementById("loginPassword").value;
-            if(users[user] && users[user].password === pwd) {
-                currentUser = user;
+            `;
+            document.getElementById("doLoginBtn")?.addEventListener("click", () => {
+                const user = document.getElementById("loginUsername").value.trim();
+                const pwd = document.getElementById("loginPassword").value;
+                if(users[user] && users[user].password === pwd) {
+                    currentUser = user;
+                    render();
+                } else {
+                    alert("❌ 用户名或密码错误！");
+                }
+            });
+            document.getElementById("showRegisterLink")?.addEventListener("click", () => {
+                showRegister = true;
                 render();
-            } else {
-                alert("Invalid credentials");
-            }
-        });
+            });
+        } else {
+            // 注册界面
+            root.innerHTML = `
+                <div class="login-area">
+                    <div class="register-card">
+                        <h2>📝 注册新账号</h2>
+                        <p>创建你的校园食堂账户</p>
+                        <input type="text" id="regUsername" placeholder="用户名（至少3个字符）" autocomplete="off">
+                        <input type="password" id="regPassword" placeholder="密码（至少3个字符）">
+                        <input type="password" id="regConfirmPassword" placeholder="确认密码">
+                        <button id="doRegisterBtn" class="primary" style="width:100%; margin-top:12px;">注册</button>
+                        <div class="switch-mode">
+                            ⬅️ <a id="showLoginLink">返回登录</a>
+                        </div>
+                        <div id="regMessage" style="margin-top:12px; font-size:0.85rem;"></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById("doRegisterBtn")?.addEventListener("click", () => {
+                const username = document.getElementById("regUsername").value.trim();
+                const password = document.getElementById("regPassword").value;
+                const confirmPwd = document.getElementById("regConfirmPassword").value;
+                
+                if(password !== confirmPwd) {
+                    document.getElementById("regMessage").innerHTML = "<span style='color:#c0392b'>❌ 两次输入的密码不一致！</span>";
+                    return;
+                }
+                
+                const result = registerUser(username, password);
+                const msgDiv = document.getElementById("regMessage");
+                if(result.success) {
+                    msgDiv.innerHTML = `<span style="color:#2c6e2f">${result.message}</span>`;
+                    setTimeout(() => {
+                        showRegister = false;
+                        render();
+                    }, 1500);
+                } else {
+                    msgDiv.innerHTML = `<span style="color:#c0392b">${result.message}</span>`;
+                }
+            });
+            document.getElementById("showLoginLink")?.addEventListener("click", () => {
+                showRegister = false;
+                render();
+            });
+        }
     }
 
     function renderMainApp() {
         const balance = getUserBalance(currentUser);
         const stall = menuCatalog[selectedStallId];
-        const stallName = stall ? stall.name : "Select Stall";
+        const stallName = stall ? stall.name : "选择摊位";
 
         root.innerHTML = `
             <div class="header">
                 <div class="logo">
-                    <h1>🏫 Campus Canteen</h1>
-                    <p>order & pay with campus credits</p>
+                    <h1>🏫 校园食堂</h1>
+                    <p>余额支付 · 快捷点餐</p>
                 </div>
                 <div class="user-panel">
                     <span>👤 ${currentUser}</span>
-                    <span class="balance">💰 $${balance.toFixed(2)}</span>
-                    <button id="logoutBtn" class="danger">Logout</button>
+                    <span class="balance">💰 ¥${balance.toFixed(2)}</span>
+                    <button id="logoutBtn" class="danger">登出</button>
                 </div>
             </div>
             <div class="topup-section">
-                <span>💳 <strong>Top-up Wallet</strong> (Scan QR & pay at cashier)</span>
-                <div class="qr-sim">📲 Show QR: CAMPUS-${currentUser}-TOPUP</div>
-                <button id="simulateTopUpBtn" class="secondary">💰 Simulate +$10 (refill)</button>
+                <span>💳 <strong>余额充值</strong>（向收银员出示二维码）</span>
+                <div class="qr-sim">📲 充值码: CAMPUS-${currentUser}</div>
+                <button id="simulateTopUpBtn" class="secondary">💰 模拟充值 +¥10</button>
             </div>
             <div>
                 <div class="stall-grid" id="stallGrid"></div>
                 <div class="menu-panel">
-                    <h3>📋 ${stallName} Menu</h3>
+                    <h3>📋 ${stallName} · 菜单</h3>
                     <div id="menuItemsList" class="menu-items"></div>
                 </div>
             </div>
             <div id="messageArea" class="message"></div>
-            <footer>✨ Use balance to order | Top-up via cashier QR</footer>
+            <footer>✨ 选择餐点，将从余额自动扣款 | 余额不足请先充值</footer>
         `;
 
-        // render stalls
+        // 渲染摊位
         const stallGrid = document.getElementById("stallGrid");
         for(let [sid, data] of Object.entries(menuCatalog)) {
             const card = document.createElement("div");
@@ -354,7 +445,7 @@
             stallGrid.appendChild(card);
         }
 
-        // render menu items for selected stall
+        // 渲染菜单
         const menuContainer = document.getElementById("menuItemsList");
         const currentStall = menuCatalog[selectedStallId];
         if(currentStall && currentStall.items) {
@@ -362,15 +453,13 @@
                 const itemDiv = document.createElement("div");
                 itemDiv.className = "menu-item";
                 itemDiv.innerHTML = `
-                    <span><strong>${item.name}</strong><br><span style="font-size:0.8rem;">$${item.price.toFixed(2)}</span></span>
-                    <button class="orderBtn" data-price="${item.price}" data-name="${item.name}">Order</button>
+                    <span><strong>${item.name}</strong><br><span style="font-size:0.8rem;">¥${item.price.toFixed(2)}</span></span>
+                    <button class="orderBtn" data-price="${item.price}" data-name="${item.name}">点餐</button>
                 `;
                 menuContainer.appendChild(itemDiv);
             });
-            // attach order events
             document.querySelectorAll(".orderBtn").forEach(btn => {
                 btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
                     const price = parseFloat(btn.getAttribute("data-price"));
                     const itemName = btn.getAttribute("data-name");
                     handleOrder(itemName, price);
@@ -378,12 +467,11 @@
             });
         }
 
-        // top-up simulation (cashless test, real top-up would be via cashier software)
         document.getElementById("simulateTopUpBtn")?.addEventListener("click", () => {
             const newBal = getUserBalance(currentUser) + 10;
             setUserBalance(currentUser, newBal);
-            showMessage("💰 +$10 added to your wallet (simulated top-up)");
-            render(); // re-render to show new balance
+            showMessage("💰 已充值 +¥10（模拟充值）", true);
+            render();
         });
 
         document.getElementById("logoutBtn")?.addEventListener("click", () => {
@@ -398,17 +486,17 @@
         if(balance >= price) {
             const newBalance = balance - price;
             setUserBalance(currentUser, newBalance);
-            showMessage(`✅ Ordered ${itemName} for $${price.toFixed(2)}. Remaining: $${newBalance.toFixed(2)}`);
+            showMessage(`✅ 已点餐：${itemName}，消费 ¥${price.toFixed(2)}，余额：¥${newBalance.toFixed(2)}`, true);
             render();
         } else {
-            showMessage(`❌ Insufficient balance! Need $${price.toFixed(2)}. Please top up via cashier.`, true);
+            showMessage(`❌ 余额不足！需要 ¥${price.toFixed(2)}，请先充值。`, false);
         }
     }
 
-    function showMessage(msg, isError = false) {
+    function showMessage(msg, isSuccess = false) {
         const msgDiv = document.getElementById("messageArea");
         if(msgDiv) {
-            msgDiv.innerHTML = `<span style="color:${isError ? '#c0392b' : '#2c6e2f'}">${msg}</span>`;
+            msgDiv.innerHTML = `<span style="color:${isSuccess ? '#2c6e2f' : '#c0392b'}">${msg}</span>`;
             setTimeout(() => {
                 if(document.getElementById("messageArea")) document.getElementById("messageArea").innerHTML = "";
             }, 2500);
@@ -417,14 +505,15 @@
         }
     }
 
-    // periodic check for balance changes from other window (topup software) using storage event
+    // 监听其他窗口的数据变化（收银台充值后自动更新）
     window.addEventListener("storage", (e) => {
         if(e.key === "campus_users" && currentUser) {
             loadUsersFromStorage();
-            render();   // refresh balance & UI
+            render();
         }
     });
 
+    loadUsersFromStorage();
     render();
 </script>
 </body>
