@@ -1,138 +1,253 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recharge | Merchant</title>
+    <title>Campus Canteen - Cashier Top-Up Terminal</title>
     <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', sans-serif;
+        }
         body {
-            font-family: Arial;
-            background: #f0f8ff;
-            padding: 20px;
+            background: #e9e7e0;
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
         }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-        #video {
+        .cashier-container {
+            max-width: 550px;
             width: 100%;
-            height: auto;
-            background: #000;
-            border-radius: 12px;
-            margin: 15px 0;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .cashier-header {
+            background: #1e3a2f;
+            color: white;
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .badge {
+            background: #f5b042;
+            padding: 5px 12px;
+            border-radius: 30px;
+            color: #1e3a2f;
+            font-weight: bold;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .info-card {
+            background: #fef6e6;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 60px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
         }
         button {
-            width: 100%;
-            padding: 14px;
-            margin: 8px 0;
-            border-radius: 12px;
-            border: none;
-            font-size: 16px;
+            background: #2c5e3f;
+            color: white;
             font-weight: bold;
             cursor: pointer;
+            border: none;
+            transition: 0.2s;
         }
-        .btn-start {
-            background: #007bff;
-            color: white;
+        button.danger {
+            background: #a0321f;
         }
-        .btn-confirm {
-            background: #28a745;
-            color: white;
+        button.secondary {
+            background: #bc9a6c;
         }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            font-size: 16px;
+        .balance-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 15px 0;
+            text-align: center;
+            background: #eef3e6;
+            padding: 15px;
+            border-radius: 1.5rem;
         }
-        .info {
-            padding: 12px;
-            background: #e3f2fd;
-            border-radius: 8px;
-            margin: 10px 0;
+        .login-box {
+            text-align: center;
+            padding: 1rem;
+        }
+        hr {
+            margin: 1.5rem 0;
+        }
+        .message {
+            background: #f0e2cf;
+            border-radius: 40px;
+            padding: 8px;
+            text-align: center;
+            margin-top: 16px;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>💰 Merchant Recharge</h2>
-    <video id="video" autoplay playsinline muted></video>
-    <button class="btn-start" id="startBtn">Start Camera</button>
-    <div class="info">User: <b id="showPhone">-</b></div>
-    <input type="number" id="addAmount" placeholder="Enter Amount" min="1">
-    <button class="btn-confirm" id="confirmBtn">Confirm Recharge</button>
+<div class="cashier-container" id="cashierApp">
+    <!-- dynamic render -->
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-const USER_DATA = "userData";
-let currentPhone = "";
-const video = document.getElementById("video");
-const canvas = document.createElement("canvas");
-const ctx = canvas.getContext("2d");
-
-function getUsers() {
-    return JSON.parse(localStorage.getItem(USER_DATA)) || {};
-}
-function saveUsers(users) {
-    localStorage.setItem(USER_DATA, JSON.stringify(users));
-}
-
-startBtn.onclick = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "environment" },
-            audio: false
-        });
-        video.srcObject = stream;
-        scanLoop();
-    } catch (e) {
-        alert("Camera error: Allow permission or use HTTPS/LiveServer");
-    }
-};
-
-function scanLoop() {
-    if (video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
-        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-        if (code && code.data.startsWith("TOP:")) {
-            currentPhone = code.data.split(":")[1];
-            showPhone.innerText = currentPhone;
-            alert("Scan success!");
+    // same user database structure using localStorage for consistency with customer app
+    let cashierLogged = false;
+    const cashierCredentials = { username: "cashier", password: "topup123" };
+    
+    function loadGlobalUsers() {
+        const stored = localStorage.getItem("campus_users");
+        if(stored) {
+            return JSON.parse(stored);
+        } else {
+            const defaultUsers = {
+                user: { password: "pass", balance: 0 },
+                alice: { password: "123", balance: 15.5 },
+                bob: { password: "bob123", balance: 8 }
+            };
+            localStorage.setItem("campus_users", JSON.stringify(defaultUsers));
+            return defaultUsers;
         }
     }
-    requestAnimationFrame(scanLoop);
-}
 
-confirmBtn.onclick = () => {
-    const amount = Number(addAmount.value);
-    if (!currentPhone || !amount || amount < 1) {
-        alert("Scan QR and enter amount!");
-        return;
+    let usersData = loadGlobalUsers();
+
+    function persistUsersData() {
+        localStorage.setItem("campus_users", JSON.stringify(usersData));
     }
-    const users = getUsers();
-    if (!users[currentPhone]) {
-        users[currentPhone] = { pwd: "123456", balance: 0 };
+
+    function updateUserBalance(username, newBalance) {
+        if(usersData[username]) {
+            usersData[username].balance = newBalance;
+            persistUsersData();
+        }
     }
-    users[currentPhone].balance += amount;
-    saveUsers(users);
-    alert("Recharge Success!\nUser: " + currentPhone + "\nAmount: $" + amount);
-    addAmount.value = "";
-    currentPhone = "";
-    showPhone.innerText = "-";
-};
+
+    function findUser(username) {
+        return usersData[username] ? { ...usersData[username], username } : null;
+    }
+
+    let currentSearchUser = null;   // latest searched username
+
+    const appRoot = document.getElementById("cashierApp");
+
+    function render() {
+        if(!cashierLogged) {
+            renderCashierLogin();
+        } else {
+            renderTopupDashboard();
+        }
+    }
+
+    function renderCashierLogin() {
+        appRoot.innerHTML = `
+            <div class="cashier-header">
+                <span>🏧 Cashier Terminal</span>
+                <span class="badge">Top-Up Only</span>
+            </div>
+            <div class="content login-box">
+                <h2>🔐 Authorized Staff Login</h2>
+                <input type="text" id="cashierUser" placeholder="Username" autocomplete="off">
+                <input type="password" id="cashierPass" placeholder="Password">
+                <button id="cashierLoginBtn">Login</button>
+                <div class="message">Demo: cashier / topup123</div>
+            </div>
+        `;
+        document.getElementById("cashierLoginBtn")?.addEventListener("click", () => {
+            const u = document.getElementById("cashierUser").value.trim();
+            const p = document.getElementById("cashierPass").value;
+            if(u === cashierCredentials.username && p === cashierCredentials.password) {
+                cashierLogged = true;
+                render();
+            } else {
+                alert("Invalid cashier credentials");
+            }
+        });
+    }
+
+    function renderTopupDashboard() {
+        let customerBalance = currentSearchUser ? (usersData[currentSearchUser]?.balance || 0) : 0;
+        appRoot.innerHTML = `
+            <div class="cashier-header">
+                <div>🔧 Top-Up Console</div>
+                <button id="logoutCashierBtn" class="danger" style="width:auto; padding:6px 14px;">Logout</button>
+            </div>
+            <div class="content">
+                <div class="info-card">
+                    <label>🔍 Search Customer Username:</label>
+                    <input type="text" id="searchUsername" placeholder="e.g., user, alice" value="${currentSearchUser || ''}">
+                    <button id="searchBtn">Find Customer</button>
+                </div>
+                <div id="customerInfo">
+                    ${currentSearchUser ? `
+                        <div style="text-align:center;">
+                            <strong>🧑‍🎓 Customer: ${currentSearchUser}</strong>
+                            <div class="balance-display">💰 Current Balance: $${customerBalance.toFixed(2)}</div>
+                            <label>💵 Top-Up Amount ($):</label>
+                            <input type="number" id="topupAmount" step="0.5" min="0.01" placeholder="Enter amount">
+                            <button id="confirmTopupBtn">✅ Add Credit & Save</button>
+                        </div>
+                    ` : `<div class="message">👆 Search for a customer to top up their balance.</div>`}
+                </div>
+                <hr>
+                <div id="actionMessage" class="message"></div>
+            </div>
+        `;
+        document.getElementById("logoutCashierBtn")?.addEventListener("click", () => {
+            cashierLogged = false;
+            currentSearchUser = null;
+            render();
+        });
+        document.getElementById("searchBtn")?.addEventListener("click", () => {
+            const username = document.getElementById("searchUsername").value.trim();
+            if(username && usersData[username]) {
+                currentSearchUser = username;
+                render();
+            } else {
+                document.getElementById("actionMessage").innerHTML = "❌ Customer not found!";
+                setTimeout(() => {
+                    if(document.getElementById("actionMessage")) document.getElementById("actionMessage").innerHTML = "";
+                }, 1800);
+            }
+        });
+        if(currentSearchUser) {
+            document.getElementById("confirmTopupBtn")?.addEventListener("click", () => {
+                const amountInput = document.getElementById("topupAmount");
+                let amount = parseFloat(amountInput.value);
+                if(isNaN(amount) || amount <= 0) {
+                    alert("Please enter valid positive amount");
+                    return;
+                }
+                const oldBalance = usersData[currentSearchUser].balance;
+                const newBalance = oldBalance + amount;
+                updateUserBalance(currentSearchUser, newBalance);
+                document.getElementById("actionMessage").innerHTML = `✅ Success! Added $${amount.toFixed(2)} to ${currentSearchUser}. New balance: $${newBalance.toFixed(2)}`;
+                // refresh localStorage and re-render to show updated balance
+                setTimeout(() => render(), 800);
+            });
+        }
+    }
+
+    // also listen to storage events to sync if customer app updates? Not necessary, but for consistent:
+    window.addEventListener("storage", (e) => {
+        if(e.key === "campus_users") {
+            usersData = loadGlobalUsers();
+            if(cashierLogged) render();
+        }
+    });
+
+    render();
 </script>
 </body>
 </html>
