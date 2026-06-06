@@ -10,14 +10,11 @@
             margin: 0;
             padding: 0;
         }
-
         body {
             font-family: Arial, sans-serif;
             background: #f5f7fa;
             padding: 20px;
         }
-
-        /* 登录注册 */
         .auth-box {
             background: white;
             padding: 30px;
@@ -26,12 +23,10 @@
             margin: 50px auto;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-
         .auth-box h2 {
             text-align: center;
             margin-bottom: 20px;
         }
-
         input {
             width: 100%;
             padding: 12px;
@@ -39,7 +34,6 @@
             border-radius: 8px;
             border: 1px solid #ddd;
         }
-
         button {
             width: 100%;
             padding: 12px;
@@ -51,24 +45,19 @@
             font-weight: bold;
             cursor: pointer;
         }
-
         .link-btn {
             background: none;
             color: #4285F4;
             text-decoration: underline;
             font-weight: normal;
         }
-
         .hide {
             display: none !important;
         }
-
-        /* 主点餐页面 */
         #mainPage {
             max-width: 500px;
             margin: auto;
         }
-
         .balance-card {
             background: linear-gradient(135deg, #6e8efb, #4285F4);
             color: white;
@@ -77,28 +66,23 @@
             text-align: center;
             margin-bottom: 20px;
         }
-
         .balance-card h1 {
             font-size: 32px;
             margin: 10px 0;
         }
-
         .control-buttons {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
-
         .control-buttons button {
             flex: 1;
         }
-
         .stall-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
-
         .stall {
             background: white;
             padding: 20px;
@@ -106,13 +90,10 @@
             text-align: center;
             box-shadow: 0 1px 5px rgba(0,0,0,0.05);
         }
-
         .stall-icon {
             font-size: 28px;
             margin-bottom: 8px;
         }
-
-        /* 充值弹窗 */
         .modal {
             position: fixed;
             top: 0;
@@ -125,7 +106,6 @@
             justify-content: center;
             z-index: 999;
         }
-
         .modal-box {
             background: white;
             padding: 30px;
@@ -134,7 +114,6 @@
             width: 90%;
             max-width: 350px;
         }
-
         .modal-box img {
             width: 220px;
             height: 220px;
@@ -143,8 +122,6 @@
     </style>
 </head>
 <body>
-
-<!-- ================== 登录 ================== -->
 <div id="loginPage" class="auth-box">
     <h2>Login</h2>
     <input id="loginPhone" placeholder="Phone Number">
@@ -153,7 +130,6 @@
     <button class="link-btn" id="gotoReg">Register</button>
 </div>
 
-<!-- ================== 注册 ================== -->
 <div id="regPage" class="auth-box hide">
     <h2>Register</h2>
     <input id="regPhone" placeholder="Phone Number">
@@ -163,160 +139,138 @@
     <button class="link-btn" id="gotoLogin">Back to Login</button>
 </div>
 
-<!-- ================== 主点餐页面 ================== -->
 <div id="mainPage" class="hide">
     <div class="balance-card">
         <h3>My Balance</h3>
         <h1 id="balance">$0.00</h1>
     </div>
-
     <div class="control-buttons">
         <button id="topUpBtn">Top Up 充值</button>
         <button id="logoutBtn">Logout 退出</button>
     </div>
-
     <div class="stall-grid">
-        <div class="stall">
-            <div class="stall-icon">🍥</div>
-            <div>Tu Tu Kueh</div>
-        </div>
-        <div class="stall">
-            <div class="stall-icon">🍜</div>
-            <div>Toast Box</div>
-        </div>
-        <div class="stall">
-            <div class="stall-icon">🥤</div>
-            <div>Drink</div>
-        </div>
-        <div class="stall">
-            <div class="stall-icon">🍗</div>
-            <div>HK Roast</div>
-        </div>
+        <div class="stall"><div class="stall-icon">🍥</div><div>Tu Tu Kueh</div></div>
+        <div class="stall"><div class="stall-icon">🍜</div><div>Toast Box</div></div>
+        <div class="stall"><div class="stall-icon">🥤</div><div>Drink</div></div>
+        <div class="stall"><div class="stall-icon">🍗</div><div>HK Roast</div></div>
     </div>
 </div>
 
-<!-- ================== 充值弹窗 ================== -->
 <div id="topModal" class="hide">
     <div class="modal-box">
         <h2>Top Up</h2>
         <img id="topQr">
-        <p>Show to cashier</p>
+        <p>Show QR to cashier for recharge</p>
         <button onclick="closeTopModal()">Close</button>
     </div>
 </div>
 
 <script>
-    // 统一存储 KEY
-    const USER_KEY = "userData";
-    const LOGIN_KEY = "loginUser";
+const USER_KEY = "userData";
+const LOGIN_KEY = "loginUser";
 
-    // 工具
-    function getUsers() { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; }
-    function saveUsers(u) { localStorage.setItem(USER_KEY, JSON.stringify(u)); }
-    function setLoginUser(phone) { localStorage.setItem(LOGIN_KEY, phone); }
-    function getLoginUser() { return localStorage.getItem(LOGIN_KEY); }
+//存取方法
+function getUsers() {
+    let data = localStorage.getItem(USER_KEY);
+    return data ? JSON.parse(data) : {};
+}
+function saveUsers(obj) {
+    localStorage.setItem(USER_KEY, JSON.stringify(obj));
+}
+function setLoginUser(phone) {
+    localStorage.setItem(LOGIN_KEY, phone);
+}
+function getLoginUser() {
+    return localStorage.getItem(LOGIN_KEY);
+}
 
-    // 页面加载自动登录 + 实时刷新余额
-    window.onload = function () {
-        autoLogin();
-        setInterval(updateBalance, 500);
-    };
+//页面切换
+function showLogin(){
+    loginPage.classList.remove('hide');regPage.classList.add('hide');mainPage.classList.add('hide');
+}
+function showReg(){
+    loginPage.classList.add('hide');regPage.classList.remove('hide');mainPage.classList.add('hide');
+}
+function showMain(){
+    loginPage.classList.add('hide');regPage.classList.add('hide');mainPage.classList.remove('hide');
+}
 
-    // 自动登录
-    function autoLogin() {
-        const user = getLoginUser();
-        const users = getUsers();
-        if (user && users[user]) {
-            showMain();
-            updateBalance();
-        }
+//余额实时刷新
+function updateBalance(){
+    let user = getLoginUser();
+    let users = getUsers();
+    if(user && users[user]){
+        balance.innerText = "$"+Number(users[user].balance).toFixed(2);
     }
+}
 
-    // 刷新余额
-    function updateBalance() {
-        const user = getLoginUser();
-        const users = getUsers();
-        if (user && users[user]) {
-            document.getElementById("balance").innerText = "$" + users[user].balance.toFixed(2);
-        }
+window.onload = function(){
+    let currUser = getLoginUser();
+    if(currUser){
+        showMain();
+        updateBalance();
     }
+    setInterval(updateBalance,400);
+}
 
-    // 页面切换
-    function showLogin() {
-        document.getElementById("loginPage").classList.remove("hide");
-        document.getElementById("regPage").classList.add("hide");
-        document.getElementById("mainPage").classList.add("hide");
+//注册逻辑（清除首尾空格）
+regBtn.onclick = function(){
+    let phone = regPhone.value.trim();
+    let p1 = regPwd.value.trim();
+    let p2 = regPwd2.value.trim();
+    if(!phone || !p1){
+        alert("Phone & Password cannot empty");
+        return;
     }
-
-    function showReg() {
-        document.getElementById("loginPage").classList.add("hide");
-        document.getElementById("regPage").classList.remove("hide");
-        document.getElementById("mainPage").classList.add("hide");
+    if(p1 !== p2){
+        alert("Password not match");
+        return;
     }
-
-    function showMain() {
-        document.getElementById("loginPage").classList.add("hide");
-        document.getElementById("regPage").classList.add("hide");
-        document.getElementById("mainPage").classList.remove("hide");
+    let userList = getUsers();
+    if(userList[phone]){
+        alert("Phone already registered");
+        return;
     }
+    userList[phone] = {pwd:p1, balance:0};
+    saveUsers(userList);
+    alert("Register Success! Please Login");
+    regPhone.value='';regPwd.value='';regPwd2.value='';
+    showLogin();
+}
 
-    // 注册
-    document.getElementById("regBtn").onclick = function () {
-        const phone = document.getElementById("regPhone").value.trim();
-        const pwd = document.getElementById("regPwd").value.trim();
-        const pwd2 = document.getElementById("regPwd2").value.trim();
-
-        if (!phone || !pwd || pwd !== pwd2) {
-            alert("Check input");
-            return;
-        }
-
-        const users = getUsers();
-        if (users[phone]) {
-            alert("Already registered");
-            return;
-        }
-
-        users[phone] = { pwd, balance: 0 };
-        saveUsers(users);
-        alert("Success! Please login.");
-        showLogin();
-    };
-
-    // 登录
-    document.getElementById("loginBtn").onclick = function () {
-        const phone = document.getElementById("loginPhone").value.trim();
-        const pwd = document.getElementById("loginPwd").value.trim();
-        const users = getUsers();
-
-        if (users[phone] && users[phone].pwd === pwd) {
-            setLoginUser(phone);
-            showMain();
-        } else {
-            alert("Invalid login");
-        }
-    };
-
-    // 充值：点击 → 弹出二维码（不卡死）
-    document.getElementById("topUpBtn").onclick = function () {
-        const user = getLoginUser();
-        document.getElementById("topModal").className = "modal";
-        document.getElementById("topQr").src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:" + user;
-    };
-
-    function closeTopModal() {
-        document.getElementById("topModal").className = "hide";
+//登录修复（trim去空格，精准匹配）
+loginBtn.onclick = function(){
+    let inputPhone = loginPhone.value.trim();
+    let inputPwd = loginPwd.value.trim();
+    let userList = getUsers();
+    if(userList[inputPhone] && userList[inputPhone].pwd === inputPwd){
+        setLoginUser(inputPhone);
+        loginPhone.value='';loginPwd.value='';
+        showMain();
+    }else{
+        alert("Wrong phone or password");
     }
+}
 
-    // 退出
-    document.getElementById("logoutBtn").onclick = function () {
-        localStorage.removeItem(LOGIN_KEY);
-        location.reload();
-    };
+//充值弹窗
+topUpBtn.onclick = function(){
+    let u = getLoginUser();
+    topModal.className = "modal";
+    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:"+u;
+}
+function closeTopModal(){
+    topModal.className = "hide";
+}
 
-    // 切换按钮
-    document.getElementById("gotoReg").onclick = showReg;
-    document.getElementById("gotoLogin").onclick = showLogin;
+//退出
+logoutBtn.onclick = function(){
+    localStorage.removeItem(LOGIN_KEY);
+    location.reload();
+}
+
+//切换注册/登录
+gotoReg.onclick = showReg;
+gotoLogin.onclick = showLogin;
 </script>
 </body>
 </html>
