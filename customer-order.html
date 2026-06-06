@@ -2,315 +2,430 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Court Ordering</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Campus Canteen - Customer Order</title>
     <style>
-        :root {
-            --primary-color: #ff6b6b;
-            --bg-color: #f8f9fa;
-        }
-        html, body {
-            height: 100%;
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
         }
         body {
-            font-family: -apple-system, sans-serif;
-            background-image: url('https://chrisscf-creator.github.io/ivy/background.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
+            background: #f7f5f0;
             margin: 0;
-            padding: 28px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        header {
-            text-align: center;
-            padding: 20px 0;
-            background: rgba(255,255,255,0.85);
-            border-radius: 12px;
-            margin-bottom: 20px;
-            position: relative;
+        /* main app container */
+        .app-container {
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            transition: all 0.2s;
         }
-        .logout-btn {
-            position: absolute;
-            right: 15px;
-            top: 15px;
-            background: #ff5252;
-            color: #fff;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 18px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        h1 { color: #333; margin-bottom: 5px; }
-        .wallet-banner {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        /* header & login panel */
+        .header {
+            background: #2c3e2f;
             color: white;
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 25px;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
-        .wallet-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid white;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
+        .logo h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            letter-spacing: -0.3px;
+        }
+        .logo p {
+            margin: 0;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        .user-panel {
+            background: #1e2a1f;
+            padding: 0.5rem 1.2rem;
+            border-radius: 60px;
+            display: flex;
+            gap: 20px;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        .balance {
             font-weight: bold;
+            background: #f5b042;
+            padding: 5px 12px;
+            border-radius: 30px;
+            color: #2c3e2f;
         }
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        button {
+            background: #f5b042;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        button.danger {
+            background: #c0392b;
+            color: white;
+        }
+        button.secondary {
+            background: #e0e0e0;
+            color: #2c3e2f;
+        }
+        button:hover {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+        .login-area {
+            padding: 2rem;
+            text-align: center;
+            background: #fef9e6;
+        }
+        .login-card {
+            max-width: 320px;
+            margin: 0 auto;
+            background: white;
+            padding: 1.8rem;
+            border-radius: 2rem;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.05);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 60px;
+            font-size: 1rem;
+        }
+        .stall-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1.5rem;
+            justify-content: center;
         }
         .stall-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
+            background: #fffaf2;
+            border-radius: 1.5rem;
+            padding: 1rem 1.2rem;
+            width: 180px;
             text-align: center;
-            color: #333;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
-        }
-        .stall-icon {
-            font-size: 30px;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .auth-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 400px;
-            margin: 50px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .auth-card h2 {
-            text-align: center;
-            color: #333;
-        }
-        .auth-card input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-sizing: border-box;
-        }
-        .auth-card button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            background: #6e8efb;
-            color: white;
-            border: none;
-            font-weight: bold;
             cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+            transition: 0.1s linear;
+            border: 1px solid #f0e2cf;
         }
-        .auth-card .link-btn {
-            background: none;
-            color: #6e8efb;
-            text-decoration: underline;
-            font-weight: normal;
+        .stall-card.selected {
+            border: 3px solid #f5b042;
+            background: #fff2df;
         }
-        .hide { display: none !important; }
-
-        .modal {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6);
+        .menu-panel {
+            padding: 1rem 2rem 2rem;
+            border-top: 2px solid #f0e2cf;
+        }
+        .menu-items {
             display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .menu-item {
+            background: #fef5e8;
+            border-radius: 1.2rem;
+            padding: 0.8rem 1rem;
+            width: 200px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            z-index: 999;
         }
-        .modal-content {
+        .topup-section {
+            background: #eef3e6;
+            margin: 0 1.5rem 1.5rem;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .qr-sim {
             background: white;
-            width: 90%;
-            max-width: 360px;
-            padding: 25px;
-            border-radius: 20px;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .message {
+            padding: 0 1.5rem 1rem;
+            color: #c0392b;
+            font-weight: 500;
+        }
+        footer {
             text-align: center;
+            font-size: 0.7rem;
+            padding: 1rem;
+            color: #8f7a5c;
         }
-        .modal-content img {
-            width: 220px;
-            height: 220px;
-            margin: 15px auto;
-            display: block;
+        @media (max-width: 700px) {
+            .header { flex-direction: column; align-items: stretch; text-align: center;}
+            .stall-card { width: 140px; }
         }
-        .modal-content input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-        }
-        .modal-btn {
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-green { background: #28a745; color: white; }
-        .btn-gray { background: #6c757d; color: white; }
     </style>
 </head>
 <body>
-<!-- 修正：默认只注册隐藏，登录框初始正常显示 -->
-<div id="loginPanel" class="auth-card">
-    <h2>Login</h2>
-    <input id="loginPhone" placeholder="Phone Number">
-    <input id="loginPwd" type="password" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <button class="link-btn" id="goRegister">Register</button>
-</div>
-
-<div id="registerPanel" class="auth-card hide">
-    <h2>Register</h2>
-    <input id="regPhone" placeholder="Phone Number">
-    <input id="regPwd" type="password" placeholder="Password">
-    <input id="regConfirm" placeholder="Confirm Password">
-    <button id="registerBtn">Register</button>
-    <button class="link-btn" id="goLogin">Back to Login</button>
-</div>
-
-<div id="mainPage" class="hide">
-    <header>
-        <h1>Campus Canteen</h1>
-        <p>Select a stall to order</p>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
-    </header>
-
-    <div class="wallet-banner">
-        <div>
-            <small>My Balance</small>
-            <div id="balanceText" style="font-size: 22px; font-weight: bold;">$0.00</div>
-        </div>
-        <div>
-            <button class="wallet-btn" id="topUpBtn">Top Up</button>
-            <button class="wallet-btn" id="payBtn">Pay</button>
-        </div>
-    </div>
-
-    <div class="grid-container">
-        <div class="stall-card"><span class="stall-icon">🍥</span><br>Tu Tu Kueh</div>
-        <div class="stall-card"><span class="stall-icon">🍜</span><br>Toast Box</div>
-        <div class="stall-card"><span class="stall-icon">🥤</span><br>Drink</div>
-        <div class="stall-card"><span class="stall-icon">🍗</span><br>HK Roast</div>
-    </div>
-</div>
-
-<div id="topModal" class="hide">
-    <div class="modal-content">
-        <h3>Top Up QR</h3>
-        <img id="topQr">
-        <p>Show to cashier</p>
-        <button class="modal-btn btn-gray" onclick="closeTop()">Close</button>
-    </div>
-</div>
-
-<div id="payModal" class="hide">
-    <div class="modal-content">
-        <h3>Payment</h3>
-        <input type="number" id="payAmount" placeholder="Enter Amount" min="1">
-        <button class="modal-btn btn-green" onclick="generatePayQr()">Generate QR</button>
-        <img id="payQr" class="hide">
-        <button class="modal-btn btn-gray" onclick="closePay()">Close</button>
-    </div>
+<div class="app-container" id="appRoot">
+    <!-- dynamic rendering via JS -->
 </div>
 
 <script>
-const USER_DATA = "userData";
-const LOGIN_USER = "currentUser";
-function getUsers() { return JSON.parse(localStorage.getItem(USER_DATA) || '{}'); }
-function setLogin(phone) { localStorage.setItem(LOGIN_USER, phone); }
-function getLogin() { return localStorage.getItem(LOGIN_USER) || ''; }
+    // ---------- DATA ----------
+    // users store: username -> {password, balance}
+    const users = {
+        user: { password: "pass", balance: 0 },
+        alice: { password: "123", balance: 15.5 },
+        bob: { password: "bob123", balance: 8 }
+    };
 
-// 实时更新余额，200毫秒刷新
-function refreshBal(){
-    let u=getLogin();
-    let list=getUsers();
-    if(u && list[u]) balanceText.textContent="$"+Number(list[u].balance).toFixed(2);
-}
+    // Menu catalog per stall (stallId -> array of items)
+    const menuCatalog = {
+        "tutu": {
+            name: "🍥 Tu Tu Kueh",
+            items: [
+                { name: "Traditional Peanut", price: 2.5 },
+                { name: "Coconut Gula Melaka", price: 2.8 },
+                { name: "Pandan Kaya", price: 2.6 }
+            ]
+        },
+        "toast": {
+            name: "🍜 Toast Box",
+            items: [
+                { name: "Kaya Butter Toast", price: 3.2 },
+                { name: "Peanut Butter Toast", price: 3.0 },
+                { name: "Soft Boiled Eggs (2pcs)", price: 2.4 }
+            ]
+        },
+        "drink": {
+            name: "🥤 Drink Stall",
+            items: [
+                { name: "Milo Dinosaur", price: 3.0 },
+                { name: "Ice Lemon Tea", price: 2.5 },
+                { name: "Kopi C Kosong", price: 1.8 }
+            ]
+        },
+        "hk": {
+            name: "🍗 HK Roast",
+            items: [
+                { name: "Roast Chicken Rice", price: 5.8 },
+                { name: "Char Siu Noodle", price: 6.0 },
+                { name: "Roast Pork Rice", price: 6.5 }
+            ]
+        }
+    };
 
-//页面加载自动登录
-window.onload=function(){
-    let user=getLogin();
-    if(user){
-        loginPanel.classList.add('hide');
-        mainPage.classList.remove('hide');
+    let currentUser = null;     // logged username
+
+    // Helper: save updated users (simulate persistence)
+    function persistUsers() {
+        // already in memory, but we keep localStorage optional? no need; global users object works during session.
+        // However to simulate between "topup only software", we could use same localStorage key.
+        // To make both "apps" work together, we save to localStorage with key "campus_users".
+        localStorage.setItem("campus_users", JSON.stringify(users));
     }
-    setInterval(refreshBal,200);
-}
+    function loadUsersFromStorage() {
+        const stored = localStorage.getItem("campus_users");
+        if(stored) {
+            try{
+                const parsed = JSON.parse(stored);
+                Object.assign(users, parsed);
+            }catch(e){}
+        } else {
+            // initial persist
+            persistUsers();
+        }
+    }
+    loadUsersFromStorage();
 
-//切换注册登录
-goRegister.onclick=()=>{
-    loginPanel.classList.add('hide');
-    registerPanel.classList.remove('hide');
-}
-goLogin.onclick=()=>{
-    registerPanel.classList.add('hide');
-    loginPanel.classList.remove('hide');
-}
+    // update user balance and save
+    function setUserBalance(username, newBalance) {
+        if(users[username]) {
+            users[username].balance = newBalance;
+            persistUsers();
+        }
+    }
 
-//注册
-registerBtn.onclick=()=>{
-    let p=regPhone.value.trim(),pw=regPwd.value.trim(),cp=regConfirm.value.trim();
-    if(!p||!pw||pw!==cp) return alert('Fill info correctly');
-    let uList=getUsers();
-    if(uList[p]) return alert('Phone already registered');
-    uList[p]={pwd:pw,balance:0};
-    localStorage.setItem(USER_DATA,JSON.stringify(uList));
-    alert('Register success');
-    goLogin.click();
-}
+    function getUserBalance(username) {
+        return users[username] ? users[username].balance : 0;
+    }
 
-//登录
-loginBtn.onclick=()=>{
-    let p=loginPhone.value.trim(),pw=loginPwd.value.trim();
-    let uList=getUsers();
-    if(uList[p] && uList[p].pwd===pw){
-        setLogin(p);
-        location.reload();
-    }else alert('Wrong account or password');
-}
+    // helper to refresh UI after login/logout/order/topup
+    let selectedStallId = "tutu";   // default stall
 
-//充值弹窗
-topUpBtn.onclick=()=>{
-    topModal.className='modal';
-    topQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:${getLogin()}`;
-}
-function closeTop(){topModal.className='hide'}
+    // DOM element refs
+    let root = document.getElementById("appRoot");
 
-//消费弹窗
-payBtn.onclick=()=>{
-    payModal.className='modal';
-    payQr.classList.add('hide');
-    payAmount.value='';
-}
-function generatePayQr(){
-    let num=payAmount.value;
-    if(!num||num<1) return alert('Input valid amount');
-    payQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:${getLogin()}:${num}`;
-    payQr.classList.remove('hide');
-}
-function closePay(){payModal.className='hide'}
+    function render() {
+        if(!currentUser) {
+            renderLoginScreen();
+        } else {
+            renderMainApp();
+        }
+    }
 
-//退出登录
-logoutBtn.onclick=()=>{
-    localStorage.removeItem(LOGIN_USER);
-    location.reload();
-}
+    function renderLoginScreen() {
+        root.innerHTML = `
+            <div class="login-area">
+                <div class="login-card">
+                    <h2>🍽️ Customer Order</h2>
+                    <p>Login to order & pay with balance</p>
+                    <input type="text" id="loginUsername" placeholder="Username" autocomplete="off">
+                    <input type="password" id="loginPassword" placeholder="Password">
+                    <button id="doLoginBtn" style="width:100%; margin-top:12px;">Login</button>
+                    <p style="font-size:12px; margin-top:20px;">Demo: user / pass &nbsp;&nbsp; alice / 123</p>
+                </div>
+            </div>
+        `;
+        document.getElementById("doLoginBtn")?.addEventListener("click", () => {
+            const user = document.getElementById("loginUsername").value.trim();
+            const pwd = document.getElementById("loginPassword").value;
+            if(users[user] && users[user].password === pwd) {
+                currentUser = user;
+                render();
+            } else {
+                alert("Invalid credentials");
+            }
+        });
+    }
+
+    function renderMainApp() {
+        const balance = getUserBalance(currentUser);
+        const stall = menuCatalog[selectedStallId];
+        const stallName = stall ? stall.name : "Select Stall";
+
+        root.innerHTML = `
+            <div class="header">
+                <div class="logo">
+                    <h1>🏫 Campus Canteen</h1>
+                    <p>order & pay with campus credits</p>
+                </div>
+                <div class="user-panel">
+                    <span>👤 ${currentUser}</span>
+                    <span class="balance">💰 $${balance.toFixed(2)}</span>
+                    <button id="logoutBtn" class="danger">Logout</button>
+                </div>
+            </div>
+            <div class="topup-section">
+                <span>💳 <strong>Top-up Wallet</strong> (Scan QR & pay at cashier)</span>
+                <div class="qr-sim">📲 Show QR: CAMPUS-${currentUser}-TOPUP</div>
+                <button id="simulateTopUpBtn" class="secondary">💰 Simulate +$10 (refill)</button>
+            </div>
+            <div>
+                <div class="stall-grid" id="stallGrid"></div>
+                <div class="menu-panel">
+                    <h3>📋 ${stallName} Menu</h3>
+                    <div id="menuItemsList" class="menu-items"></div>
+                </div>
+            </div>
+            <div id="messageArea" class="message"></div>
+            <footer>✨ Use balance to order | Top-up via cashier QR</footer>
+        `;
+
+        // render stalls
+        const stallGrid = document.getElementById("stallGrid");
+        for(let [sid, data] of Object.entries(menuCatalog)) {
+            const card = document.createElement("div");
+            card.className = `stall-card ${selectedStallId === sid ? 'selected' : ''}`;
+            card.innerHTML = `<div style="font-size:2rem;">${data.name.slice(0,2)}</div><strong>${data.name}</strong>`;
+            card.addEventListener("click", () => {
+                selectedStallId = sid;
+                render();
+            });
+            stallGrid.appendChild(card);
+        }
+
+        // render menu items for selected stall
+        const menuContainer = document.getElementById("menuItemsList");
+        const currentStall = menuCatalog[selectedStallId];
+        if(currentStall && currentStall.items) {
+            currentStall.items.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "menu-item";
+                itemDiv.innerHTML = `
+                    <span><strong>${item.name}</strong><br><span style="font-size:0.8rem;">$${item.price.toFixed(2)}</span></span>
+                    <button class="orderBtn" data-price="${item.price}" data-name="${item.name}">Order</button>
+                `;
+                menuContainer.appendChild(itemDiv);
+            });
+            // attach order events
+            document.querySelectorAll(".orderBtn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const price = parseFloat(btn.getAttribute("data-price"));
+                    const itemName = btn.getAttribute("data-name");
+                    handleOrder(itemName, price);
+                });
+            });
+        }
+
+        // top-up simulation (cashless test, real top-up would be via cashier software)
+        document.getElementById("simulateTopUpBtn")?.addEventListener("click", () => {
+            const newBal = getUserBalance(currentUser) + 10;
+            setUserBalance(currentUser, newBal);
+            showMessage("💰 +$10 added to your wallet (simulated top-up)");
+            render(); // re-render to show new balance
+        });
+
+        document.getElementById("logoutBtn")?.addEventListener("click", () => {
+            currentUser = null;
+            render();
+        });
+    }
+
+    function handleOrder(itemName, price) {
+        if(!currentUser) return;
+        let balance = getUserBalance(currentUser);
+        if(balance >= price) {
+            const newBalance = balance - price;
+            setUserBalance(currentUser, newBalance);
+            showMessage(`✅ Ordered ${itemName} for $${price.toFixed(2)}. Remaining: $${newBalance.toFixed(2)}`);
+            render();
+        } else {
+            showMessage(`❌ Insufficient balance! Need $${price.toFixed(2)}. Please top up via cashier.`, true);
+        }
+    }
+
+    function showMessage(msg, isError = false) {
+        const msgDiv = document.getElementById("messageArea");
+        if(msgDiv) {
+            msgDiv.innerHTML = `<span style="color:${isError ? '#c0392b' : '#2c6e2f'}">${msg}</span>`;
+            setTimeout(() => {
+                if(document.getElementById("messageArea")) document.getElementById("messageArea").innerHTML = "";
+            }, 2500);
+        } else {
+            alert(msg);
+        }
+    }
+
+    // periodic check for balance changes from other window (topup software) using storage event
+    window.addEventListener("storage", (e) => {
+        if(e.key === "campus_users" && currentUser) {
+            loadUsersFromStorage();
+            render();   // refresh balance & UI
+        }
+    });
+
+    render();
 </script>
 </body>
 </html>
