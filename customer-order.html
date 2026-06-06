@@ -14,7 +14,7 @@
         }
         body {
             font-family: -apple-system, sans-serif;
-            background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
+            background-image: url('https://chrisscf-creator.github.io/ivy/background.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -85,7 +85,6 @@
             display: block;
         }
 
-        /* 登录注册 */
         .auth-card {
             background: white;
             padding: 30px;
@@ -125,7 +124,6 @@
         }
         .hide { display: none !important; }
 
-        /* 弹窗 */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -169,7 +167,6 @@
 </head>
 <body>
 
-<!-- 登录 -->
 <div id="loginPanel" class="auth-card">
     <h2>Login</h2>
     <input id="loginPhone" placeholder="Phone Number">
@@ -178,7 +175,6 @@
     <button class="link-btn" id="goRegister">Register</button>
 </div>
 
-<!-- 注册 -->
 <div id="registerPanel" class="auth-card hide">
     <h2>Register</h2>
     <input id="regPhone" placeholder="Phone Number">
@@ -188,7 +184,6 @@
     <button class="link-btn" id="goLogin">Back to Login</button>
 </div>
 
-<!-- 主页面 -->
 <div id="mainPage" class="hide">
     <header>
         <h1>Campus Canteen</h1>
@@ -208,22 +203,13 @@
     </div>
 
     <div class="grid-container">
-        <div class="stall-card">
-            <span class="stall-icon">🍥</span>Tu Tu Kueh
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🍜</span>Toast Box
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🥤</span>Drink
-        </div>
-        <div class="stall-card">
-            <span class="stall-icon">🍗</span>HK Roast
-        </div>
+        <div class="stall-card"><span class="stall-icon">🍥</span><br>Tu Tu Kueh</div>
+        <div class="stall-card"><span class="stall-icon">🍜</span><br>Toast Box</div>
+        <div class="stall-card"><span class="stall-icon">🥤</span><br>Drink</div>
+        <div class="stall-card"><span class="stall-icon">🍗</span><br>HK Roast</div>
     </div>
 </div>
 
-<!-- 充值弹窗（只显示二维码） -->
 <div id="topModal" class="hide">
     <div class="modal-content">
         <h3>Top Up QR</h3>
@@ -233,7 +219,6 @@
     </div>
 </div>
 
-<!-- 消费弹窗 -->
 <div id="payModal" class="hide">
     <div class="modal-content">
         <h3>Payment</h3>
@@ -245,64 +230,45 @@
 </div>
 
 <script>
-// 统一本地存储
 const USER_DATA = "userData";
 const LOGIN_USER = "currentUser";
 
 function getUsers() {
     return JSON.parse(localStorage.getItem(USER_DATA)) || {};
 }
-function saveUsers(users) {
-    localStorage.setItem(USER_DATA, JSON.stringify(users));
-}
-function setUser(phone) {
-    localStorage.setItem(LOGIN_USER, phone);
-}
 function getUser() {
     return localStorage.getItem(LOGIN_USER) || "";
 }
 
-// 自动登录 + 实时刷新余额
-window.onload = function() {
-    autoLogin();
-    setInterval(refreshBalance, 500);
-};
-
-function autoLogin() {
+// 🔥 强制实时刷新余额（修复核心！）
+function forceUpdateBalance() {
     const u = getUser();
     const users = getUsers();
     if (u && users[u]) {
+        balanceText.innerText = "$" + parseFloat(users[u].balance).toFixed(2);
+    }
+}
+
+// 每 200 毫秒强制刷新（超级灵敏）
+window.onload = function(){
+    if(localStorage.getItem(LOGIN_USER)){
         loginPanel.classList.add("hide");
         mainPage.classList.remove("hide");
-        refreshBalance();
     }
-}
-
-function refreshBalance() {
-    const u = getUser();
-    const users = getUsers();
-    if (u && users[u]) {
-        balanceText.innerText = "$" + users[u].balance.toFixed(2);
-    }
-}
+    setInterval(forceUpdateBalance, 200);
+};
 
 // 注册
 registerBtn.onclick = () => {
     const phone = regPhone.value.trim();
     const pwd = regPwd.value.trim();
     const confirm = regConfirm.value.trim();
-    if (!phone || !pwd || pwd !== confirm) {
-        alert("Please check your input");
-        return;
-    }
+    if (!phone || !pwd || pwd !== confirm) { alert("Check input"); return; }
     const users = getUsers();
-    if (users[phone]) {
-        alert("Phone already registered");
-        return;
-    }
+    if (users[phone]) { alert("Registered"); return; }
     users[phone] = { pwd, balance: 0 };
-    saveUsers(users);
-    alert("Register success! Please login.");
+    localStorage.setItem(USER_DATA, JSON.stringify(users));
+    alert("Success");
     goLogin.click();
 };
 
@@ -312,23 +278,21 @@ loginBtn.onclick = () => {
     const pwd = loginPwd.value.trim();
     const users = getUsers();
     if (users[phone] && users[phone].pwd === pwd) {
-        setUser(phone);
+        localStorage.setItem(LOGIN_USER, phone);
         location.reload();
     } else {
-        alert("Invalid phone or password");
+        alert("Invalid");
     }
 };
 
-// 充值：直接显示二维码
+// 充值二维码
 topUpBtn.onclick = () => {
     topModal.classList.remove("hide");
-    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:" + getUser();
+    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:"+getUser();
 };
-function closeTop() {
-    topModal.classList.add("hide");
-}
+function closeTop() { topModal.classList.add("hide"); }
 
-// 消费
+// 支付二维码
 payBtn.onclick = () => {
     payModal.classList.remove("hide");
     payQr.classList.add("hide");
@@ -336,16 +300,11 @@ payBtn.onclick = () => {
 };
 function generatePayQr() {
     const amt = payAmount.value;
-    if (!amt || amt < 1) {
-        alert("Enter valid amount");
-        return;
-    }
-    payQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:" + getUser() + ":" + amt;
+    if(!amt||amt<1){alert("Enter amount");return;}
+    payQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:"+getUser()+":"+amt;
     payQr.classList.remove("hide");
 }
-function closePay() {
-    payModal.classList.add("hide");
-}
+function closePay() { payModal.classList.add("hide"); }
 
 // 退出
 logoutBtn.onclick = () => {
@@ -353,14 +312,8 @@ logoutBtn.onclick = () => {
     location.reload();
 };
 
-goRegister.onclick = () => {
-    loginPanel.classList.add("hide");
-    registerPanel.classList.remove("hide");
-};
-goLogin.onclick = () => {
-    registerPanel.classList.add("hide");
-    loginPanel.classList.remove("hide");
-};
+goRegister.onclick = () => { loginPanel.classList.add("hide"); registerPanel.classList.remove("hide"); };
+goLogin.onclick = () => { registerPanel.classList.add("hide"); loginPanel.classList.remove("hide"); };
 </script>
 </body>
 </html>
