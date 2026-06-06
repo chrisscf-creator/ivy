@@ -2,61 +2,136 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Recharge</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recharge | Merchant</title>
     <style>
-        body{font-family:Arial;padding:20px;background:#f0f8ff}
-        .box{max-width:500px;margin:auto;background:white;padding:25px;border-radius:16px}
-        #video{width:100%;height:auto;background:#000;border-radius:12px}
-        button{width:100%;padding:14px;margin:10px 0;border:none;border-radius:12px;background:#007bff;color:white}
-        input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
+        body {
+            font-family: Arial;
+            background: #f0f8ff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            background: #000;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-start {
+            background: #007bff;
+            color: white;
+        }
+        .btn-confirm {
+            background: #28a745;
+            color: white;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+        .info {
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2>Recharge</h2>
-    <video id="video" autoplay playsinline></video>
-    <button id="start">Start Camera</button>
-    <input type="number" id="amt" placeholder="Amount" min="1">
-    <button id="confirm" style="background:#28a745">Confirm</button>
+<div class="container">
+    <h2>💰 Merchant Recharge</h2>
+    <video id="video" autoplay playsinline muted></video>
+    <button class="btn-start" id="startBtn">Start Camera</button>
+    <div class="info">User: <b id="showPhone">-</b></div>
+    <input type="number" id="addAmount" placeholder="Enter Amount" min="1">
+    <button class="btn-confirm" id="confirmBtn">Confirm Recharge</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-const USER_KEY = "userData";
-let phone = "";
+const USER_DATA = "userData";
+let currentPhone = "";
 const video = document.getElementById("video");
 const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
 
-function getUsers() { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; }
-function saveUsers(u) { localStorage.setItem(USER_KEY, JSON.stringify(u)); }
-
-start.onclick = async () => {
-    let stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment"} });
-    video.srcObject = stream;
-    scan();
-};
-
-function scan() {
-    if(video.videoWidth>0){
-        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-        ctx.drawImage(video,0,0);
-        let code=jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
-        if(code && code.data.startsWith("TOP:")){
-            phone=code.data.split(":")[1];
-            alert("User: "+phone);
-        }
-    }
-    requestAnimationFrame(scan);
+function getUsers() {
+    return JSON.parse(localStorage.getItem(USER_DATA)) || {};
+}
+function saveUsers(users) {
+    localStorage.setItem(USER_DATA, JSON.stringify(users));
 }
 
-confirm.onclick = () => {
-    let amount=Number(amt.value);
-    let users=getUsers();
-    if(!users[phone]) users[phone]={pwd:"123456", balance:0};
-    users[phone].balance += amount;
+startBtn.onclick = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+            audio: false
+        });
+        video.srcObject = stream;
+        scanLoop();
+    } catch (e) {
+        alert("Camera error: Allow permission or use HTTPS/LiveServer");
+    }
+};
+
+function scanLoop() {
+    if (video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+        if (code && code.data.startsWith("TOP:")) {
+            currentPhone = code.data.split(":")[1];
+            showPhone.innerText = currentPhone;
+            alert("Scan success!");
+        }
+    }
+    requestAnimationFrame(scanLoop);
+}
+
+confirmBtn.onclick = () => {
+    const amount = Number(addAmount.value);
+    if (!currentPhone || !amount || amount < 1) {
+        alert("Scan QR and enter amount!");
+        return;
+    }
+    const users = getUsers();
+    if (!users[currentPhone]) {
+        users[currentPhone] = { pwd: "123456", balance: 0 };
+    }
+    users[currentPhone].balance += amount;
     saveUsers(users);
-    alert("Success: +$"+amount);
+    alert("Recharge Success!\nUser: " + currentPhone + "\nAmount: $" + amount);
+    addAmount.value = "";
+    currentPhone = "";
+    showPhone.innerText = "-";
 };
 </script>
 </body>
