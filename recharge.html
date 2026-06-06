@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campus Canteen - Cashier Top-Up Terminal</title>
+    <title>校园食堂 - 收银台充值系统</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,7 @@
             min-height: 100vh;
         }
         .cashier-container {
-            max-width: 550px;
+            max-width: 650px;
             width: 100%;
             background: white;
             border-radius: 2rem;
@@ -95,17 +95,34 @@
             text-align: center;
             margin-top: 16px;
         }
+        .user-list {
+            background: #f9f9f9;
+            border-radius: 1rem;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .user-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .user-item:hover {
+            background: #f0e2cf;
+        }
     </style>
 </head>
 <body>
-<div class="cashier-container" id="cashierApp">
-    <!-- dynamic render -->
-</div>
+<div class="cashier-container" id="cashierApp"></div>
+
 <script>
-    // same user database structure using localStorage for consistency with customer app
     let cashierLogged = false;
     const cashierCredentials = { username: "cashier", password: "topup123" };
-    
+    let usersData = {};
+    let currentSearchUser = null;
+    let showUserList = false;
+
     function loadGlobalUsers() {
         const stored = localStorage.getItem("campus_users");
         if(stored) {
@@ -121,10 +138,10 @@
         }
     }
 
-    let usersData = loadGlobalUsers();
-
     function persistUsersData() {
         localStorage.setItem("campus_users", JSON.stringify(usersData));
+        // 触发更新事件
+        window.dispatchEvent(new StorageEvent('storage', { key: 'campus_users', newValue: JSON.stringify(usersData) }));
     }
 
     function updateUserBalance(username, newBalance) {
@@ -134,11 +151,12 @@
         }
     }
 
-    function findUser(username) {
-        return usersData[username] ? { ...usersData[username], username } : null;
+    function getAllUsers() {
+        return Object.keys(usersData).map(username => ({
+            username: username,
+            balance: usersData[username].balance
+        }));
     }
-
-    let currentSearchUser = null;   // latest searched username
 
     const appRoot = document.getElementById("cashierApp");
 
@@ -153,15 +171,16 @@
     function renderCashierLogin() {
         appRoot.innerHTML = `
             <div class="cashier-header">
-                <span>🏧 Cashier Terminal</span>
-                <span class="badge">Top-Up Only</span>
+                <span>🏧 收银台终端</span>
+                <span class="badge">充值专用</span>
             </div>
             <div class="content login-box">
-                <h2>🔐 Authorized Staff Login</h2>
-                <input type="text" id="cashierUser" placeholder="Username" autocomplete="off">
-                <input type="password" id="cashierPass" placeholder="Password">
-                <button id="cashierLoginBtn">Login</button>
-                <div class="message">Demo: cashier / topup123</div>
+                <h2>🔐 员工登录</h2>
+                <input type="text" id="cashierUser" placeholder="用户名" autocomplete="off">
+                <input type="password" id="cashierPass" placeholder="密码">
+                <button id="cashierLoginBtn">登录</button>
+                <div class="message">演示账号：cashier / topup123</div>
+                <div class="message" style="background:#e8f0e8;">💡 提示：顾客可通过点餐系统自行注册新账号</div>
             </div>
         `;
         document.getElementById("cashierLoginBtn")?.addEventListener("click", () => {
@@ -169,77 +188,122 @@
             const p = document.getElementById("cashierPass").value;
             if(u === cashierCredentials.username && p === cashierCredentials.password) {
                 cashierLogged = true;
+                loadGlobalData();
                 render();
             } else {
-                alert("Invalid cashier credentials");
+                alert("❌ 员工账号或密码错误！");
             }
         });
     }
 
+    function loadGlobalData() {
+        usersData = loadGlobalUsers();
+    }
+
     function renderTopupDashboard() {
         let customerBalance = currentSearchUser ? (usersData[currentSearchUser]?.balance || 0) : 0;
+        const allUsers = getAllUsers();
+        
         appRoot.innerHTML = `
             <div class="cashier-header">
-                <div>🔧 Top-Up Console</div>
-                <button id="logoutCashierBtn" class="danger" style="width:auto; padding:6px 14px;">Logout</button>
+                <div>🔧 充值控制台</div>
+                <button id="logoutCashierBtn" class="danger" style="width:auto; padding:6px 14px;">登出</button>
             </div>
             <div class="content">
                 <div class="info-card">
-                    <label>🔍 Search Customer Username:</label>
-                    <input type="text" id="searchUsername" placeholder="e.g., user, alice" value="${currentSearchUser || ''}">
-                    <button id="searchBtn">Find Customer</button>
+                    <label>🔍 查找顾客用户名：</label>
+                    <input type="text" id="searchUsername" placeholder="例如：user, alice, 或新注册的用户" value="${currentSearchUser || ''}">
+                    <button id="searchBtn">查找顾客</button>
+                    <button id="showAllUsersBtn" class="secondary" style="background:#bc9a6c;">📋 显示所有用户</button>
+                    
+                    <div id="userListPanel" style="display: ${showUserList ? 'block' : 'none'};">
+                        <div class="user-list">
+                            ${allUsers.map(u => `
+                                <div class="user-item" data-username="${u.username}">
+                                    👤 ${u.username} - 余额: ¥${u.balance.toFixed(2)}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
                 <div id="customerInfo">
                     ${currentSearchUser ? `
                         <div style="text-align:center;">
-                            <strong>🧑‍🎓 Customer: ${currentSearchUser}</strong>
-                            <div class="balance-display">💰 Current Balance: $${customerBalance.toFixed(2)}</div>
-                            <label>💵 Top-Up Amount ($):</label>
-                            <input type="number" id="topupAmount" step="0.5" min="0.01" placeholder="Enter amount">
-                            <button id="confirmTopupBtn">✅ Add Credit & Save</button>
+                            <strong>🧑‍🎓 顾客：${currentSearchUser}</strong>
+                            <div class="balance-display">💰 当前余额：¥${customerBalance.toFixed(2)}</div>
+                            <label>💵 充值金额 (¥)：</label>
+                            <input type="number" id="topupAmount" step="0.5" min="0.01" placeholder="输入充值金额">
+                            <button id="confirmTopupBtn">✅ 确认充值</button>
                         </div>
-                    ` : `<div class="message">👆 Search for a customer to top up their balance.</div>`}
+                    ` : `<div class="message">👆 搜索顾客用户名进行充值，顾客可以自己注册账号。</div>`}
                 </div>
                 <hr>
                 <div id="actionMessage" class="message"></div>
+                <div class="message" style="background:#eef3e6;">💡 新顾客请在点餐系统中自行注册，收银台可直接充值</div>
             </div>
         `;
+        
         document.getElementById("logoutCashierBtn")?.addEventListener("click", () => {
             cashierLogged = false;
             currentSearchUser = null;
             render();
         });
+        
         document.getElementById("searchBtn")?.addEventListener("click", () => {
             const username = document.getElementById("searchUsername").value.trim();
             if(username && usersData[username]) {
                 currentSearchUser = username;
+                showUserList = false;
                 render();
             } else {
-                document.getElementById("actionMessage").innerHTML = "❌ Customer not found!";
+                document.getElementById("actionMessage").innerHTML = "❌ 用户不存在！请让顾客先注册。";
                 setTimeout(() => {
                     if(document.getElementById("actionMessage")) document.getElementById("actionMessage").innerHTML = "";
-                }, 1800);
+                }, 2000);
             }
         });
-        if(currentSearchUser) {
-            document.getElementById("confirmTopupBtn")?.addEventListener("click", () => {
-                const amountInput = document.getElementById("topupAmount");
-                let amount = parseFloat(amountInput.value);
-                if(isNaN(amount) || amount <= 0) {
-                    alert("Please enter valid positive amount");
-                    return;
-                }
-                const oldBalance = usersData[currentSearchUser].balance;
-                const newBalance = oldBalance + amount;
-                updateUserBalance(currentSearchUser, newBalance);
-                document.getElementById("actionMessage").innerHTML = `✅ Success! Added $${amount.toFixed(2)} to ${currentSearchUser}. New balance: $${newBalance.toFixed(2)}`;
-                // refresh localStorage and re-render to show updated balance
-                setTimeout(() => render(), 800);
+        
+        document.getElementById("showAllUsersBtn")?.addEventListener("click", () => {
+            showUserList = !showUserList;
+            render();
+        });
+        
+        // 绑定用户列表点击事件（需要事件委托）
+        setTimeout(() => {
+            document.querySelectorAll(".user-item").forEach(el => {
+                el.addEventListener("click", () => {
+                    const username = el.getAttribute("data-username");
+                    if(username && usersData[username]) {
+                        currentSearchUser = username;
+                        showUserList = false;
+                        render();
+                    }
+                });
             });
+        }, 50);
+        
+        if(currentSearchUser) {
+            const confirmBtn = document.getElementById("confirmTopupBtn");
+            if(confirmBtn) {
+                confirmBtn.addEventListener("click", () => {
+                    const amountInput = document.getElementById("topupAmount");
+                    let amount = parseFloat(amountInput.value);
+                    if(isNaN(amount) || amount <= 0) {
+                        alert("请输入有效的正数金额");
+                        return;
+                    }
+                    const oldBalance = usersData[currentSearchUser].balance;
+                    const newBalance = oldBalance + amount;
+                    updateUserBalance(currentSearchUser, newBalance);
+                    document.getElementById("actionMessage").innerHTML = `✅ 充值成功！为 ${currentSearchUser} 添加 ¥${amount.toFixed(2)}，新余额：¥${newBalance.toFixed(2)}`;
+                    // 刷新数据
+                    usersData = loadGlobalUsers();
+                    setTimeout(() => render(), 800);
+                });
+            }
         }
     }
 
-    // also listen to storage events to sync if customer app updates? Not necessary, but for consistent:
     window.addEventListener("storage", (e) => {
         if(e.key === "campus_users") {
             usersData = loadGlobalUsers();
@@ -247,6 +311,7 @@
         }
     });
 
+    loadGlobalData();
     render();
 </script>
 </body>
