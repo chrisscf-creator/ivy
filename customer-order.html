@@ -5,126 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer POS</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
-        }
-        .auth-box {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 400px;
-            margin: 50px auto;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .auth-box h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            background: #4285F4;
-            color: white;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .link-btn {
-            background: none;
-            color: #4285F4;
-            text-decoration: underline;
-            font-weight: normal;
-        }
-        .hide {
-            display: none !important;
-        }
-        #mainPage {
-            max-width: 500px;
-            margin: auto;
-        }
-        .balance-card {
-            background: linear-gradient(135deg, #6e8efb, #4285F4);
-            color: white;
-            padding: 25px;
-            border-radius: 16px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .balance-card h1 {
-            font-size: 32px;
-            margin: 10px 0;
-        }
-        .control-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .control-buttons button {
-            flex: 1;
-        }
-        .stall-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .stall {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
-        }
-        .stall-icon {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-        .modal-box {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            width: 90%;
-            max-width: 350px;
-        }
-        .modal-box img {
-            width: 220px;
-            height: 220px;
-            margin: 15px 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial; background: #f5f7fa; padding: 20px; }
+        .auth-box { background: white; padding: 30px; border-radius: 16px; max-width: 400px; margin: 50px auto; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; }
+        button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; background: #4285F4; color: white; border: none; }
+        .link-btn { background: none; color: #4285F4; text-decoration: underline; }
+        .hide { display: none !important; }
+        #mainPage { max-width: 500px; margin: auto; }
+        .balance-card { background: linear-gradient(135deg, #6e8efb, #4285F4); color: white; padding: 25px; border-radius: 16px; text-align: center; margin-bottom: 20px; }
+        .control-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
+        .control-buttons button { flex: 1; }
+        .stall-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stall { background: white; padding: 20px; border-radius: 12px; text-align: center; }
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:999; }
+        .modal-box { background: white; padding:30px; border-radius:20px; text-align:center; width:90%; max-width:350px; }
+        .modal-box img { width:220px; height:220px; margin:15px 0; }
     </style>
 </head>
 <body>
+
 <div id="loginPage" class="auth-box">
     <h2>Login</h2>
-    <input id="loginPhone" placeholder="Phone Number">
+    <input id="loginPhone" placeholder="Phone">
     <input id="loginPwd" type="password" placeholder="Password">
     <button id="loginBtn">Login</button>
     <button class="link-btn" id="gotoReg">Register</button>
@@ -132,11 +35,11 @@
 
 <div id="regPage" class="auth-box hide">
     <h2>Register</h2>
-    <input id="regPhone" placeholder="Phone Number">
+    <input id="regPhone" placeholder="Phone">
     <input id="regPwd" type="password" placeholder="Password">
     <input id="regPwd2" type="password" placeholder="Confirm Password">
     <button id="regBtn">Register</button>
-    <button class="link-btn" id="gotoLogin">Back to Login</button>
+    <button class="link-btn" id="gotoLogin">Back</button>
 </div>
 
 <div id="mainPage" class="hide">
@@ -145,22 +48,21 @@
         <h1 id="balance">$0.00</h1>
     </div>
     <div class="control-buttons">
-        <button id="topUpBtn">Top Up 充值</button>
-        <button id="logoutBtn">Logout 退出</button>
+        <button id="topUpBtn">Top Up</button>
+        <button id="logoutBtn">Logout</button>
     </div>
     <div class="stall-grid">
-        <div class="stall"><div class="stall-icon">🍥</div><div>Tu Tu Kueh</div></div>
-        <div class="stall"><div class="stall-icon">🍜</div><div>Toast Box</div></div>
-        <div class="stall"><div class="stall-icon">🥤</div><div>Drink</div></div>
-        <div class="stall"><div class="stall-icon">🍗</div><div>HK Roast</div></div>
+        <div class="stall">🍥<br>Tu Tu Kueh</div>
+        <div class="stall">🍜<br>Toast Box</div>
+        <div class="stall">🥤<br>Drink</div>
+        <div class="stall">🍗<br>HK Roast</div>
     </div>
 </div>
 
 <div id="topModal" class="hide">
     <div class="modal-box">
-        <h2>Top Up</h2>
+        <h2>Top Up QR</h2>
         <img id="topQr">
-        <p>Show QR to cashier for recharge</p>
         <button onclick="closeTopModal()">Close</button>
     </div>
 </div>
@@ -169,108 +71,61 @@
 const USER_KEY = "userData";
 const LOGIN_KEY = "loginUser";
 
-//存取方法
-function getUsers() {
-    let data = localStorage.getItem(USER_KEY);
-    return data ? JSON.parse(data) : {};
-}
-function saveUsers(obj) {
-    localStorage.setItem(USER_KEY, JSON.stringify(obj));
-}
-function setLoginUser(phone) {
-    localStorage.setItem(LOGIN_KEY, phone);
-}
-function getLoginUser() {
-    return localStorage.getItem(LOGIN_KEY);
-}
+function getUsers() { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; }
+function saveUsers(u) { localStorage.setItem(USER_KEY, JSON.stringify(u)); }
+function setLogin(u) { localStorage.setItem(LOGIN_KEY, u); }
+function getLogin() { return localStorage.getItem(LOGIN_KEY); }
 
-//页面切换
-function showLogin(){
-    loginPage.classList.remove('hide');regPage.classList.add('hide');mainPage.classList.add('hide');
-}
-function showReg(){
-    loginPage.classList.add('hide');regPage.classList.remove('hide');mainPage.classList.add('hide');
-}
-function showMain(){
-    loginPage.classList.add('hide');regPage.classList.add('hide');mainPage.classList.remove('hide');
-}
+window.onload = function() {
+    autoLogin();
+    setInterval(() => {
+        let u = getLogin();
+        let list = getUsers();
+        if(u && list[u]) balance.innerText = "$" + list[u].balance.toFixed(2);
+    }, 300);
+};
 
-//余额实时刷新
-function updateBalance(){
-    let user = getLoginUser();
-    let users = getUsers();
-    if(user && users[user]){
-        balance.innerText = "$"+Number(users[user].balance).toFixed(2);
+function autoLogin() {
+    let u = getLogin();
+    let list = getUsers();
+    if(u && list[u]) {
+        loginPage.classList.add("hide");
+        mainPage.classList.remove("hide");
     }
 }
 
-window.onload = function(){
-    let currUser = getLoginUser();
-    if(currUser){
-        showMain();
-        updateBalance();
-    }
-    setInterval(updateBalance,400);
-}
+regBtn.onclick = () => {
+    let p = regPhone.value.trim();
+    let pw = regPwd.value.trim();
+    let pw2 = regPwd2.value.trim();
+    if(!p || !pw || pw!=pw2) return alert("Check input");
+    let list = getUsers();
+    if(list[p]) return alert("Exists");
+    list[p] = { pwd: pw, balance: 0 };
+    saveUsers(list);
+    alert("OK");
+    gotoLogin.click();
+};
 
-//注册逻辑（清除首尾空格）
-regBtn.onclick = function(){
-    let phone = regPhone.value.trim();
-    let p1 = regPwd.value.trim();
-    let p2 = regPwd2.value.trim();
-    if(!phone || !p1){
-        alert("Phone & Password cannot empty");
-        return;
-    }
-    if(p1 !== p2){
-        alert("Password not match");
-        return;
-    }
-    let userList = getUsers();
-    if(userList[phone]){
-        alert("Phone already registered");
-        return;
-    }
-    userList[phone] = {pwd:p1, balance:0};
-    saveUsers(userList);
-    alert("Register Success! Please Login");
-    regPhone.value='';regPwd.value='';regPwd2.value='';
-    showLogin();
-}
+loginBtn.onclick = () => {
+    let p = loginPhone.value.trim();
+    let pw = loginPwd.value.trim();
+    let list = getUsers();
+    if(list[p] && list[p].pwd == pw) {
+        setLogin(p);
+        location.reload();
+    } else alert("Invalid");
+};
 
-//登录修复（trim去空格，精准匹配）
-loginBtn.onclick = function(){
-    let inputPhone = loginPhone.value.trim();
-    let inputPwd = loginPwd.value.trim();
-    let userList = getUsers();
-    if(userList[inputPhone] && userList[inputPhone].pwd === inputPwd){
-        setLoginUser(inputPhone);
-        loginPhone.value='';loginPwd.value='';
-        showMain();
-    }else{
-        alert("Wrong phone or password");
-    }
-}
-
-//充值弹窗
-topUpBtn.onclick = function(){
-    let u = getLoginUser();
+topUpBtn.onclick = () => {
     topModal.className = "modal";
-    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:"+u;
-}
-function closeTopModal(){
-    topModal.className = "hide";
-}
+    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:"+getLogin();
+};
+function closeTopModal(){ topModal.className="hide"; }
 
-//退出
-logoutBtn.onclick = function(){
-    localStorage.removeItem(LOGIN_KEY);
-    location.reload();
-}
-
-//切换注册/登录
-gotoReg.onclick = showReg;
-gotoLogin.onclick = showLogin;
+logoutBtn.onclick = () => { localStorage.clear(); location.reload(); };
+gotoReg.onclick = () => { loginPage.classList.add("hide"); regPage.classList.remove("hide"); };
+gotoLogin.onclick = () => { regPage.classList.add("hide"); loginPage.classList.remove("hide"); };
 </script>
 </body>
 </html>
