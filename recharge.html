@@ -1,93 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>商家充值 - 相机正常版</title>
+    <meta charset="UTF-8">
+    <title>Recharge</title>
     <style>
         body{font-family:Arial;padding:20px;background:#f0f8ff}
-        .box{max-width:500px;margin:0 auto;background:white;padding:30px;border-radius:16px}
-        #video{width:100%;height:auto;border-radius:12px;background:#000;margin:15px 0}
-        button{padding:14px;width:100%;border:none;background:#007bff;color:white;border-radius:12px;margin:5px 0;font-size:16px}
+        .box{max-width:500px;margin:auto;background:white;padding:25px;border-radius:16px}
+        #video{width:100%;height:auto;background:#000;border-radius:12px}
+        button{width:100%;padding:14px;margin:10px 0;border:none;border-radius:12px;background:#007bff;color:white}
         input{width:100%;padding:12px;margin:10px 0;border-radius:8px;border:1px solid #ddd}
-        .info{padding:15px;background:#e3f2fd;border-radius:8px;margin:10px 0}
     </style>
 </head>
 <body>
 <div class="box">
-    <h2>📥 商家扫码充值</h2>
-    <video id="video" autoplay playsinline muted></video>
-    <button id="startBtn">开启相机</button>
-    <div class="info">
-        会员手机号：<b id="showPhone"></b><br>
-        充值金额：<input type="number" id="addAmt" placeholder="输入金额" min="1">
-    </div>
-    <button id="confirmBtn" style="background:#28a745">确认充值</button>
+    <h2>Recharge</h2>
+    <video id="video" autoplay playsinline></video>
+    <button id="start">Start Camera</button>
+    <input type="number" id="amt" placeholder="Amount" min="1">
+    <button id="confirm" style="background:#28a745">Confirm</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-const STORAGE_KEY = "userData";
+const USER_KEY = "userData";
+let phone = "";
 const video = document.getElementById("video");
 const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
-let phone = "";
-let scanning = false;
 
-function getUsers() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-}
-function saveUsers(u) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-}
+function getUsers() { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; }
+function saveUsers(u) { localStorage.setItem(USER_KEY, JSON.stringify(u)); }
 
-// 修复相机权限 + 错误捕获
-startBtn.onclick = async function startCamera() {
-    try {
-        let constraints = {
-            video: { facingMode: "environment" },
-            audio: false
-        };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        scanning = true;
-        scanLoop();
-    } catch (err) {
-        alert("相机无法启动！\n\n原因：\n1. 请允许相机权限\n2. 必须用 localhost / https 打开\n3. 不要直接双击打开 html");
-        console.error(err);
-    }
+start.onclick = async () => {
+    let stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment"} });
+    video.srcObject = stream;
+    scan();
 };
 
-function scanLoop() {
-    if (!scanning) return;
-    if (video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-        if (code) {
-            let d = code.data;
-            if (d.startsWith("TOP:")) {
-                phone = d.split(":")[1];
-                showPhone.innerText = phone;
-                alert("扫码成功！");
-            }
+function scan() {
+    if(video.videoWidth>0){
+        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0);
+        let code=jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height);
+        if(code && code.data.startsWith("TOP:")){
+            phone=code.data.split(":")[1];
+            alert("User: "+phone);
         }
     }
-    requestAnimationFrame(scanLoop);
+    requestAnimationFrame(scan);
 }
 
-confirmBtn.onclick = () => {
-    const amt = Number(addAmt.value);
-    if (!phone || !amt || amt < 1) return alert("请先扫码并输入金额");
-    const u = getUsers();
-    if (!u[phone]) u[phone] = { password: "123456", balance: 0 };
-    u[phone].balance += amt;
-    saveUsers(u);
-    alert("充值成功！\n手机号：" + phone + "\n金额：$" + amt);
-    addAmt.value = "";
-    phone = "";
-    showPhone.innerText = "";
+confirm.onclick = () => {
+    let amount=Number(amt.value);
+    let users=getUsers();
+    if(!users[phone]) users[phone]={pwd:"123456", balance:0};
+    users[phone].balance += amount;
+    saveUsers(users);
+    alert("Success: +$"+amount);
 };
 </script>
 </body>
