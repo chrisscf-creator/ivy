@@ -166,7 +166,7 @@
     </style>
 </head>
 <body>
-
+<!-- 修正：默认只注册隐藏，登录框初始正常显示 -->
 <div id="loginPanel" class="auth-card">
     <h2>Login</h2>
     <input id="loginPhone" placeholder="Phone Number">
@@ -232,88 +232,85 @@
 <script>
 const USER_DATA = "userData";
 const LOGIN_USER = "currentUser";
+function getUsers() { return JSON.parse(localStorage.getItem(USER_DATA) || '{}'); }
+function setLogin(phone) { localStorage.setItem(LOGIN_USER, phone); }
+function getLogin() { return localStorage.getItem(LOGIN_USER) || ''; }
 
-function getUsers() {
-    return JSON.parse(localStorage.getItem(USER_DATA)) || {};
-}
-function getUser() {
-    return localStorage.getItem(LOGIN_USER) || "";
+// 实时更新余额，200毫秒刷新
+function refreshBal(){
+    let u=getLogin();
+    let list=getUsers();
+    if(u && list[u]) balanceText.textContent="$"+Number(list[u].balance).toFixed(2);
 }
 
-// 🔥 强制实时刷新余额（修复核心！）
-function forceUpdateBalance() {
-    const u = getUser();
-    const users = getUsers();
-    if (u && users[u]) {
-        balanceText.innerText = "$" + parseFloat(users[u].balance).toFixed(2);
+//页面加载自动登录
+window.onload=function(){
+    let user=getLogin();
+    if(user){
+        loginPanel.classList.add('hide');
+        mainPage.classList.remove('hide');
     }
+    setInterval(refreshBal,200);
 }
 
-// 每 200 毫秒强制刷新（超级灵敏）
-window.onload = function(){
-    if(localStorage.getItem(LOGIN_USER)){
-        loginPanel.classList.add("hide");
-        mainPage.classList.remove("hide");
-    }
-    setInterval(forceUpdateBalance, 200);
-};
+//切换注册登录
+goRegister.onclick=()=>{
+    loginPanel.classList.add('hide');
+    registerPanel.classList.remove('hide');
+}
+goLogin.onclick=()=>{
+    registerPanel.classList.add('hide');
+    loginPanel.classList.remove('hide');
+}
 
-// 注册
-registerBtn.onclick = () => {
-    const phone = regPhone.value.trim();
-    const pwd = regPwd.value.trim();
-    const confirm = regConfirm.value.trim();
-    if (!phone || !pwd || pwd !== confirm) { alert("Check input"); return; }
-    const users = getUsers();
-    if (users[phone]) { alert("Registered"); return; }
-    users[phone] = { pwd, balance: 0 };
-    localStorage.setItem(USER_DATA, JSON.stringify(users));
-    alert("Success");
+//注册
+registerBtn.onclick=()=>{
+    let p=regPhone.value.trim(),pw=regPwd.value.trim(),cp=regConfirm.value.trim();
+    if(!p||!pw||pw!==cp) return alert('Fill info correctly');
+    let uList=getUsers();
+    if(uList[p]) return alert('Phone already registered');
+    uList[p]={pwd:pw,balance:0};
+    localStorage.setItem(USER_DATA,JSON.stringify(uList));
+    alert('Register success');
     goLogin.click();
-};
-
-// 登录
-loginBtn.onclick = () => {
-    const phone = loginPhone.value.trim();
-    const pwd = loginPwd.value.trim();
-    const users = getUsers();
-    if (users[phone] && users[phone].pwd === pwd) {
-        localStorage.setItem(LOGIN_USER, phone);
-        location.reload();
-    } else {
-        alert("Invalid");
-    }
-};
-
-// 充值二维码
-topUpBtn.onclick = () => {
-    topModal.classList.remove("hide");
-    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:"+getUser();
-};
-function closeTop() { topModal.classList.add("hide"); }
-
-// 支付二维码
-payBtn.onclick = () => {
-    payModal.classList.remove("hide");
-    payQr.classList.add("hide");
-    payAmount.value = "";
-};
-function generatePayQr() {
-    const amt = payAmount.value;
-    if(!amt||amt<1){alert("Enter amount");return;}
-    payQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:"+getUser()+":"+amt;
-    payQr.classList.remove("hide");
 }
-function closePay() { payModal.classList.add("hide"); }
 
-// 退出
-logoutBtn.onclick = () => {
+//登录
+loginBtn.onclick=()=>{
+    let p=loginPhone.value.trim(),pw=loginPwd.value.trim();
+    let uList=getUsers();
+    if(uList[p] && uList[p].pwd===pw){
+        setLogin(p);
+        location.reload();
+    }else alert('Wrong account or password');
+}
+
+//充值弹窗
+topUpBtn.onclick=()=>{
+    topModal.className='modal';
+    topQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:${getLogin()}`;
+}
+function closeTop(){topModal.className='hide'}
+
+//消费弹窗
+payBtn.onclick=()=>{
+    payModal.className='modal';
+    payQr.classList.add('hide');
+    payAmount.value='';
+}
+function generatePayQr(){
+    let num=payAmount.value;
+    if(!num||num<1) return alert('Input valid amount');
+    payQr.src=`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:${getLogin()}:${num}`;
+    payQr.classList.remove('hide');
+}
+function closePay(){payModal.className='hide'}
+
+//退出登录
+logoutBtn.onclick=()=>{
     localStorage.removeItem(LOGIN_USER);
     location.reload();
-};
-
-goRegister.onclick = () => { loginPanel.classList.add("hide"); registerPanel.classList.remove("hide"); };
-goLogin.onclick = () => { registerPanel.classList.add("hide"); loginPanel.classList.remove("hide"); };
+}
 </script>
 </body>
 </html>
