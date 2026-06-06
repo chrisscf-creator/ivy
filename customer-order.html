@@ -1,314 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Court Order Pro</title>
+    <title>Payment</title>
     <style>
-        :root {
-            --primary-color: #ff6b6b;
-            --bg-color: #f8f9fa;
-        }
-        html, body {
-            height: 100%;
-        }
-        body {
-            font-family: -apple-system, sans-serif;
-            background-image: url('https://frops1997-create.github.io/restaurant-order/img.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-            margin: 0;
-            padding: 28px;
-        }
-        header {
-            text-align: center;
-            padding: 20px 0;
-            background: rgba(255,255,255,0.85);
-            border-radius: 12px;
-            margin-bottom: 20px;
-            position:relative;
-        }
-        .logout-btn{
-            position:absolute;
-            right:15px;
-            top:15px;
-            background:#ff5252;
-            color:#fff;
-            border:none;
-            padding:6px 14px;
-            border-radius:18px;
-            cursor:pointer;
-        }
-        h1 { color: #333; margin-bottom: 5px; }
-        .wallet-banner {
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            color: white;
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap:10px;
-        }
-        .wallet-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid white;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .stall-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            color: #333;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-            border: 1px solid #eee;
-        }
-        .stall-card:active {
-            transform: scale(0.95);
-            background-color: #f0f0f0;
-        }
-        .stall-icon {
-            font-size: 30px;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .auth-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 400px;
-            margin: 50px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .auth-card h2 {
-            text-align: center;
-            color: #333;
-            margin-top: 0;
-        }
-        .auth-card input {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-sizing: border-box;
-        }
-        .auth-card button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            background: #6e8efb;
-            color: white;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .auth-card .link-btn {
-            background: none;
-            color: #6e8efb;
-            text-decoration: underline;
-            font-weight: normal;
-        }
-        .hide { display: none !important; }
-
-        .modal {
-            position: fixed;
-            top:0; left:0; right:0; bottom:0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-        }
-        .modal-card {
-            background: white;
-            width: 90%;
-            max-width: 380px;
-            padding: 25px;
-            border-radius: 20px;
-            text-align: center;
-        }
-        .modal-card img {
-            width: 220px;
-            height: 220px;
-            margin: 15px auto;
-            display:block;
-            border: 1px solid #eee;
-        }
-        .close-btn {
-            background: #6c757d;
-            color:white;
-            border:none;
-            padding:12px 25px;
-            border-radius: 8px;
-            margin:5px;
-            cursor: pointer;
-        }
+        body{font-family:Arial;padding:20px;background:#fff0f3}
+        .box{max-width:500px;margin:0 auto;background:white;padding:30px;border-radius:16px}
+        #video{width:100%;border-radius:12px;background:#000;margin:15px 0}
+        button{padding:14px;width:100%;border:none;background:#d63384;color:white;border-radius:12px}
+        .info{padding:15px;background:#fce4ec;border-radius:8px;margin:15px 0}
     </style>
 </head>
 <body>
-
-<div id="loginPanel" class="auth-card">
-    <h2>Login</h2>
-    <input type="text" id="loginPhone" placeholder="Phone Number">
-    <input type="password" id="loginPwd" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <button class="link-btn" id="goRegisterBtn">Register New Account</button>
-</div>
-
-<div id="registerPanel" class="auth-card hide">
-    <h2>Register</h2>
-    <input type="text" id="regPhone" placeholder="Phone Number">
-    <input type="password" id="regPwd" placeholder="Password">
-    <input type="password" id="regConfirmPwd" placeholder="Confirm Password">
-    <button id="registerBtn">Register</button>
-    <button class="link-btn" id="goLoginBtn">Back to Login</button>
-</div>
-
-<div id="mainPage" class="hide">
-    <header>
-        <h1>Campus Canteen</h1>
-        <p>Select a stall to start ordering</p>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
-    </header>
-
-    <div class="wallet-banner">
-        <div>
-            <small>My Balance</small>
-            <div id="balanceDisplay" style="font-size: 20px; font-weight: bold;">$0.00</div>
-        </div>
-        <div>
-            <button class="wallet-btn" id="topUpBtn">Top Up</button>
-            <button class="wallet-btn" id="payBtn">Pay</button>
-        </div>
+<div class="box">
+    <h2>Payment</h2>
+    <video id="video" autoplay></video>
+    <button id="startBtn">Start Camera</button>
+    <div class="info">
+        Phone: <b id="showPhone"></b><br>
+        Amount: <b id="showAmt"></b>
     </div>
-
-    <div class="grid-container">
-        <div class="stall-card"><span class="stall-icon">🍥</span><br>Tu Tu Kueh</div>
-        <div class="stall-card"><span class="stall-icon">🍜</span><br>Toast Box</div>
-        <div class="stall-card"><span class="stall-icon">🥤</span><br>Drink</div>
-        <div class="stall-card"><span class="stall-icon">🍗</span><br>HK Roast</div>
-    </div>
+    <button id="confirmBtn" style="background:#d63384">Confirm</button>
 </div>
 
-<!-- 充值弹窗：只显示二维码，顾客不能输入金额 -->
-<div id="topModal" class="modal hide">
-    <div class="modal-card">
-        <h2>Top Up QR</h2>
-        <img id="topQr">
-        <p>Show to cashier to top up</p>
-        <button class="close-btn" id="closeTop">Close</button>
-    </div>
-</div>
-
-<!-- 消费弹窗 -->
-<div id="payModal" class="modal hide">
-    <div class="modal-card">
-        <h2>Payment QR</h2>
-        <input type="number" id="payAmt" placeholder="Enter Amount" style="width:100%;padding:10px;margin:10px 0">
-        <button onclick="generatePayQr()" style="background:#28a745;color:white;padding:10px 20px;border:none;border-radius:8px;">Generate QR</button>
-        <img id="payQr" class="hide" style="margin:10px auto">
-        <button class="close-btn" onclick="payModal.classList.add('hide')">Close</button>
-    </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-const USER_DB = "usersData";
-const LOGIN_SESSION = "loggedInUser";
+const STORAGE_KEY = "userData";
+const video = document.getElementById("video");
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d");
+let phone = "", amt = "";
 
-function getUsers() { return JSON.parse(localStorage.getItem(USER_DB)) || {}; }
-function saveUsers(u) { localStorage.setItem(USER_DB, JSON.stringify(u)); }
-function setLogin(u) { localStorage.setItem(LOGIN_SESSION, u); }
-function getLogin() { return localStorage.getItem(LOGIN_SESSION) || ""; }
-function logout() { localStorage.removeItem(LOGIN_SESSION); location.reload(); }
-
-let user = getLogin();
-let users = getUsers();
-
-// 自动登录 & 自动刷新余额（每2秒更新一次）
-window.onload = function() {
-    user = getLogin();
-    users = getUsers();
-    if(user && users[user]) {
-        loginPanel.classList.add("hide");
-        mainPage.classList.remove("hide");
-        refreshBalance();
-    }
-    setInterval(refreshBalance, 2000);
-};
-
-function refreshBalance() {
-    users = getUsers();
-    user = getLogin();
-    if(user && users[user]) {
-        balanceDisplay.innerText = "$" + users[user].balance.toFixed(2);
-    }
+function getUsers() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+}
+function saveUsers(u) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
 }
 
-// 充值：只弹出二维码，不输入金额
-topUpBtn.onclick = function() {
-    topModal.classList.remove("hide");
-    topQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=TOP:" + user;
+startBtn.onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    video.srcObject = stream;
+    scan();
 };
-closeTop.onclick = () => topModal.classList.add("hide");
 
-// 消费
-payBtn.onclick = () => { payModal.classList.remove("hide"); payQr.classList.add("hide"); }
-function generatePayQr() {
-    let amt = payAmt.value;
-    if(!amt || amt < 1) return alert("Enter valid amount");
-    payQr.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PAY:"+user+":"+amt;
-    payQr.classList.remove("hide");
+function scan() {
+    if (video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+        if (code) {
+            const d = code.data;
+            if (d.startsWith("PAY:")) {
+                const arr = d.split(":");
+                phone = arr[1];
+                amt = arr[2];
+                showPhone.innerText = phone;
+                showAmt.innerText = "$" + amt;
+                alert("Success!");
+            }
+        }
+    }
+    requestAnimationFrame(scan);
 }
 
-// 登录注册逻辑
-goRegisterBtn.onclick = () => { loginPanel.classList.add("hide"); registerPanel.classList.remove("hide"); }
-goLoginBtn.onclick = () => { registerPanel.classList.add("hide"); loginPanel.classList.remove("hide"); }
-
-registerBtn.onclick = function() {
-    let p = regPhone.value.trim();
-    let pw = regPwd.value;
-    let cpw = regConfirmPwd.value;
-    if(!p||!pw||pw!=cpw) return alert("Check input");
-    let u = getUsers();
-    if(u[p]) return alert("Already registered");
-    u[p] = {password:pw, balance:0};
+confirmBtn.onclick = () => {
+    if (!phone || !amt) return alert("Scan first");
+    const a = Number(amt);
+    const u = getUsers();
+    if (!u[phone] || u[phone].balance < a) return alert("Insufficient balance");
+    u[phone].balance -= a;
     saveUsers(u);
-    alert("Success! Please login.");
-    registerPanel.classList.add("hide");
-    loginPanel.classList.remove("hide");
+    alert("Success!\nDeducted: $" + a);
+    phone = ""; amt = "";
+    showPhone.innerText = ""; showAmt.innerText = "";
 };
-
-loginBtn.onclick = function() {
-    let p = loginPhone.value.trim();
-    let pw = loginPwd.value;
-    let u = getUsers();
-    if(u[p] && u[p].password == pw) {
-        setLogin(p);
-        location.reload();
-    } else {
-        alert("Invalid login");
-    }
-};
-
-logoutBtn.onclick = logout;
 </script>
 </body>
 </html>
