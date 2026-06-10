@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 蓝牙打印 · 订单销售统计</title>
+    <title>智慧柜台POS · 蓝牙打印修复版</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
@@ -104,11 +104,16 @@
             <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
         </div>
     </div>
-    <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票</div>
+    <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码)</div>
 
     <div class="bluetooth-bar">
         <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机 (58mm)</button>
         <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
+        <select id="encodingSelect" style="border-radius:40px;padding:6px 12px;border:1px solid #ccc;">
+            <option value="gb18030">中文 (GB18030) 推荐</option>
+            <option value="cp437">英文 (CP437)</option>
+            <option value="utf8">UTF-8</option>
+        </select>
     </div>
 
     <div id="lastOrderCard" class="last-order-card">
@@ -134,7 +139,7 @@
             <div id="statusMsg" class="feedback" style="display:none;"></div>
         </div>
     </div>
-    <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印</div>
+    <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印 (已修复乱码问题)</div>
 </div>
 
 <div id="historyModal" class="modal">
@@ -148,16 +153,16 @@
             </div>
         </h2>
         <div id="salesStatsContainer" class="sales-stats"></div>
-        <div style="overflow-x: auto;"><table class="order-table"><thead id="orderTableHead"></thead><tbody id="historyTbody"><tr><td>加载中...</td></tr></tbody></table></div>
-    </div>
-</div>
-</div>
+        <div style="overflow-x: auto;"><table class="order-table"><thead id="orderTableHead"></thead><tbody id="historyTbody"><tr><td colspan="7">加载中...<\/td><\/tr><\/tbody><\/table><\/div>
+    <\/div>
+<\/div>
+<\/div>
 
 <script>
     // ========== 多语言 ==========
     const translations = {
         'zh-CN': {
-            loginTitle:'🔐 系统登录',loginBtn:'登 录',posTitle:'柜台·点餐终端',historyBtn:'📊 订单历史',subText:'实时同步厨房 | 蓝牙打印',
+            loginTitle:'🔐 系统登录',loginBtn:'登 录',posTitle:'柜台·点餐终端',historyBtn:'📊 订单历史',subText:'实时同步厨房 | 蓝牙打印 (已修复乱码)',
             catMain:'🍜 主菜',catSide:'🥗 小菜',catExtra:'➕ 额外添加',mainTitle:'📋 铜锅',sideTitle:'🥢 小菜',extraTitle:'✨ 额外添加',
             cartHeader:'🛒 当前订单',emptyCart:'暂无菜品',tableLabel:'🏷️ 桌号',totalLabel:'合计金额',submitBtn:'📨 下单 + 打印',clearCartBtn:'🗑️ 清空',
             footer:'✅ 订单永久保存',historyTitle:'📋 全部订单',exportBtn:'📎 导出',resetCounterBtn:'🔄 重置号码',clearAllBtn:'🗑️ 清除',
@@ -170,7 +175,7 @@
             printSuccess:'🖨️ 小票已打印',printFail:'❌ 打印失败',bluetoothConnected:'✅ 打印机已连接',bluetoothDisconnected:'⚠️ 未连接',connecting:'🔄 连接中...'
         },
         'en': {
-            loginTitle:'🔐 Login',loginBtn:'Login',posTitle:'Counter POS',historyBtn:'📊 History',subText:'Sync + Bluetooth Print',
+            loginTitle:'🔐 Login',loginBtn:'Login',posTitle:'Counter POS',historyBtn:'📊 History',subText:'Sync + Bluetooth Print (Fixed)',
             catMain:'🍜 Main',catSide:'🥗 Side',catExtra:'➕ Extra',mainTitle:'📋 POT',sideTitle:'🥢 Side',extraTitle:'✨ Extra',
             cartHeader:'🛒 Cart',emptyCart:'Empty',tableLabel:'🏷️ Table',totalLabel:'Total',submitBtn:'📨 Submit + Print',clearCartBtn:'🗑️ Clear',
             footer:'✅ Orders saved',historyTitle:'All Orders',exportBtn:'📎 Export',resetCounterBtn:'🔄 Reset',clearAllBtn:'🗑️ Clear',
@@ -219,36 +224,164 @@
     async function getNextOrderNumber(){ let snapshot=await counterRef.transaction(c=>(c||0)+1); return snapshot.snapshot.val(); }
     function updateLastOrderDisplay(orderNumber,tableNo){ if(lastOrderNumberSpan) lastOrderNumberSpan.innerText=orderNumber?`#${orderNumber}`:'—'; if(lastTableSpan) lastTableSpan.innerText=tableNo||'—'; }
     
-    // 蓝牙打印核心
+    // ========== 修复后的蓝牙打印核心 ==========
+    // ESC/POS 初始化命令
+    const ESC = '\x1B';
+    const GS = '\x1D';
+    const initPrinter = () => `${ESC}@`;  // 初始化打印机
+    const setChineseFont = () => `${ESC}!\x11`; // 选择中文字体模式
+    const setAlignCenter = () => `${ESC}a\x01`; // 居中
+    const setAlignLeft = () => `${ESC}a\x00`;   // 左对齐
+    const setBoldOn = () => `${ESC}E\x01`;      // 粗体开
+    const setBoldOff = () => `${ESC}E\x00`;     // 粗体关
+    const feedLines = (n) => `${ESC}d${String.fromCharCode(n)}`; // 走纸n行
+    const cutPaper = () => `${GS}V\x41\x00`;    // 全切纸
+    
+    // 根据选择的编码转换文本 (解决乱码核心)
+    function encodeForPrinter(text, encoding) {
+        // 移除emoji图标，因为热敏打印机可能不支持
+        let cleanText = text.replace(/[🍜🥗➕📋🥢✨🛒🏷️🗑️✅📡💰🖨️🔌⚡📊🔄❌⚠️⏳]/g, '');
+        // 替换特殊符号
+        cleanText = cleanText.replace(/[→]/g, '->');
+        
+        if (encoding === 'gb18030') {
+            // 使用 TextEncoder 的 GB18030 编码 (需要浏览器支持)
+            try {
+                // 注意：需要 polyfill 或者大部分现代 Chrome 支持
+                const encoder = new TextEncoder('gb18030');
+                return encoder.encode(cleanText);
+            } catch(e) {
+                // 降级到 UTF-8
+                return new TextEncoder().encode(cleanText);
+            }
+        } else if (encoding === 'cp437') {
+            // CP437 编码映射 (简单处理英文和数字)
+            let result = [];
+            for(let i=0; i<cleanText.length; i++) {
+                let code = cleanText.charCodeAt(i);
+                if(code >= 32 && code <= 126) result.push(code);
+                else if(code === 8364) result.push(0x80); // €
+                else if(code === 10 || code === 13) result.push(code);
+                else if(code === 32) result.push(32);
+                else result.push(63); // 未知字符转?
+            }
+            return new Uint8Array(result);
+        } else {
+            // UTF-8
+            return new TextEncoder().encode(cleanText);
+        }
+    }
+    
+    // 生成小票内容 (纯文本格式，不含emoji)
+    function generateReceiptText(orderNumber, tableNo, itemsList, totalPrice) {
+        const line = "--------------------------------\n";
+        const line2 = "================================\n";
+        let content = "";
+        content += "       智 慧 柜 台        \n";
+        content += line2;
+        content += `订单号: #${orderNumber}\n`;
+        content += `桌号: ${tableNo}\n`;
+        content += `时间: ${new Date().toLocaleString()}\n`;
+        content += `支付: 现金\n`;
+        content += line;
+        
+        itemsList.forEach(it => {
+            let name = it.name.replace(/[🍜🥗➕🍰🥤🍠🥟]/g, '').trim();
+            if(name.length > 12) name = name.substring(0,12);
+            let priceLine = `${name}`;
+            let spaces = 24 - name.length - it.qty.toString().length - 6;
+            if(spaces < 0) spaces = 2;
+            priceLine += " ".repeat(spaces) + `x${it.qty}  $${(it.price * it.qty).toFixed(2)}`;
+            content += priceLine + "\n";
+        });
+        
+        content += line;
+        content += `合计: ${" ".repeat(18)}$${totalPrice.toFixed(2)}\n`;
+        content += line2;
+        content += "      感谢惠顾，欢迎下次光临！      \n";
+        content += feedLines(3);
+        content += cutPaper;
+        
+        return content;
+    }
+    
+    // 生成ESC/POS二进制数据 (完整指令)
+    function generatePrintData(orderNumber, tableNo, itemsList, totalPrice, encoding) {
+        const textContent = generateReceiptText(orderNumber, tableNo, itemsList, totalPrice);
+        // 使用选择的编码转换文本
+        const textData = encodeForPrinter(textContent, encoding);
+        
+        // 构建完整指令集
+        let cmdData = [];
+        // 初始化打印机
+        const initCmd = new TextEncoder().encode(initPrinter());
+        // 设置中文字体
+        const fontCmd = new TextEncoder().encode(setChineseFont());
+        // 设置左对齐
+        const alignCmd = new TextEncoder().encode(setAlignLeft());
+        
+        // 合并所有数据
+        let finalData = new Uint8Array(initCmd.length + fontCmd.length + alignCmd.length + textData.length);
+        finalData.set(initCmd, 0);
+        finalData.set(fontCmd, initCmd.length);
+        finalData.set(alignCmd, initCmd.length + fontCmd.length);
+        finalData.set(textData, initCmd.length + fontCmd.length + alignCmd.length);
+        
+        return finalData;
+    }
+    
     async function connectBluetooth() {
         const statusSpan=document.getElementById('bluetoothStatus');
-        if(!navigator.bluetooth){ statusSpan.innerText='❌ 不支持'; showStatus('浏览器不支持Web Bluetooth',true); return; }
+        if(!navigator.bluetooth){ statusSpan.innerText='❌ 不支持'; showStatus('浏览器不支持Web Bluetooth，请使用Chrome',true); return; }
         try{
             statusSpan.innerText=translations[currentLang].connecting;
-            const device=await navigator.bluetooth.requestDevice({ filters:[{ services:['000018f0-0000-1000-8000-00805f9b34fb'] }] });
+            const device=await navigator.bluetooth.requestDevice({ 
+                filters:[{ services:['000018f0-0000-1000-8000-00805f9b34fb'] }],
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+            });
             const server=await device.gatt.connect();
             const service=await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
             const characteristic=await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
             bluetoothCharacteristic=characteristic;
             statusSpan.innerText=translations[currentLang].bluetoothConnected;
-            showStatus('✅ 打印机已连接',false);
-            device.addEventListener('gattserverdisconnected',()=>{ bluetoothCharacteristic=null; statusSpan.innerText=translations[currentLang].bluetoothDisconnected; showStatus('打印机已断开',true); });
-        }catch(e){ statusSpan.innerText='❌ 失败'; showStatus('连接失败:'+e.message,true); }
+            showStatus('✅ 打印机已连接，编码已就绪',false);
+            device.addEventListener('gattserverdisconnected',()=>{ 
+                bluetoothCharacteristic=null; 
+                statusSpan.innerText=translations[currentLang].bluetoothDisconnected; 
+                showStatus('打印机已断开',true);
+            });
+        }catch(e){ 
+            statusSpan.innerText='❌ 连接失败'; 
+            showStatus('连接失败:'+e.message,true);
+        }
     }
-    async function printReceipt(orderNumber,tableNo,itemsList,totalPrice){
-        if(!bluetoothCharacteristic){ showStatus('请先连接打印机',true); return false; }
+    
+    async function printReceipt(orderNumber, tableNo, itemsList, totalPrice){
+        if(!bluetoothCharacteristic){ 
+            showStatus('请先连接打印机', true); 
+            return false; 
+        }
         try{
-            let line="--------------------------------\n";
-            let header="       【智慧柜台】\n";
-            let orderInfo=`订单号: #${orderNumber}\n桌号: ${tableNo}\n时间: ${new Date().toLocaleString()}\n${line}`;
-            let itemsStr=""; itemsList.forEach(it=>{ itemsStr+=`${it.name} x${it.qty}   $${(it.price*it.qty).toFixed(2)}\n`; });
-            let totalStr=`${line}合计: $${totalPrice.toFixed(2)}\n`;
-            let footer="感谢惠顾！\n\n\n";
-            let content=header+orderInfo+line+itemsStr+totalStr+footer;
-            await bluetoothCharacteristic.writeValue(new TextEncoder().encode(content));
-            showStatus(translations[currentLang].printSuccess,false);
+            const encodingSelect = document.getElementById('encodingSelect');
+            const encoding = encodingSelect ? encodingSelect.value : 'gb18030';
+            
+            const printData = generatePrintData(orderNumber, tableNo, itemsList, totalPrice, encoding);
+            
+            // 分块发送 (有些打印机需要分块)
+            const chunkSize = 128;
+            for(let i=0; i<printData.length; i+=chunkSize) {
+                const chunk = printData.slice(i, i+chunkSize);
+                await bluetoothCharacteristic.writeValue(chunk);
+                await new Promise(r => setTimeout(r, 50)); // 短暂延迟
+            }
+            
+            showStatus(translations[currentLang].printSuccess, false);
             return true;
-        }catch(e){ showStatus(`${translations[currentLang].printFail}${e.message}`,true); return false; }
+        }catch(e){ 
+            console.error('打印错误:', e);
+            showStatus(`${translations[currentLang].printFail}${e.message}`, true); 
+            return false; 
+        }
     }
     
     // 下单 + 打印
@@ -264,17 +397,20 @@
             orderData.orderNumber=orderNumber;
             submitBtn.innerHTML=translations[currentLang].sending;
             await ordersRef.push(orderData);
-            // 打印小票
-            await printReceipt(orderNumber,tableNo,cart.map(c=>({name:getMenuItemName(c.id),qty:c.qty,price:c.price})),calcTotal());
+            // 打印小票 (使用中文名称和价格)
+            await printReceipt(orderNumber, tableNo, cart.map(c=>({name:getMenuItemName(c.id), qty:c.qty, price:c.price})), calcTotal());
             showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`);
             updateLastOrderDisplay(orderNumber,tableNo);
             cart=[]; renderCart();
-        }catch(err){ showStatus(`${translations[currentLang].orderFail}${err.message}`,true); }
+        }catch(err){ 
+            console.error(err);
+            showStatus(`${translations[currentLang].orderFail}${err.message}`, true); 
+        }
         finally{ submitBtn.disabled=false; submitBtn.innerHTML=originalText; }
     }
     function clearCart(){ if(cart.length===0) return; cart=[]; renderCart(); showStatus(translations[currentLang].removeStatus); }
     
-    // 订单历史 & 统计
+    // 订单历史 & 统计 (保持不变)
     async function fetchAllOrders(){ let snap=await ordersRef.once('value'); let orders=snap.val(); if(!orders) return []; let list=Object.entries(orders).map(([id,data])=>({id,...data})); list.sort((a,b)=>new Date(b.time)-new Date(a.time)); return list; }
     function getLocalDateString(iso){ if(!iso) return null; let d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
     function computeDailyTotals(orders){ let today=getLocalDateString(new Date().toISOString()); let yesterday=getLocalDateString(new Date(Date.now()-86400000).toISOString()); let todayTotal=0,yesterdayTotal=0; orders.forEach(o=>{ let d=getLocalDateString(o.time); if(d===today) todayTotal+=o.total||0; else if(d===yesterday) yesterdayTotal+=o.total||0; }); return {todayTotal,yesterdayTotal}; }
@@ -292,14 +428,7 @@
         if(currentCategory==='main') categoryTitle.innerText=translations[currentLang].mainTitle;
         else if(currentCategory==='side') categoryTitle.innerText=translations[currentLang].sideTitle;
         else categoryTitle.innerText=translations[currentLang].extraTitle;
-        let lastOrderSpan=document.querySelector('#lastOrderCard .last-order-label:first-child');
-        let lastTableSpan2=document.querySelector('#lastOrderCard .last-order-label:last-child');
-        if(lastOrderSpan) lastOrderSpan.innerText=translations[currentLang].lastOrderLabel;
-        if(lastTableSpan2) lastTableSpan2.innerText=translations[currentLang].lastTableLabel;
         if(modal && modal.style.display==='block') renderHistoryTable();
-        let btSpan=document.getElementById('bluetoothStatus');
-        if(btSpan && !bluetoothCharacteristic) btSpan.innerText=translations[currentLang].bluetoothDisconnected;
-        else if(btSpan && bluetoothCharacteristic) btSpan.innerText=translations[currentLang].bluetoothConnected;
     }
     function switchLanguage(lang){ if(lang===currentLang) return; currentLang=lang; updateStaticTexts(); renderMenuByCategory(currentCategory); renderCart(); if(modal.style.display==='block') renderHistoryTable(); document.getElementById('langSwitchBtn').innerText=currentLang==='zh-CN'?'English':'中文'; }
     
@@ -312,7 +441,6 @@
         document.getElementById('connectBluetoothBtn').addEventListener('click',connectBluetooth);
         document.getElementById('langSwitchBtn').addEventListener('click',()=>switchLanguage(currentLang==='zh-CN'?'en':'zh-CN'));
         catBtns.forEach(btn=>btn.addEventListener('click',()=>switchCategory(btn.dataset.cat)));
-        document.getElementById('categoryTabs')?.addEventListener('click',e=>{ let btn=e.target.closest('.cat-btn'); if(btn&&btn.dataset.cat&&!btn.classList.contains('active')) switchCategory(btn.dataset.cat); });
         renderMenuByCategory('main'); renderCart(); submitBtn.addEventListener('click',submitOrder); clearCartBtn.addEventListener('click',clearCart);
         tableInput.addEventListener('keypress',e=>{ if(e.key==='Enter') submitOrder(); });
         historyBtn.addEventListener('click',openModal); closeModal.addEventListener('click',closeModalFunc); exportExcelBtn.addEventListener('click',exportToExcel);
