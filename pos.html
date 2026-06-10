@@ -104,16 +104,12 @@
             <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
         </div>
     </div>
-    <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码)</div>
+    <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码 - 英文数字版)</div>
 
     <div class="bluetooth-bar">
         <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机 (58mm)</button>
         <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
-        <select id="encodingSelect" style="border-radius:40px;padding:6px 12px;border:1px solid #ccc;">
-            <option value="gb18030">中文 (GB18030) 推荐</option>
-            <option value="cp437">英文 (CP437)</option>
-            <option value="utf8">UTF-8</option>
-        </select>
+        <button id="testPrintBtn" class="bluetooth-print-btn" style="background:#ff8c00;">🖨️ 测试打印</button>
     </div>
 
     <div id="lastOrderCard" class="last-order-card">
@@ -139,7 +135,7 @@
             <div id="statusMsg" class="feedback" style="display:none;"></div>
         </div>
     </div>
-    <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印 (已修复乱码问题)</div>
+    <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印 (使用英文/数字避免乱码)</div>
 </div>
 
 <div id="historyModal" class="modal">
@@ -162,7 +158,7 @@
     // ========== 多语言 ==========
     const translations = {
         'zh-CN': {
-            loginTitle:'🔐 系统登录',loginBtn:'登 录',posTitle:'柜台·点餐终端',historyBtn:'📊 订单历史',subText:'实时同步厨房 | 蓝牙打印 (已修复乱码)',
+            loginTitle:'🔐 系统登录',loginBtn:'登 录',posTitle:'柜台·点餐终端',historyBtn:'📊 订单历史',subText:'实时同步厨房 | 蓝牙打印 (英文数字版无乱码)',
             catMain:'🍜 主菜',catSide:'🥗 小菜',catExtra:'➕ 额外添加',mainTitle:'📋 铜锅',sideTitle:'🥢 小菜',extraTitle:'✨ 额外添加',
             cartHeader:'🛒 当前订单',emptyCart:'暂无菜品',tableLabel:'🏷️ 桌号',totalLabel:'合计金额',submitBtn:'📨 下单 + 打印',clearCartBtn:'🗑️ 清空',
             footer:'✅ 订单永久保存',historyTitle:'📋 全部订单',exportBtn:'📎 导出',resetCounterBtn:'🔄 重置号码',clearAllBtn:'🗑️ 清除',
@@ -175,7 +171,7 @@
             printSuccess:'🖨️ 小票已打印',printFail:'❌ 打印失败',bluetoothConnected:'✅ 打印机已连接',bluetoothDisconnected:'⚠️ 未连接',connecting:'🔄 连接中...'
         },
         'en': {
-            loginTitle:'🔐 Login',loginBtn:'Login',posTitle:'Counter POS',historyBtn:'📊 History',subText:'Sync + Bluetooth Print (Fixed)',
+            loginTitle:'🔐 Login',loginBtn:'Login',posTitle:'Counter POS',historyBtn:'📊 History',subText:'Sync + Bluetooth Print (No garbled)',
             catMain:'🍜 Main',catSide:'🥗 Side',catExtra:'➕ Extra',mainTitle:'📋 POT',sideTitle:'🥢 Side',extraTitle:'✨ Extra',
             cartHeader:'🛒 Cart',emptyCart:'Empty',tableLabel:'🏷️ Table',totalLabel:'Total',submitBtn:'📨 Submit + Print',clearCartBtn:'🗑️ Clear',
             footer:'✅ Orders saved',historyTitle:'All Orders',exportBtn:'📎 Export',resetCounterBtn:'🔄 Reset',clearAllBtn:'🗑️ Clear',
@@ -189,7 +185,19 @@
         }
     };
     
-    const MENU_NAMES = {'zh-CN':{1:"🍜 麻酱鸡肉",2:"🍜 水果酸汤鱼片",3:"🍜 甘榜鸡丝",4:"🍜 香港甜汁",5:"🍜 番茄肥牛",6:"🍜 生豉牛肉",7:"🍜 招牌肉糜",8:"🍜 海鲜姜汁",9:"🍠 台湾香肠",10:"🥗 盐酥杏鲍菇",11:"🥗 鱼肉丸",12:"🥗 牛肉丸",13:"🍗 小酥肉",14:"🥤 杨梅汁",15:"🥤 玫瑰爆珠木瓜水",16:"🍰 马踏樱花",17:"🍰 北海道黑糖布丁",18:"🥟 玫瑰鲜花饼",19:"🥚 鹌鹑蛋"},'en':{1:"🍜 Sesame Chicken",2:"🍜 Fruit Sour Fish",3:"🍜 Kampong Chicken",4:"🍜 HK Sweet Broth",5:"🍜 Tomato Beef",6:"🍜 Scalded Beef",7:"🍜 Minced Meat",8:"🍜 Seafood Ginger",9:"🍠 Taiwan Sausage",10:"🥗 Crispy Mushroom",11:"🥗 Fish Ball",12:"🥗 Beef Ball",13:"🍗 Crispy Pork",14:"🥤 Bayberry Juice",15:"🥤 Rose Pop",16:"🍰 Sakura Pudding",17:"🍰 Hokkaido Pudding",18:"🥟 Rose Pastry",19:"🥚 Quail Eggs"}};
+    // 菜品英文名称 (用于打印，避免中文乱码)
+    const MENU_ENGLISH = {
+        1: "Sesame Chicken", 2: "Fruit Sour Fish", 3: "Kampong Chicken", 4: "HK Sweet Broth",
+        5: "Tomato Beef", 6: "Scalded Beef", 7: "Minced Meat", 8: "Seafood Ginger",
+        9: "Taiwan Sausage", 10: "Crispy Mushroom", 11: "Fish Ball", 12: "Beef Ball",
+        13: "Crispy Pork", 14: "Bayberry Juice", 15: "Rose Boba", 16: "Sakura Pudding",
+        17: "Hokkaido Pudding", 18: "Rose Pastry", 19: "Quail Eggs"
+    };
+    
+    const MENU_NAMES = {
+        'zh-CN':{1:"🍜 麻酱鸡肉",2:"🍜 水果酸汤鱼片",3:"🍜 甘榜鸡丝",4:"🍜 香港甜汁",5:"🍜 番茄肥牛",6:"🍜 生豉牛肉",7:"🍜 招牌肉糜",8:"🍜 海鲜姜汁",9:"🍠 台湾香肠",10:"🥗 盐酥杏鲍菇",11:"🥗 鱼肉丸",12:"🥗 牛肉丸",13:"🍗 小酥肉",14:"🥤 杨梅汁",15:"🥤 玫瑰爆珠木瓜水",16:"🍰 马踏樱花",17:"🍰 北海道黑糖布丁",18:"🥟 玫瑰鲜花饼",19:"🥚 鹌鹑蛋"},
+        'en':{1:"🍜 Sesame Chicken",2:"🍜 Fruit Sour Fish",3:"🍜 Kampong Chicken",4:"🍜 HK Sweet Broth",5:"🍜 Tomato Beef",6:"🍜 Scalded Beef",7:"🍜 Minced Meat",8:"🍜 Seafood Ginger",9:"🍠 Taiwan Sausage",10:"🥗 Crispy Mushroom",11:"🥗 Fish Ball",12:"🥗 Beef Ball",13:"🍗 Crispy Pork",14:"🥤 Bayberry Juice",15:"🥤 Rose Pop",16:"🍰 Sakura Pudding",17:"🍰 Hokkaido Pudding",18:"🥟 Rose Pastry",19:"🥚 Quail Eggs"}
+    };
     
     let currentLang = 'zh-CN';
     let bluetoothCharacteristic = null;
@@ -224,135 +232,128 @@
     async function getNextOrderNumber(){ let snapshot=await counterRef.transaction(c=>(c||0)+1); return snapshot.snapshot.val(); }
     function updateLastOrderDisplay(orderNumber,tableNo){ if(lastOrderNumberSpan) lastOrderNumberSpan.innerText=orderNumber?`#${orderNumber}`:'—'; if(lastTableSpan) lastTableSpan.innerText=tableNo||'—'; }
     
-    // ========== 修复后的蓝牙打印核心 ==========
-    // ESC/POS 初始化命令
+    // ========== 修复后的蓝牙打印 - 使用纯英文+ESC/POS指令 ==========
     const ESC = '\x1B';
     const GS = '\x1D';
-    const initPrinter = () => `${ESC}@`;  // 初始化打印机
-    const setChineseFont = () => `${ESC}!\x11`; // 选择中文字体模式
-    const setAlignCenter = () => `${ESC}a\x01`; // 居中
-    const setAlignLeft = () => `${ESC}a\x00`;   // 左对齐
-    const setBoldOn = () => `${ESC}E\x01`;      // 粗体开
-    const setBoldOff = () => `${ESC}E\x00`;     // 粗体关
-    const feedLines = (n) => `${ESC}d${String.fromCharCode(n)}`; // 走纸n行
-    const cutPaper = () => `${GS}V\x41\x00`;    // 全切纸
     
-    // 根据选择的编码转换文本 (解决乱码核心)
-    function encodeForPrinter(text, encoding) {
-        // 移除emoji图标，因为热敏打印机可能不支持
-        let cleanText = text.replace(/[🍜🥗➕📋🥢✨🛒🏷️🗑️✅📡💰🖨️🔌⚡📊🔄❌⚠️⏳]/g, '');
-        // 替换特殊符号
-        cleanText = cleanText.replace(/[→]/g, '->');
-        
-        if (encoding === 'gb18030') {
-            // 使用 TextEncoder 的 GB18030 编码 (需要浏览器支持)
-            try {
-                // 注意：需要 polyfill 或者大部分现代 Chrome 支持
-                const encoder = new TextEncoder('gb18030');
-                return encoder.encode(cleanText);
-            } catch(e) {
-                // 降级到 UTF-8
-                return new TextEncoder().encode(cleanText);
-            }
-        } else if (encoding === 'cp437') {
-            // CP437 编码映射 (简单处理英文和数字)
-            let result = [];
-            for(let i=0; i<cleanText.length; i++) {
-                let code = cleanText.charCodeAt(i);
-                if(code >= 32 && code <= 126) result.push(code);
-                else if(code === 8364) result.push(0x80); // €
-                else if(code === 10 || code === 13) result.push(code);
-                else if(code === 32) result.push(32);
-                else result.push(63); // 未知字符转?
-            }
-            return new Uint8Array(result);
-        } else {
-            // UTF-8
-            return new TextEncoder().encode(cleanText);
-        }
-    }
+    // ESC/POS 命令
+    function initPrinter() { return ESC + '@'; }
+    function setAlignCenter() { return ESC + 'a' + '\x01'; }
+    function setAlignLeft() { return ESC + 'a' + '\x00'; }
+    function setBoldOn() { return ESC + 'E' + '\x01'; }
+    function setBoldOff() { return ESC + 'E' + '\x00'; }
+    function setFontSizeLarge() { return GS + '!' + '\x11'; }  // 双倍高宽
+    function setFontSizeNormal() { return GS + '!' + '\x00'; }
+    function feedLines(n) { return ESC + 'd' + String.fromCharCode(n); }
+    function cutPaper() { return GS + 'V' + '\x41' + '\x00'; }
     
-    // 生成小票内容 (纯文本格式，不含emoji)
-    function generateReceiptText(orderNumber, tableNo, itemsList, totalPrice) {
-        const line = "--------------------------------\n";
-        const line2 = "================================\n";
+    // 生成纯英文打印内容 (保证无乱码)
+    function generateEnglishReceipt(orderNumber, tableNo, itemsList, totalPrice) {
         let content = "";
-        content += "       智 慧 柜 台        \n";
-        content += line2;
-        content += `订单号: #${orderNumber}\n`;
-        content += `桌号: ${tableNo}\n`;
-        content += `时间: ${new Date().toLocaleString()}\n`;
-        content += `支付: 现金\n`;
-        content += line;
+        content += setAlignCenter();
+        content += setFontSizeLarge();
+        content += "SMART POS\n";
+        content += setFontSizeNormal();
+        content += "============\n";
+        content += setAlignLeft();
+        content += "Order #: " + orderNumber + "\n";
+        content += "Table: " + tableNo + "\n";
+        content += "Time: " + new Date().toLocaleString() + "\n";
+        content += "Pay: Cash\n";
+        content += "--------------------------------\n";
         
         itemsList.forEach(it => {
-            let name = it.name.replace(/[🍜🥗➕🍰🥤🍠🥟]/g, '').trim();
-            if(name.length > 12) name = name.substring(0,12);
-            let priceLine = `${name}`;
+            let name = it.nameEn || it.name;
+            // 限制长度
+            if(name.length > 18) name = name.substring(0, 15) + "...";
+            let line = name;
             let spaces = 24 - name.length - it.qty.toString().length - 6;
-            if(spaces < 0) spaces = 2;
-            priceLine += " ".repeat(spaces) + `x${it.qty}  $${(it.price * it.qty).toFixed(2)}`;
-            content += priceLine + "\n";
+            if(spaces < 2) spaces = 2;
+            line += " ".repeat(spaces) + "x" + it.qty + "  $" + (it.price * it.qty).toFixed(2);
+            content += line + "\n";
         });
         
-        content += line;
-        content += `合计: ${" ".repeat(18)}$${totalPrice.toFixed(2)}\n`;
-        content += line2;
-        content += "      感谢惠顾，欢迎下次光临！      \n";
-        content += feedLines(3);
+        content += "--------------------------------\n";
+        content += setBoldOn();
+        content += "TOTAL:".padEnd(18) + "$" + totalPrice.toFixed(2) + "\n";
+        content += setBoldOff();
+        content += "================================\n";
+        content += setAlignCenter();
+        content += "Thank you!\n";
+        content += "Welcome Again!\n";
+        content += feedLines(4);
         content += cutPaper;
         
         return content;
     }
     
-    // 生成ESC/POS二进制数据 (完整指令)
-    function generatePrintData(orderNumber, tableNo, itemsList, totalPrice, encoding) {
-        const textContent = generateReceiptText(orderNumber, tableNo, itemsList, totalPrice);
-        // 使用选择的编码转换文本
-        const textData = encodeForPrinter(textContent, encoding);
-        
-        // 构建完整指令集
-        let cmdData = [];
-        // 初始化打印机
-        const initCmd = new TextEncoder().encode(initPrinter());
-        // 设置中文字体
-        const fontCmd = new TextEncoder().encode(setChineseFont());
-        // 设置左对齐
-        const alignCmd = new TextEncoder().encode(setAlignLeft());
-        
-        // 合并所有数据
-        let finalData = new Uint8Array(initCmd.length + fontCmd.length + alignCmd.length + textData.length);
-        finalData.set(initCmd, 0);
-        finalData.set(fontCmd, initCmd.length);
-        finalData.set(alignCmd, initCmd.length + fontCmd.length);
-        finalData.set(textData, initCmd.length + fontCmd.length + alignCmd.length);
-        
-        return finalData;
+    // 发送打印数据
+    async function sendPrintData(dataString) {
+        if(!bluetoothCharacteristic) return false;
+        try {
+            // 使用 UTF-8 编码，但只包含 ASCII 字符 (英文+数字+符号)
+            const encoder = new TextEncoder();
+            let fullData = encoder.encode(initPrinter());
+            let contentData = encoder.encode(dataString);
+            let finalData = new Uint8Array(fullData.length + contentData.length);
+            finalData.set(fullData, 0);
+            finalData.set(contentData, fullData.length);
+            
+            // 分块发送
+            const chunkSize = 128;
+            for(let i=0; i<finalData.length; i+=chunkSize) {
+                const chunk = finalData.slice(i, i+chunkSize);
+                await bluetoothCharacteristic.writeValue(chunk);
+                await new Promise(r => setTimeout(r, 30));
+            }
+            return true;
+        } catch(e) {
+            console.error("Send error:", e);
+            return false;
+        }
     }
     
     async function connectBluetooth() {
-        const statusSpan=document.getElementById('bluetoothStatus');
-        if(!navigator.bluetooth){ statusSpan.innerText='❌ 不支持'; showStatus('浏览器不支持Web Bluetooth，请使用Chrome',true); return; }
+        const statusSpan = document.getElementById('bluetoothStatus');
+        if(!navigator.bluetooth){ 
+            statusSpan.innerText='❌ 不支持'; 
+            showStatus('浏览器不支持Web Bluetooth，请使用Chrome',true); 
+            return; 
+        }
         try{
             statusSpan.innerText=translations[currentLang].connecting;
-            const device=await navigator.bluetooth.requestDevice({ 
+            const device = await navigator.bluetooth.requestDevice({ 
                 filters:[{ services:['000018f0-0000-1000-8000-00805f9b34fb'] }],
                 optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
             });
-            const server=await device.gatt.connect();
-            const service=await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-            const characteristic=await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
-            bluetoothCharacteristic=characteristic;
-            statusSpan.innerText=translations[currentLang].bluetoothConnected;
-            showStatus('✅ 打印机已连接，编码已就绪',false);
-            device.addEventListener('gattserverdisconnected',()=>{ 
-                bluetoothCharacteristic=null; 
-                statusSpan.innerText=translations[currentLang].bluetoothDisconnected; 
-                showStatus('打印机已断开',true);
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+            const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+            bluetoothCharacteristic = characteristic;
+            statusSpan.innerText = translations[currentLang].bluetoothConnected;
+            showStatus('✅ 打印机已连接', false);
+            device.addEventListener('gattserverdisconnected', () => { 
+                bluetoothCharacteristic = null; 
+                statusSpan.innerText = translations[currentLang].bluetoothDisconnected; 
+                showStatus('打印机已断开', true);
             });
-        }catch(e){ 
-            statusSpan.innerText='❌ 连接失败'; 
-            showStatus('连接失败:'+e.message,true);
+        } catch(e) { 
+            statusSpan.innerText = '❌ 连接失败'; 
+            showStatus('连接失败:' + e.message, true);
+        }
+    }
+    
+    async function testPrint() {
+        if(!bluetoothCharacteristic) {
+            showStatus('请先连接打印机', true);
+            return;
+        }
+        const testContent = setAlignCenter() + setFontSizeLarge() + "TEST PRINT\n" + setFontSizeNormal() + setAlignLeft() + "--------------------------------\n" + "Printer Model: POS-5810DD\n" + "Status: Working\n" + "Date: " + new Date().toLocaleString() + "\n" + "--------------------------------\n" + feedLines(2) + cutPaper;
+        const success = await sendPrintData(testContent);
+        if(success) {
+            showStatus('✅ 测试打印成功！', false);
+        } else {
+            showStatus('❌ 测试打印失败', true);
         }
     }
     
@@ -362,21 +363,21 @@
             return false; 
         }
         try{
-            const encodingSelect = document.getElementById('encodingSelect');
-            const encoding = encodingSelect ? encodingSelect.value : 'gb18030';
-            
-            const printData = generatePrintData(orderNumber, tableNo, itemsList, totalPrice, encoding);
-            
-            // 分块发送 (有些打印机需要分块)
-            const chunkSize = 128;
-            for(let i=0; i<printData.length; i+=chunkSize) {
-                const chunk = printData.slice(i, i+chunkSize);
-                await bluetoothCharacteristic.writeValue(chunk);
-                await new Promise(r => setTimeout(r, 50)); // 短暂延迟
+            // 转换为英文名称用于打印
+            const englishItems = itemsList.map(item => ({
+                nameEn: MENU_ENGLISH[item.id] || item.name.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 20),
+                name: item.name,
+                qty: item.qty,
+                price: item.price
+            }));
+            const receiptText = generateEnglishReceipt(orderNumber, tableNo, englishItems, totalPrice);
+            const success = await sendPrintData(receiptText);
+            if(success) {
+                showStatus(translations[currentLang].printSuccess, false);
+            } else {
+                showStatus(translations[currentLang].printFail, true);
             }
-            
-            showStatus(translations[currentLang].printSuccess, false);
-            return true;
+            return success;
         }catch(e){ 
             console.error('打印错误:', e);
             showStatus(`${translations[currentLang].printFail}${e.message}`, true); 
@@ -387,36 +388,46 @@
     // 下单 + 打印
     async function submitOrder(){
         if(cart.length===0){ showStatus(translations[currentLang].cartEmptyError,true); return; }
-        let tableNo=tableInput.value.trim()||"外带";
-        let itemsForOrder=cart.map(item=>({ name:MENU_NAMES['zh-CN'][item.id]||item.name, qty:item.qty, price:item.price }));
-        let orderData={ table:tableNo, items:itemsForOrder, total:calcTotal(), time:new Date().toISOString(), completed:false };
-        submitBtn.disabled=true; let originalText=submitBtn.innerHTML;
-        submitBtn.innerHTML=translations[currentLang].gettingOrderNo;
+        let tableNo = tableInput.value.trim() || "1";
+        let itemsForOrder = cart.map(item => ({ 
+            id: item.id,
+            name: MENU_NAMES['zh-CN'][item.id] || item.name, 
+            qty: item.qty, 
+            price: item.price 
+        }));
+        let orderData = { table: tableNo, items: itemsForOrder, total: calcTotal(), time: new Date().toISOString(), completed: false };
+        submitBtn.disabled = true; 
+        let originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = translations[currentLang].gettingOrderNo;
         try{
-            let orderNumber=await getNextOrderNumber();
-            orderData.orderNumber=orderNumber;
-            submitBtn.innerHTML=translations[currentLang].sending;
+            let orderNumber = await getNextOrderNumber();
+            orderData.orderNumber = orderNumber;
+            submitBtn.innerHTML = translations[currentLang].sending;
             await ordersRef.push(orderData);
-            // 打印小票 (使用中文名称和价格)
-            await printReceipt(orderNumber, tableNo, cart.map(c=>({name:getMenuItemName(c.id), qty:c.qty, price:c.price})), calcTotal());
+            // 打印小票 (使用英文避免乱码)
+            await printReceipt(orderNumber, tableNo, cart.map(c => ({id:c.id, name:c.name, qty:c.qty, price:c.price})), calcTotal());
             showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`);
-            updateLastOrderDisplay(orderNumber,tableNo);
-            cart=[]; renderCart();
-        }catch(err){ 
+            updateLastOrderDisplay(orderNumber, tableNo);
+            cart = []; 
+            renderCart();
+        } catch(err){ 
             console.error(err);
             showStatus(`${translations[currentLang].orderFail}${err.message}`, true); 
+        } finally { 
+            submitBtn.disabled = false; 
+            submitBtn.innerHTML = originalText; 
         }
-        finally{ submitBtn.disabled=false; submitBtn.innerHTML=originalText; }
     }
+    
     function clearCart(){ if(cart.length===0) return; cart=[]; renderCart(); showStatus(translations[currentLang].removeStatus); }
     
-    // 订单历史 & 统计 (保持不变)
+    // 订单历史 & 统计
     async function fetchAllOrders(){ let snap=await ordersRef.once('value'); let orders=snap.val(); if(!orders) return []; let list=Object.entries(orders).map(([id,data])=>({id,...data})); list.sort((a,b)=>new Date(b.time)-new Date(a.time)); return list; }
     function getLocalDateString(iso){ if(!iso) return null; let d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
     function computeDailyTotals(orders){ let today=getLocalDateString(new Date().toISOString()); let yesterday=getLocalDateString(new Date(Date.now()-86400000).toISOString()); let todayTotal=0,yesterdayTotal=0; orders.forEach(o=>{ let d=getLocalDateString(o.time); if(d===today) todayTotal+=o.total||0; else if(d===yesterday) yesterdayTotal+=o.total||0; }); return {todayTotal,yesterdayTotal}; }
     function updateSalesStats(orders){ let c=document.getElementById('salesStatsContainer'); if(!c) return; let{todayTotal,yesterdayTotal}=computeDailyTotals(orders); c.innerHTML=`<div class="stats-item"><span class="stats-label">${translations[currentLang].todayTotalLabel}</span><span class="stats-amount">$${todayTotal.toFixed(2)}</span></div><div class="stats-item"><span class="stats-label">${translations[currentLang].yesterdayTotalLabel}</span><span class="stats-amount">$${yesterdayTotal.toFixed(2)}</span></div>`; }
     function formatItems(items){ if(!items) return ''; return items.map(i=>`${i.name} x${i.qty}`).join('; '); }
-    async function renderHistoryTable(){ let tbody=document.getElementById('historyTbody'); tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadingHistory}</td></tr>`; let thead=document.getElementById('orderTableHead'); if(thead) thead.innerHTML=`<tr><th>${translations[currentLang].tableHeaderOrderNo}</th><th>${translations[currentLang].tableHeaderOrderId}</th><th>${translations[currentLang].tableHeaderTable}</th><th>${translations[currentLang].tableHeaderTime}</th><th>${translations[currentLang].tableHeaderItems}</th><th>${translations[currentLang].tableHeaderTotal}</th><th>${translations[currentLang].tableHeaderStatus}</th></tr>`; try{ let orders=await fetchAllOrders(); updateSalesStats(orders); if(orders.length===0){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].noOrders}</td></tr>`; return; } let html=''; orders.forEach(o=>{ let orderNum=o.orderNumber?`#${o.orderNumber}`:'—'; let itemsStr=formatItems(o.items); let timeStr=o.time?new Date(o.time).toLocaleString():'未知'; let status=o.completed===true?translations[currentLang].statusCompleted:translations[currentLang].statusPending; html+=`<tr class="${o.completed?'completed-row':''}"><td>${escapeHtml(orderNum)}</td><td>${escapeHtml(o.id)}</td><td>${escapeHtml(o.table||'外带')}</td><td>${escapeHtml(timeStr)}</td><td>${escapeHtml(itemsStr)}</td><td>$${(o.total||0).toFixed(2)}</td><td>${status}</td></tr>`; }); tbody.innerHTML=html; }catch(e){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadFailed}</td></tr>`; } }
+    async function renderHistoryTable(){ let tbody=document.getElementById('historyTbody'); tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadingHistory}<\/td><\/tr>`; let thead=document.getElementById('orderTableHead'); if(thead) thead.innerHTML=`<tr><th>${translations[currentLang].tableHeaderOrderNo}<\/th><th>${translations[currentLang].tableHeaderOrderId}<\/th><th>${translations[currentLang].tableHeaderTable}<\/th><th>${translations[currentLang].tableHeaderTime}<\/th><th>${translations[currentLang].tableHeaderItems}<\/th><th>${translations[currentLang].tableHeaderTotal}<\/th><th>${translations[currentLang].tableHeaderStatus}<\/th><\/tr>`; try{ let orders=await fetchAllOrders(); updateSalesStats(orders); if(orders.length===0){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].noOrders}<\/td><\/tr>`; return; } let html=''; orders.forEach(o=>{ let orderNum=o.orderNumber?`#${o.orderNumber}`:'—'; let itemsStr=formatItems(o.items); let timeStr=o.time?new Date(o.time).toLocaleString():'未知'; let status=o.completed===true?translations[currentLang].statusCompleted:translations[currentLang].statusPending; html+=`<tr class="${o.completed?'completed-row':''}"><td>${escapeHtml(orderNum)}<\/td><td>${escapeHtml(o.id)}<\/td><td>${escapeHtml(o.table||'外带')}<\/td><td>${escapeHtml(timeStr)}<\/td><td>${escapeHtml(itemsStr)}<\/td><td>$${(o.total||0).toFixed(2)}<\/td><td>${status}<\/td><\/tr>`; }); tbody.innerHTML=html; }catch(e){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadFailed}<\/td><\/tr>`; } }
     async function exportToExcel(){ let orders=await fetchAllOrders(); if(orders.length===0){ alert(translations[currentLang].exportNoData); return; } let headers=[translations[currentLang].tableHeaderOrderNo,translations[currentLang].tableHeaderOrderId,translations[currentLang].tableHeaderTable,translations[currentLang].tableHeaderTime,translations[currentLang].tableHeaderItems,translations[currentLang].tableHeaderTotal,translations[currentLang].tableHeaderStatus]; let rows=orders.map(o=>[o.orderNumber?`#${o.orderNumber}`:'',o.id,o.table||'外带',o.time?new Date(o.time).toLocaleString():'',formatItems(o.items),(o.total||0).toFixed(2),o.completed===true?translations[currentLang].statusCompleted:translations[currentLang].statusPending]); let csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'); let blob=new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8'}); let link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`orders_${new Date().toISOString().slice(0,19)}.csv`; link.click(); URL.revokeObjectURL(link.href); }
     async function clearAllOrders(){ if(!confirm(translations[currentLang].confirmClear)) return; try{ await ordersRef.remove(); await counterRef.set(0); alert(translations[currentLang].clearSuccess); if(modal.style.display==='block') renderHistoryTable(); }catch(e){ alert(translations[currentLang].clearFail+e.message); } }
     async function resetOrderCounter(){ if(!confirm(translations[currentLang].confirmReset)) return; try{ await counterRef.set(0); alert(translations[currentLang].resetSuccess); }catch(e){ alert(translations[currentLang].resetFail+e.message); } }
@@ -439,6 +450,7 @@
         exportExcelBtn=document.getElementById('exportExcelBtn'); clearAllOrdersBtn=document.getElementById('clearAllOrdersBtn'); resetCounterBtn=document.getElementById('resetCounterBtn');
         historyTbody=document.getElementById('historyTbody'); lastOrderNumberSpan=document.getElementById('lastOrderNumberDisplay'); lastTableSpan=document.getElementById('lastTableDisplay');
         document.getElementById('connectBluetoothBtn').addEventListener('click',connectBluetooth);
+        document.getElementById('testPrintBtn').addEventListener('click',testPrint);
         document.getElementById('langSwitchBtn').addEventListener('click',()=>switchLanguage(currentLang==='zh-CN'?'en':'zh-CN'));
         catBtns.forEach(btn=>btn.addEventListener('click',()=>switchCategory(btn.dataset.cat)));
         renderMenuByCategory('main'); renderCart(); submitBtn.addEventListener('click',submitOrder); clearCartBtn.addEventListener('click',clearCart);
