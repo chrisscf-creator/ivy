@@ -1,579 +1,806 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 订单历史销售总额统计 + 支付方式 + 蓝牙自动打印</title>
-    <!-- Firebase SDK -->
+    <title>POS System | Bluetooth Print & English Menu</title>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; background: #f2ede8; margin: 0; padding: 20px; color: #1e2a2e; }
-        .pos-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; padding: 20px 24px 32px; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 8px; gap: 15px; }
-        h1 { font-size: 1.8rem; margin: 0; display: flex; align-items: center; gap: 10px; }
-        h1:before { content: "🧾"; font-size: 2rem; }
-        .btn-lang { background: #4a6a8a; color: white; border: none; padding: 8px 18px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
-        .btn-history { background: #4a6a8a; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-        /* 蓝牙打印按钮样式 */
-        .btn-bluetooth { background: #3b7ddd; color: white; border: none; padding: 8px 16px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap:6px; }
-        .btn-bluetooth.connected { background: #2c6e2c; }
-        .bluetooth-status { font-size:0.85rem; margin-left:8px; display:inline-flex; align-items:center; gap:4px; }
-        .status-dot { width:10px; height:10px; border-radius:50%; background:#999; }
-        .status-dot.on { background:#2ecc71; }
-        .btn-history:hover, .btn-lang:hover, .btn-bluetooth:hover { background: #2c4a6a; transform: scale(1.02); }
-        .sub { color: #5f6c70; border-left: 4px solid #ffa500; padding-left: 14px; margin-bottom: 20px; font-size: 0.9rem; }
-        .last-order-card { background: linear-gradient(135deg, #2c6e2c 0%, #1f511f 100%); color: white; border-radius: 28px; padding: 16px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .last-order-info { font-size: 1.2rem; }
-        .last-order-label { font-size: 0.85rem; opacity: 0.9; margin-right: 8px; }
-        .last-order-number { font-size: 1.8rem; font-weight: bold; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 40px; display: inline-block; }
-        .last-order-table { font-size: 1.2rem; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 40px; display: inline-block; }
-        .category-tabs { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid #e0d6cc; padding-bottom: 8px; flex-wrap: wrap; }
-        .cat-btn { background: transparent; border: none; padding: 8px 20px; font-size: 1rem; font-weight: 600; border-radius: 40px; cursor: pointer; color: #5f6c70; }
-        .cat-btn.active { background: #ffa500; color: #2c2c2c; box-shadow: 0 2px 8px rgba(255,165,0,0.3); }
-        .cat-btn:not(.active):hover { background: #fff0e0; }
-        .pos-grid { display: flex; flex-wrap: wrap; gap: 30px; }
-        .menu-panel { flex: 2; min-width: 260px; }
-        .cart-panel { flex: 1.2; min-width: 280px; background: #fef9f0; border-radius: 28px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 20px; }
-        .menu-header, .cart-header { font-weight: bold; font-size: 1.4rem; margin-bottom: 16px; border-bottom: 2px solid #ffb347; display: inline-block; padding-right: 12px; }
-        .menu-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
-        .menu-card { background: #ffffff; border-radius: 24px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border: 1px solid #ffddb0; cursor: pointer; transition: 0.2s; }
-        .menu-card:hover { transform: translateY(-3px); border-color: #ffa500; }
-        .menu-name { font-weight: bold; font-size: 1.1rem; }
-        .menu-price { color: #e67e22; font-weight: bold; margin-top: 8px; }
-        .cart-items { max-height: 380px; overflow-y: auto; margin: 16px 0; }
-        .cart-item { display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 10px; padding: 10px 12px; border-radius: 50px; }
-        .cart-item-info { flex: 2; }
-        .cart-item-name { font-weight: 500; }
-        .cart-item-price { font-size: 0.8rem; color: #b45f1b; }
-        .cart-item-controls { display: flex; align-items: center; gap: 12px; }
-        .btn-qty { background: #f0e2d0; border: none; width: 28px; height: 28px; border-radius: 30px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
-        .remove-item { color: #b91c1c; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
-        .order-row { display: flex; justify-content: space-between; margin: 12px 0; font-size: 1.1rem; }
-        .table-input { display: flex; gap: 12px; align-items: baseline; margin: 20px 0 16px; background: #fff2e2; padding: 12px; border-radius: 60px; }
-        .table-input label { font-weight: bold; }
-        #tableNumber { flex: 1; padding: 10px 14px; border-radius: 40px; border: 1px solid #ffcb8e; background: white; }
-        .payment-method-group {
-            background: #fff2e2;
-            padding: 12px;
-            border-radius: 60px;
-            margin: 16px 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: center;
-        }
-        .payment-method-group label {
-            font-weight: 600;
-            margin-right: 4px;
-        }
-        .payment-select {
-            flex: 2;
-            padding: 8px 12px;
-            border-radius: 40px;
-            border: 1px solid #ffcb8e;
-            background: white;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        button { background: #ffa500; border: none; padding: 12px 16px; border-radius: 40px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; color: #2c2c2c; }
-        button:active { transform: scale(0.97); }
-        .btn-submit { width: 100%; background: #2c6e2c; color: white; font-size: 1.2rem; margin-top: 8px; display: flex; justify-content: center; gap: 10px; }
-        .clear-cart { background: #cdd4d9; color: #2d3e45; margin-top: 8px; }
-        .feedback { margin-top: 12px; font-size: 0.85rem; text-align: center; padding: 6px; border-radius: 100px; background: #e9f5e9; color: #2e7d32; }
-        .error-feedback { background: #ffe6e5; color: #c62828; }
-        .footer-credit { text-align: center; margin-top: 24px; font-size: 0.7rem; color: #988f82; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow: auto; }
-        .modal-content { background-color: #fff; margin: 30px auto; padding: 20px; border-radius: 32px; width: 90%; max-width: 1300px; position: relative; }
-        .close { position: absolute; right: 24px; top: 16px; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
-        .close:hover { color: black; }
-        .modal h2 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .export-btn, .clear-all-btn, .reset-counter-btn { background: #2c6e2c; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
-        .clear-all-btn { background: #c62828; }
-        .reset-counter-btn { background: #ff8c00; }
-        .clear-all-btn:hover { background: #8b1e1e; }
-        .reset-counter-btn:hover { background: #cc7000; }
-        .order-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        .order-table th, .order-table td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; }
-        .order-table th { background: #ffa50020; }
-        .completed-row { background-color: #e0f0e0 !important; }
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 40px; border-radius: 32px; text-align: center; max-width: 350px; width: 90%; }
-        .login-box h2 { margin-top: 0; margin-bottom: 20px; }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 40px; }
-        .login-box button { width: 100%; margin-top: 15px; }
-        .login-error { color: #c62828; margin-top: 10px; }
-        .sales-stats {
-            background: #f8f4ef;
-            border-radius: 28px;
-            padding: 14px 20px;
-            margin: 16px 0 12px 0;
-            display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #ffddb0;
-            font-weight: 500;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-        }
-        .stats-item {
-            background: white;
-            padding: 8px 18px;
-            border-radius: 40px;
-            display: inline-flex;
-            align-items: baseline;
-            gap: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .stats-label {
-            font-size: 0.9rem;
-            color: #8b6b42;
-        }
-        .stats-amount {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #2c6e2c;
-            letter-spacing: 0.5px;
-        }
-        @media (max-width: 780px) {
-            .pos-container { padding: 16px; }
-            .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-            .modal-content { width: 95%; padding: 16px; }
-            .last-order-number { font-size: 1.2rem; }
-            .stats-amount { font-size: 1.2rem; }
-            .stats-item { padding: 4px 12px; }
-            .payment-method-group { flex-direction: column; align-items: stretch; }
-            .payment-select { width: 100%; }
+        * { box-sizing: border-box; margin:0; padding:0; font-family:Arial, Roboto, sans-serif; }
+        body { background:#f3f3f3; padding:20px; color:#222; }
+        .container { max-width:1400px; margin:0 auto; background:#fff; border-radius:24px; padding:24px; box-shadow:0 4px 20px #00000015; }
+        .header { display:flex; flex-wrap:wrap; gap:15px; justify-content:space-between; align-items:center; margin-bottom:20px; }
+        h1 { font-size:24px; display:flex; align-items:center; gap:8px; }
+        .header-buttons { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+        .btn-bt { background:#2563eb; color:#fff; border:none; padding:8px 14px; border-radius:30px; font-weight:bold; cursor:pointer; display:flex; gap:6px; align-items:center; }
+        .btn-bt.connected { background:#16a34a; }
+        .status-dot { width:10px; height:10px; border-radius:50%; background:#999; display:inline-block; margin-right:6px; }
+        .status-dot.on { background:#22c55e; }
+        .btn-lang { background:#475569; color:#fff; border:none; padding:8px 16px; border-radius:30px; font-weight:bold; cursor:pointer; }
+        .btn-history { background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:30px; font-weight:bold; cursor:pointer; }
+        .last-order-bar { background:#15803d; color:#fff; padding:14px 20px; border-radius:20px; display:flex; flex-wrap:wrap; gap:30px; margin-bottom:20px; }
+        .tab-group { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+        .tab-btn { border:none; background:#eee; padding:8px 20px; border-radius:30px; cursor:pointer; font-size:16px; }
+        .tab-btn.active { background:#fb923c; color:#000; font-weight:bold; }
+        .main-grid { display:flex; flex-wrap:wrap; gap:30px; }
+        .menu-area { flex:2; min-width:260px; }
+        .menu-title { font-size:20px; font-weight:bold; margin-bottom:15px; padding-bottom:6px; border-bottom:2px solid #fb923c; display:inline-block; }
+        .menu-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
+        .menu-card { background:#fff; border:1px solid #ffddb0; border-radius:20px; padding:12px; cursor:pointer; transition:0.2s; }
+        .menu-card:hover { transform:translateY(-2px); border-color:#fb923c; }
+        .menu-name { font-weight:bold; font-size:16px; margin-bottom:6px; }
+        .menu-price { color:#ea580c; font-weight:bold; }
+        .cart-area { flex:1; min-width:280px; background:#fff7e9; border-radius:20px; padding:20px; }
+        .cart-title { font-size:20px; font-weight:bold; margin-bottom:15px; padding-bottom:6px; border-bottom:2px solid #fb923c; display:inline-block; }
+        .cart-list { max-height:350px; overflow-y:auto; margin:15px 0; }
+        .cart-item { display:flex; justify-content:space-between; align-items:center; background:#fff; padding:8px 12px; border-radius:24px; margin-bottom:8px; }
+        .qty-buttons { display:flex; gap:8px; align-items:center; }
+        .qty-btn { width:26px; height:26px; border:none; background:#f0e2cf; border-radius:50%; font-weight:bold; cursor:pointer; }
+        .del-btn { background:none; border:none; color:#dc2626; font-size:18px; cursor:pointer; }
+        .table-input-row { background:#fff2e2; padding:10px 14px; border-radius:30px; margin:15px 0; display:flex; gap:10px; align-items:center; }
+        .table-input-row label { font-weight:bold; }
+        #tableNumber { flex:1; padding:8px 12px; border:1px solid #ffcb8e; border-radius:30px; outline:none; }
+        .pay-row { background:#fff2e2; padding:10px 14px; border-radius:30px; margin:15px 0; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+        #paymentMethod { flex:1; min-width:160px; padding:8px 12px; border:1px solid #ffcb8e; border-radius:30px; }
+        .total-row { display:flex; justify-content:space-between; font-size:18px; font-weight:bold; margin:15px 0; }
+        #submitOrder { width:100%; background:#15803d; color:#fff; border:none; padding:12px; border-radius:30px; font-size:18px; font-weight:bold; cursor:pointer; margin-bottom:10px; }
+        #clearCart { width:100%; background:#cbd5e1; color:#1e293b; border:none; padding:10px; border-radius:30px; font-weight:bold; cursor:pointer; }
+        .status-msg { margin-top:12px; text-align:center; padding:6px; border-radius:20px; display:none; }
+        .success-msg { background:#dcfce7; color:#166534; }
+        .error-msg { background:#fee2e2; color:#b91c1c; }
+        .modal { display:none; position:fixed; inset:0; background:#00000060; z-index:999; padding:20px; }
+        .modal-box { background:#fff; max-width:1300px; margin:0 auto; border-radius:24px; padding:24px; position:relative; max-height:90vh; overflow-y:auto; }
+        .close-modal { position:absolute; top:16px; right:20px; font-size:28px; cursor:pointer; color:#666; }
+        .modal-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; }
+        .modal-btn { padding:6px 12px; border:none; border-radius:24px; color:#fff; font-weight:bold; cursor:pointer; }
+        .export-btn { background:#15803d; }
+        .reset-btn { background:#f97316; }
+        .clear-all-btn { background:#dc2626; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th,td { border:1px solid #ddd; padding:10px; text-align:left; }
+        th { background:#fff0dd; }
+        .completed-tr { background:#e7f7e7; }
+        #loginOverlay { position:fixed; inset:0; background:#00000085; z-index:1000; display:flex; align-items:center; justify-content:center; }
+        .login-card { background:#fff; padding:40px; border-radius:24px; width:90%; max-width:340px; text-align:center; }
+        .login-card h2 { margin-bottom:20px; }
+        .login-card input { width:100%; padding:12px; border:1px solid #ddd; border-radius:30px; margin:10px 0; outline:none; }
+        #loginBtn { width:100%; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:30px; font-weight:bold; cursor:pointer; margin-top:10px; }
+        .login-error { color:#dc2626; margin-top:8px; }
+        .sales-stats { display:flex; flex-wrap:wrap; gap:15px; margin:15px 0; }
+        .stat-item { background:#fff; padding:8px 16px; border-radius:30px; box-shadow:0 1px 3px #00000010; }
+        .stat-label { font-size:14px; color:#785c38; }
+        .stat-value { font-size:22px; font-weight:bold; color:#15803d; }
+        @media(max-width:768px){
+            .main-grid { flex-direction:column; }
+            .header { flex-direction:column; align-items:stretch; }
+            .header-buttons { justify-content:center; }
         }
     </style>
 </head>
 <body>
-
+<!-- 登录遮罩 必须存在 -->
 <div id="loginOverlay">
-    <div class="login-box">
-        <h2 data-lang="loginTitle">🔐 系统登录</h2>
-        <input type="password" id="passwordInput" placeholder="请输入密码" autofocus>
-        <button id="loginBtn" data-lang="loginBtn">登 录</button>
-        <div id="loginError" class="login-error"></div>
+    <div class="login-card">
+        <h2 data-lang="loginTitle">🔐 System Login</h2>
+        <input type="password" id="passwordInput" placeholder="Input Password" autofocus>
+        <button id="loginBtn" data-lang="loginBtn">Login</button>
+        <div class="login-error" id="loginError"></div>
     </div>
 </div>
 
-<div id="mainContent" style="display: none;">
-<div class="pos-container">
-    <div class="header-row">
-        <h1><span data-lang="posTitle">柜台·点餐终端</span></h1>
-        <div style="display: flex; gap: 12px; align-items:center;">
-            <!-- 蓝牙打印按钮与状态 -->
-            <button id="bluetoothPrintBtn" class="btn-bluetooth">
-                🖨️ <span data-lang="btConnect">连接蓝牙打印机</span>
+<!-- 主界面 登录后显示 -->
+<div id="mainPage" style="display:none;" class="container">
+    <div class="header">
+        <h1 data-lang="pageTitle">POS Order Terminal</h1>
+        <div class="header-buttons">
+            <!-- 蓝牙打印按钮 完整保留 -->
+            <button class="btn-bt" id="bluetoothBtn">
+                🖨️ <span data-lang="btConnect">Connect Printer</span>
             </button>
-            <span class="bluetooth-status">
-                <span class="status-dot" id="btDot"></span>
-                <span id="btText" data-lang="btDisconnected">未连接</span>
-            </span>
-            <button id="langSwitchBtn" class="btn-lang">English</button>
-            <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史 / 导出 Excel</span></button>
-        </div>
-    </div>
-    <div class="sub" data-lang="subText">实时同步厨房 | 分类菜单 · 订单号自动递增 · 蓝牙自动打印小票</div>
-
-    <div id="lastOrderCard" class="last-order-card">
-        <div class="last-order-info">
-            <span class="last-order-label" data-lang="lastOrderLabel">📋 最后一单</span>
-            <span id="lastOrderNumberDisplay" class="last-order-number">—</span>
-        </div>
-        <div class="last-order-info">
-            <span class="last-order-label" data-lang="lastTableLabel">🏷️ 桌号</span>
-            <span id="lastTableDisplay" class="last-order-table">—</span>
+            <span><span class="status-dot" id="btDot"></span><span id="btText" data-lang="btDisconnect">Disconnected</span></span>
+            <!-- 语言切换按钮 -->
+            <button class="btn-lang" id="langToggle">中文</button>
+            <!-- 历史订单按钮 -->
+            <button class="btn-history" id="historyBtn" data-lang="historyBtn">Order History & Export</button>
         </div>
     </div>
 
-    <div class="category-tabs" id="categoryTabs">
-        <button class="cat-btn active" data-cat="main" data-lang="catMain">🍜 主菜</button>
-        <button class="cat-btn" data-cat="side" data-lang="catSide">🥗 小菜</button>
-        <button class="cat-btn" data-cat="extra" data-lang="catExtra">➕ 额外添加</button>
+    <div class="last-order-bar">
+        <div>
+            <span data-lang="lastOrderText">Last Order:</span>
+            <span id="lastOrderNum" style="font-size:26px; font-weight:bold; margin-left:8px;">—</span>
+        </div>
+        <div>
+            <span data-lang="tableText">Table:</span>
+            <span id="lastTableNum" style="font-size:26px; font-weight:bold; margin-left:8px;">—</span>
+        </div>
     </div>
 
-    <div class="pos-grid">
-        <div class="menu-panel">
-            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋 铜锅</div>
-            <div class="menu-items" id="menuList"></div>
+    <!-- 菜品分类标签 -->
+    <div class="tab-group" id="tabContainer">
+        <button class="tab-btn active" data-cat="main" data-lang="catMain">Main Course</button>
+        <button class="tab-btn" data-cat="side" data-lang="catSide">Side Dishes</button>
+        <button class="tab-btn" data-cat="extra" data-lang="catExtra">Extras & Drinks</button>
+    </div>
+
+    <div class="main-grid">
+        <div class="menu-area">
+            <div class="menu-title" id="categoryTitle" data-lang="titleMain">Main Course</div>
+            <div class="menu-grid" id="menuBox"></div>
         </div>
-        <div class="cart-panel">
-            <div class="cart-header" data-lang="cartHeader">🛒 当前订单</div>
-            <div id="cartItems" class="cart-items"><div style="color:#aa9f93;" data-lang="emptyCart">暂无菜品，点菜加购</div></div>
-            <div class="table-input">
-                <label data-lang="tableLabel">🏷️ 桌号 / 外带</label>
+        <div class="cart-area">
+            <div class="cart-title" data-lang="cartTitle">Current Cart</div>
+            <div class="cart-list" id="cartBox">
+                <div style="text-align:center; color:#888;" data-lang="emptyCart">No Items Added Yet</div>
+            </div>
+
+            <div class="table-input-row">
+                <label data-lang="tableLabel">Table / Takeaway</label>
                 <input type="text" id="tableNumber" value="1">
             </div>
-            <!-- 支付方式选择 -->
-            <div class="payment-method-group">
-                <label data-lang="paymentLabel">💳 支付方式</label>
-                <select id="paymentMethod" class="payment-select">
-                    <option value="Cash" data-lang="optionCash">Cash 现金</option>
-                    <option value="Credit Card" data-lang="optionCreditCard">Credit Card 信用卡</option>
-                    <option value="Nets" data-lang="optionNets">Nets  nets</option>
-                    <option value="Alipay" data-lang="optionAlipay">Alipay 支付宝</option>
-                    <option value="Weixin" data-lang="optionWeixin">Weixin 微信支付</option>
-                    <option value="Shopback" data-lang="optionShopback">Shopback 返现</option>
+
+            <div class="pay-row">
+                <label data-lang="payLabel">Payment:</label>
+                <select id="paymentMethod">
+                    <option value="Cash" data-lang="payCash">Cash</option>
+                    <option value="Credit Card" data-lang="payCC">Credit Card</option>
+                    <option value="Nets" data-lang="payNets">Nets</option>
+                    <option value="Alipay" data-lang="payAli">Alipay</option>
+                    <option value="Weixin" data-lang="payWechat">Weixin Pay</option>
+                    <option value="Shopback" data-lang="payShop">Shopback</option>
                 </select>
             </div>
-            <div class="order-row">
-                <span data-lang="totalLabel">合计金额</span>
-                <span id="totalAmount">$0.00</span>
+
+            <div class="total-row">
+                <span data-lang="totalText">Total Amount:</span>
+                <span id="totalPrice">$0.00</span>
             </div>
-            <button id="submitOrderBtn" class="btn-submit"><span data-lang="submitBtn">📨 下单 → 厨房 + 打印小票</span></button>
-            <button id="clearCartBtn" class="clear-cart"><span data-lang="clearCartBtn">🗑️ 清空购物车</span></button>
-            <div id="statusMsg" class="feedback" style="display:none;"></div>
+
+            <button id="submitOrder" data-lang="submitBtn">Submit & Print Receipt</button>
+            <button id="clearCart" data-lang="clearBtn">Clear Cart</button>
+
+            <div class="status-msg success-msg" id="statusSuccess"></div>
+            <div class="status-msg error-msg" id="statusError"></div>
         </div>
     </div>
-    <div class="footer-credit" data-lang="footer">✅ 订单永久保存，订单号自动连续 · 蓝牙58mm热敏打印适配POS-5810DD</div>
 </div>
 
-<div id="historyModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2><span data-lang="historyTitle">📋 全部订单（已完成+未完成）</span>
-            <div style="display: flex; gap: 10px;">
-                <button id="exportExcelBtn" class="export-btn"><span data-lang="exportBtn">📎 导出 Excel</span></button>
-                <button id="resetCounterBtn" class="reset-counter-btn"><span data-lang="resetCounterBtn">🔄 重置订单号码</span></button>
-                <button id="clearAllOrdersBtn" class="clear-all-btn"><span data-lang="clearAllBtn">🗑️ 一键清除所有订单</span></button>
+<!-- 历史订单弹窗 -->
+<div class="modal" id="historyModal">
+    <div class="modal-box">
+        <span class="close-modal" id="closeModal">×</span>
+        <div class="modal-head">
+            <h2 data-lang="historyHead">All Order Records</h2>
+            <div style="display:flex; gap:8px;">
+                <button class="modal-btn export-btn" id="exportCSV" data-lang="exportBtn">Export Excel</button>
+                <button class="modal-btn reset-btn" id="resetCounter" data-lang="resetBtn">Reset Order Number</button>
+                <button class="modal-btn clear-all-btn" id="clearAllOrders" data-lang="clearAllBtn">Delete All Orders</button>
             </div>
-        </h2>
-        <div id="salesStatsContainer" class="sales-stats"></div>
-        <div style="overflow-x: auto;">
-            <table class="order-table">
-                <thead id="orderTableHead"></thead>
-                <tbody id="historyTbody"><tr><td colspan="8" data-lang="loadingHistory">加载中...</td></tr></tbody>
+        </div>
+        <div class="sales-stats" id="statContainer"></div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead id="tableHead"></thead>
+                <tbody id="orderTableBody"><tr><td colspan="8" data-lang="loadingText">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>
 </div>
-</div>
 
 <script>
-    // ========== 多语言资源（新增蓝牙翻译） ==========
-    const translations = {
-        'zh-CN': {
-            loginTitle: '🔐 系统登录', loginBtn: '登 录', posTitle: '柜台·点餐终端',
-            historyBtn: '📊 订单历史 / 导出 Excel', subText: '实时同步厨房 | 分类菜单 · 订单号自动递增 · 蓝牙自动打印小票',
-            catMain: '🍜 主菜', catSide: '🥗 小菜', catExtra: '➕ 额外添加',
-            mainTitle: '📋 铜锅', sideTitle: '🥢 小菜', extraTitle: '✨ 额外添加',
-            cartHeader: '🛒 当前订单', emptyCart: '暂无菜品，点菜加购',
-            tableLabel: '🏷️ 桌号 / 外带', totalLabel: '合计金额',
-            submitBtn: '📨 下单 → 厨房 + 打印小票', clearCartBtn: '🗑️ 清空购物车',
-            footer: '✅ 订单永久保存，订单号自动连续 · 蓝牙58mm热敏打印适配POS-5810DD',
-            historyTitle: '📋 全部订单（已完成+未完成）', exportBtn: '📎 导出 Excel',
-            resetCounterBtn: '🔄 重置订单号码', clearAllBtn: '🗑️ 一键清除所有订单',
-            loadingHistory: '加载中...', noOrders: '暂无任何订单', loadFailed: '加载失败，请检查网络',
-            statusPending: '⏳ 制作中', statusCompleted: '✅ 已完成',
-            tableHeaderOrderNo: '订单号', tableHeaderOrderId: '订单ID', tableHeaderTable: '桌号',
-            tableHeaderTime: '下单时间', tableHeaderItems: '菜品明细', tableHeaderTotal: '总价($)',
-            tableHeaderStatus: '状态', tableHeaderPayment: '支付方式',
-            confirmClear: '⚠️ 确认删除所有订单吗？不可恢复！', clearSuccess: '✅ 所有订单已清除，计数器已重置',
-            clearFail: '清除失败：', confirmReset: '⚠️ 确认重置订单号码吗？下次下单将从 1 开始计数。\n注意：已存在的订单号码不会改变。',
-            resetSuccess: '✅ 订单计数器已重置为 0，下一单将是 #1', resetFail: '重置失败：',
-            exportNoData: '没有订单可导出', exportFail: '导出失败：',
-            addStatus: '➕ 已添加 ', removeStatus: '🗑️ 已移除菜品',
-            cartEmptyError: '❌ 购物车为空，请先点餐',
-            orderSuccess: '✅ 订单 #', orderSent: ' 已发送至厨房！ 桌号: ', orderTotal: ' 总价 $',
-            orderFail: '❌ 下单失败: ', permissionDenied: '权限不足，请检查 Firebase 数据库规则',
-            urlError: '数据库URL配置错误', gettingOrderNo: '📡 获取订单号...', sending: '📡 发送中...',
-            lastOrderLabel: '📋 最后一单', lastTableLabel: '🏷️ 桌号',
-            todayTotalLabel: '📅 今日销售总额', yesterdayTotalLabel: '⏪ 昨日销售总额',
-            clearPasswordPrompt: '🔐 请输入操作密码以清除所有订单：', clearPasswordError: '❌ 密码错误，操作已取消',
-            paymentLabel: '💳 支付方式', optionCash: 'Cash 现金', optionCreditCard: 'Credit Card 信用卡',
-            optionNets: 'Nets  nets', optionAlipay: 'Alipay 支付宝', optionWeixin: 'Weixin 微信支付',
-            optionShopback: 'Shopback 返现',
-            // 蓝牙打印翻译
-            btConnect: '连接蓝牙打印机', btDisconnected: '未连接', btConnected: '已连接打印机',
-            btFail: '蓝牙连接失败，请确认打印机开机并配对', btPrinting: '正在打印小票...', btPrintOk: '小票打印完成',
-            btNoDevice: '未找到蓝牙打印设备，请检查打印机', btApiNoSupport: '当前浏览器不支持蓝牙打印，请使用Chrome/Edge'
-        },
-        'en': {
-            loginTitle: '🔐 System Login', loginBtn: 'Login', posTitle: 'Counter POS Terminal',
-            historyBtn: '📊 Order History / Export Excel', subText: 'Real-time sync to kitchen | Categories · Auto order numbers · Bluetooth auto print receipt',
-            catMain: '🍜 Main Course', catSide: '🥗 Side Dishes', catExtra: '➕ Extras',
-            mainTitle: '📋 POT', sideTitle: '🥢 Side Dishes', extraTitle: '✨ Extras',
-            cartHeader: '🛒 Current Order', emptyCart: 'No items, click menu to add',
-            tableLabel: '🏷️ Table / Takeaway', totalLabel: 'Total',
-            submitBtn: '📨 Submit → Kitchen + Print Receipt', clearCartBtn: '🗑️ Clear Cart',
-            footer: '✅ Orders saved permanently, order numbers auto increment · Bluetooth 58mm thermal POS-5810DD',
-            historyTitle: '📋 All Orders (Completed + Pending)', exportBtn: '📎 Export to Excel',
-            resetCounterBtn: '🔄 Reset Order Numbers', clearAllBtn: '🗑️ Clear All Orders',
-            loadingHistory: 'Loading...', noOrders: 'No orders yet', loadFailed: 'Failed to load, check network',
-            statusPending: '⏳ In Progress', statusCompleted: '✅ Completed',
-            tableHeaderOrderNo: 'Order #', tableHeaderOrderId: 'Order ID', tableHeaderTable: 'Table',
-            tableHeaderTime: 'Time', tableHeaderItems: 'Items', tableHeaderTotal: 'Total ($)',
-            tableHeaderStatus: 'Status', tableHeaderPayment: 'Payment Method',
-            confirmClear: '⚠️ Delete ALL orders? This cannot be undone!', clearSuccess: '✅ All orders cleared, counter reset',
-            clearFail: 'Clear failed: ', confirmReset: '⚠️ Reset order number counter? Next order will start from #1.\nExisting orders keep their numbers.',
-            resetSuccess: '✅ Order counter reset to 0, next order will be #1', resetFail: 'Reset failed: ',
-            exportNoData: 'No orders to export', exportFail: 'Export failed: ',
-            addStatus: '➕ Added ', removeStatus: '🗑️ Item removed',
-            cartEmptyError: '❌ Cart is empty, please add items',
-            orderSuccess: '✅ Order #', orderSent: ' sent to kitchen! Table: ', orderTotal: ' Total $',
-            orderFail: '❌ Order failed: ', permissionDenied: 'Permission denied, check Firebase rules',
-            urlError: 'Invalid database URL', gettingOrderNo: '📡 Getting order number...', sending: '📡 Sending...',
-            lastOrderLabel: '📋 Last Order', lastTableLabel: '🏷️ Table',
-            todayTotalLabel: '📅 Today\'s Sales', yesterdayTotalLabel: '⏪ Yesterday\'s Sales',
-            clearPasswordPrompt: '🔐 Please enter operation password to clear all orders:', clearPasswordError: '❌ Incorrect password, operation cancelled',
-            paymentLabel: '💳 Payment Method', optionCash: 'Cash', optionCreditCard: 'Credit Card',
-            optionNets: 'Nets', optionAlipay: 'Alipay', optionWeixin: 'Weixin', optionShopback: 'Shopback',
-            // Bluetooth print
-            btConnect: 'Connect Bluetooth Printer', btDisconnected: 'Disconnected', btConnected: 'Printer Connected',
-            btFail: 'Bluetooth connect fail, power on printer first', btPrinting: 'Printing receipt...', btPrintOk: 'Receipt printed',
-            btNoDevice: 'No bluetooth printer found', btApiNoSupport: 'Browser no support Web Bluetooth, use Chrome/Edge'
+// ========== 1. 多语言翻译（中英文菜单全部完整） ==========
+const langPack = {
+    en: {
+        loginTitle: "System Login", loginBtn: "Login", pageTitle: "POS Order Terminal",
+        btConnect: "Connect Printer", btDisconnect: "Disconnected", btConnected: "Printer Connected",
+        btFail: "Bluetooth Connect Failed", btPrinting: "Printing Receipt", btPrintDone: "Print Complete",
+        btNoDevice: "No Printer Found", btNoSupport: "Use Chrome/Edge for Bluetooth",
+        historyBtn: "Order History & Export", lastOrderText: "Last Order:", tableText: "Table:",
+        catMain: "Main Course", catSide: "Side Dishes", catExtra: "Extras & Drinks",
+        titleMain: "Main Course", titleSide: "Side Dishes", titleExtra: "Extras & Drinks",
+        cartTitle: "Current Cart", emptyCart: "No Items Added Yet",
+        tableLabel: "Table / Takeaway", payLabel: "Payment:",
+        payCash:"Cash", payCC:"Credit Card", payNets:"Nets", payAli:"Alipay", payWechat:"Weixin Pay", payShop:"Shopback",
+        totalText:"Total Amount:", submitBtn:"Submit & Print Receipt", clearBtn:"Clear Cart",
+        historyHead:"All Order Records", exportBtn:"Export Excel", resetBtn:"Reset Order Number", clearAllBtn:"Delete All Orders",
+        loadingText:"Loading...", noOrderText:"No Orders Recorded", loadFailText:"Load Failed",
+        statToday:"Today Sales", statYest:"Yesterday Sales",
+        statusPending:"In Progress", statusDone:"Completed",
+        thOrderNo:"Order #", thOrderId:"Order ID", thTable:"Table", thTime:"Time", thItems:"Items", thTotal:"Total($)", thStatus:"Status", thPay:"Payment",
+        confirmClear:"Delete ALL orders? Cannot undo!", clearOk:"All orders cleared & counter reset",
+        confirmReset:"Reset order counter? Next order start at #1", resetOk:"Counter reset to 0",
+        cartEmptyErr:"Cart empty! Add food first", sendSuccess:"Order #", sendTail:" sent, Table: ", totalTail:" Total $",
+        sendFail:"Submit Error: ", permErr:"Firebase Permission Denied", urlErr:"Wrong Database URL"
+    },
+    zh: {
+        loginTitle: "系统登录", loginBtn: "登录", pageTitle: "点餐收银终端",
+        btConnect: "连接蓝牙打印机", btDisconnect: "未连接", btConnected: "打印机已连接",
+        btFail: "蓝牙连接失败", btPrinting: "正在打印小票", btPrintDone: "打印完成",
+        btNoDevice: "未搜索到打印机", btNoSupport: "请用Chrome/Edge浏览器",
+        historyBtn: "订单历史 / 导出表格", lastOrderText: "最后一单：", tableText: "桌号：",
+        catMain: "主菜", catSide: "小菜", catExtra: "加料饮品",
+        titleMain: "主菜", titleSide: "小菜", titleExtra: "加料饮品",
+        cartTitle: "当前购物车", emptyCart: "暂无菜品，请点击添加",
+        tableLabel: "桌号 / 外带", payLabel: "支付方式：",
+        payCash:"现金", payCC:"信用卡", payNets:"Nets", payAli:"支付宝", payWechat:"微信支付", payShop:"Shopback",
+        totalText:"合计金额：", submitBtn:"下单并打印小票", clearBtn:"清空购物车",
+        historyHead:"全部订单记录", exportBtn:"导出Excel", resetBtn:"重置订单编号", clearAllBtn:"清空所有订单",
+        loadingText:"加载中...", noOrderText:"暂无任何订单", loadFailText:"加载失败",
+        statToday:"今日销售额", statYest:"昨日销售额",
+        statusPending:"制作中", statusDone:"已完成",
+        thOrderNo:"订单号", thOrderId:"订单ID", thTable:"桌号", thTime:"下单时间", thItems:"菜品", thTotal:"总价($)", thStatus:"状态", thPay:"支付方式",
+        confirmClear:"确定删除全部订单？无法恢复！", clearOk:"订单已清空，计数器重置",
+        confirmReset:"重置订单号？下一单从#1开始", resetOk:"计数器重置为0",
+        cartEmptyErr:"购物车为空，请先点菜", sendSuccess:"订单#", sendTail:" 已发送厨房，桌号：", totalTail:" 总价$",
+        sendFail:"下单失败：", permErr:"数据库权限不足", urlErr:"数据库地址配置错误"
+    }
+};
+let currentLang = "zh";
+
+// 中英文菜单名称（打印自动切纯英文无表情）
+const menuNameList = {
+    en: {
+        1:"Sesame Chicken",2:"Fruit Sour Fish",3:"Kampong Chicken Shreds",4:"HK Sweet Broth",
+        5:"Tomato Beef",6:"Scalded Beef",7:"Signature Minced Meat",8:"Seafood Ginger Broth",
+        9:"Taiwan Sausage",10:"Crispy Mushroom",11:"Fish Ball",12:"Beef Ball",13:"Crispy Pork",
+        14:"Bayberry Juice",15:"Rose Boba Drink",16:"Sakura Pudding",17:"Hokkaido Brown Sugar Pudding",18:"Rose Pastry",19:"Quail Eggs"
+    },
+    zh: {
+        1:"麻酱鸡肉",2:"水果酸汤鱼片",3:"甘榜鸡丝",4:"香港甜汁",
+        5:"番茄肥牛",6:"生豉牛肉",7:"招牌肉糜",8:"海鲜姜汁",
+        9:"台湾香肠",10:"盐酥杏鲍菇",11:"鱼肉丸",12:"牛肉丸",13:"小酥肉",
+        14:"杨梅汁",15:"玫瑰爆珠木瓜水",16:"马踏樱花布丁",17:"北海道黑糖布丁",18:"玫瑰鲜花饼",19:"鹌鹑蛋"
+    }
+};
+
+// 菜单基础价格
+const menuBase = {
+    main:[{id:1,price:8.9},{id:2,price:8.9},{id:3,price:8.9},{id:4,price:8.9},{id:5,price:9.9},{id:6,price:9.9},{id:7,price:6.9},{id:8,price:7.9}],
+    side:[{id:9,price:2.9},{id:10,price:2.9},{id:11,price:2.0},{id:12,price:2.9},{id:13,price:2.0}],
+    extra:[{id:14,price:2.9},{id:15,price:2.9},{id:16,price:3.5},{id:17,price:3.5},{id:18,price:1.9},{id:19,price:1.0}]
+};
+
+// ========== 2. 蓝牙打印完整修复模块（不会消失） ==========
+let btDevice, btServer, btTxChar;
+// 双通用打印机UUID，兼容POS5810DD
+const UUID_SERVICE_STD = "0000ffe0-0000-1000-8000-00805f9b34fb";
+const UUID_TX_STD = "0000ffe1-0000-1000-8000-00805f9b34fb";
+const UUID_SERVICE_ALT = 0xff00;
+const UUID_TX_ALT = 0xff01;
+const btBtn = document.getElementById("bluetoothBtn");
+const btDot = document.getElementById("btDot");
+const btText = document.getElementById("btText");
+
+// 更新蓝牙状态文字/颜色
+function refreshBtStatus(isConnect, langKey){
+    btDevice = isConnect ? btDevice : null;
+    btDot.classList.toggle("on", isConnect);
+    btBtn.classList.toggle("connected", isConnect);
+    btText.textContent = langPack[currentLang][langKey];
+}
+
+// 连接打印机
+async function connectPrinter(){
+    if(!navigator.bluetooth){
+        showError(langPack[currentLang].btNoSupport);
+        return;
+    }
+    try{
+        const dev = await navigator.bluetooth.requestDevice({
+            acceptAllDevices:true,
+            optionalServices:[UUID_SERVICE_STD, UUID_SERVICE_ALT]
+        });
+        btDevice = dev;
+        dev.addEventListener("gattserverdisconnected",()=>{
+            refreshBtStatus(false,"btDisconnect");
+            showError(langPack[currentLang].btDisconnect);
+        });
+        const server = await dev.gatt.connect();
+        btServer = server;
+        let service, char;
+        // 优先标准通道
+        try{
+            service = await server.getPrimaryService(UUID_SERVICE_STD);
+            char = await service.getCharacteristic(UUID_TX_STD);
+        }catch{
+            service = await server.getPrimaryService(UUID_SERVICE_ALT);
+            char = await service.getCharacteristic(UUID_TX_ALT);
         }
+        btTxChar = char;
+        refreshBtStatus(true,"btConnected");
+        showSuccess(langPack[currentLang].btConnected);
+    }catch(err){
+        console.log("BT Error:",err);
+        refreshBtStatus(false,"btDisconnect");
+        if(err.name === "NotFoundError") showError(langPack[currentLang].btNoDevice);
+        else showError(langPack[currentLang].btFail);
+    }
+}
+
+// 分包稳定写入打印数据
+async function writePrintBuffer(buffer){
+    if(!btTxChar || !btDevice?.gatt?.connected) throw new Error("No Printer Connect");
+    const chunk = 64;
+    for(let i=0;i<buffer.length;i+=chunk){
+        const piece = buffer.slice(i,i+chunk);
+        await btTxChar.writeValueWithoutResponse(piece);
+        await new Promise(res=>setTimeout(res,18));
+    }
+}
+
+// 构建**纯英文无表情小票**（解决乱码核心）
+function buildReceiptBuffer(orderNum, tableName, itemList, totalAmt, payWay, timeStr){
+    const encoder = new TextEncoder();
+    const cmdList = [];
+    // 打印机初始化
+    cmdList.push(new Uint8Array([0x1B,0x40]));
+    // 居中放大标题
+    cmdList.push(new Uint8Array([0x1B,0x61,0x01]));
+    cmdList.push(new Uint8Array([0x1D,0x21,0x11]));
+    cmdList.push(encoder.encode(`ORDER RECEIPT #${orderNum}\n`));
+    cmdList.push(new Uint8Array([0x1D,0x21,0x00]));
+    cmdList.push(new Uint8Array([0x1B,0x61,0x00]));
+    cmdList.push(encoder.encode("--------------------------------\n"));
+    cmdList.push(encoder.encode(`Table: ${tableName}\n`));
+    cmdList.push(encoder.encode(`Time: ${timeStr}\n`));
+    cmdList.push(encoder.encode(`Payment: ${payWay}\n`));
+    cmdList.push(encoder.encode("--------------------------------\n"));
+
+    // 菜品强制纯净英文名称，过滤所有特殊符号/表情
+    itemList.forEach(item=>{
+        let enName = "";
+        const matchId = Object.keys(menuNameList.zh).find(k=>menuNameList.zh[k] === item.name);
+        if(matchId) enName = menuNameList.en[matchId];
+        else enName = item.name.replace(/[^\x20-\x7E]/g,"");
+        const line = `${enName.padEnd(24)} x${item.qty} $${item.price.toFixed(2)}\n`;
+        cmdList.push(encoder.encode(line));
+    });
+
+    cmdList.push(encoder.encode("--------------------------------\n"));
+    // 总价放大加粗
+    cmdList.push(new Uint8Array([0x1D,0x21,0x10]));
+    cmdList.push(encoder.encode(`GRAND TOTAL: $${totalAmt.toFixed(2)}\n`));
+    cmdList.push(new Uint8Array([0x1D,0x21,0x00]));
+    cmdList.push(encoder.encode("================================\n\n\n\n"));
+    // 切纸走纸
+    cmdList.push(new Uint8Array([0x1B,0x64,0x04]));
+
+    // 合并全部字节
+    let totalByte = 0;
+    cmdList.forEach(b=>totalByte += b.length);
+    const fullBuf = new Uint8Array(totalByte);
+    let offset = 0;
+    cmdList.forEach(b=>{
+        fullBuf.set(b,offset);
+        offset += b.length;
+    });
+    return fullBuf;
+}
+
+// 对外打印调用函数
+async function printReceipt(orderNo, table, items, total, pay){
+    if(!btTxChar || !btDevice?.gatt?.connected){
+        showError(langPack[currentLang].btDisconnect + " — Skip Print");
+        return;
+    }
+    try{
+        showSuccess(langPack[currentLang].btPrinting);
+        const now = new Date().toLocaleString();
+        const buf = buildReceiptBuffer(orderNo, table, items, total, pay, now);
+        await writePrintBuffer(buf);
+        showSuccess(langPack[currentLang].btPrintDone);
+    }catch(e){
+        console.log("Print Fail:",e);
+        showError("Print Error: "+e.message);
+    }
+}
+
+// ========== 3. 页面语言刷新（中英文菜单切换生效） ==========
+function refreshAllText(){
+    document.querySelectorAll("[data-lang]").forEach(el=>{
+        const key = el.getAttribute("data-lang");
+        if(langPack[currentLang][key]){
+            if(el.tagName === "INPUT") el.placeholder = langPack[currentLang][key];
+            else el.textContent = langPack[currentLang][key];
+        }
+    });
+    // 刷新分类标题
+    const cat = currentCategory;
+    if(cat === "main") document.getElementById("categoryTitle").textContent = langPack[currentLang].titleMain;
+    else if(cat === "side") document.getElementById("categoryTitle").textContent = langPack[currentLang].titleSide;
+    else document.getElementById("categoryTitle").textContent = langPack[currentLang].titleExtra;
+    // 刷新蓝牙按钮文字
+    btBtn.querySelector("span").textContent = langPack[currentLang].btConnect;
+    btText.textContent = btDevice ? langPack[currentLang].btConnected : langPack[currentLang].btDisconnect;
+    // 刷新支付下拉文字
+    const paySel = document.getElementById("paymentMethod");
+    for(let opt of paySel.options){
+        const lk = opt.dataset.lang;
+        if(lk) opt.textContent = langPack[currentLang][lk];
+    }
+    renderMenu(); // 重绘菜单（切换中英文菜名）
+    renderCart();
+    if(historyModal.style.display === "block") renderHistoryTable();
+    document.getElementById("langToggle").textContent = currentLang === "zh" ? "English" : "中文";
+}
+
+// 切换语言按钮事件
+function toggleLanguage(){
+    currentLang = currentLang === "zh" ? "en" : "zh";
+    refreshAllText();
+}
+
+// ========== 4. 菜单、购物车、订单核心逻辑 ==========
+let currentCategory = "main";
+let cartArr = [];
+const loginPass = "123456";
+// Firebase配置
+const fbConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "create-for-payment",
+    storageBucket: "create-for-payment.firebasestorage.app",
+    messagingSenderId: "505063429802",
+    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+    measurementId: "G-SHP91WNP0H"
+};
+if(!firebase.apps.length) firebase.initializeApp(fbConfig);
+const db = firebase.database();
+const orderRef = db.ref("orders");
+const counterRef = db.ref("orderCounter");
+
+// 状态提示封装
+function showSuccess(msg){
+    const sBox = document.getElementById("statusSuccess");
+    const eBox = document.getElementById("statusError");
+    eBox.style.display = "none";
+    sBox.textContent = msg;
+    sBox.style.display = "block";
+    setTimeout(()=>sBox.style.display="none",3000);
+}
+function showError(msg){
+    const sBox = document.getElementById("statusSuccess");
+    const eBox = document.getElementById("statusError");
+    sBox.style.display = "none";
+    eBox.textContent = msg;
+    eBox.style.display = "block";
+    setTimeout(()=>eBox.style.display="none",3000);
+}
+
+// 获取当前语言菜名
+function getMenuName(itemId){
+    return menuNameList[currentLang][itemId] || "Item "+itemId;
+}
+
+// 渲染菜单列表
+function renderMenu(){
+    const box = document.getElementById("menuBox");
+    box.innerHTML = "";
+    const list = menuBase[currentCategory].map(i=>({...i, name:getMenuName(i.id)}));
+    list.forEach(item=>{
+        const card = document.createElement("div");
+        card.className = "menu-card";
+        card.innerHTML = `<div class="menu-name">${item.name}</div><div class="menu-price">$${item.price.toFixed(2)}</div>`;
+        card.onclick = ()=>addItemToCart(item);
+        box.appendChild(card);
+    });
+}
+
+// 切换菜品分类
+function switchCategory(cat){
+    currentCategory = cat;
+    renderMenu();
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.cat === cat));
+}
+
+// 购物车增删数量
+function addItemToCart(item){
+    const exist = cartArr.find(x=>x.id === item.id);
+    if(exist) exist.qty++;
+    else cartArr.push({...item, qty:1});
+    renderCart();
+}
+function changeQty(id, delta){
+    const idx = cartArr.findIndex(x=>x.id === id);
+    if(idx === -1) return;
+    const newQ = cartArr[idx].qty + delta;
+    if(newQ <= 0) cartArr.splice(idx,1);
+    else cartArr[idx].qty = newQ;
+    renderCart();
+}
+function deleteCartItem(id){
+    cartArr = cartArr.filter(x=>x.id !== id);
+    renderCart();
+}
+
+// 计算总价
+function calcTotal(){
+    return cartArr.reduce((sum, item)=>sum + (item.price * item.qty), 0);
+}
+
+// 渲染购物车界面
+function renderCart(){
+    const cartBox = document.getElementById("cartBox");
+    const totalDom = document.getElementById("totalPrice");
+    if(cartArr.length === 0){
+        cartBox.innerHTML = `<div style="text-align:center; color:#888;" data-lang="emptyCart">${langPack[currentLang].emptyCart}</div>`;
+        totalDom.textContent = "$0.00";
+        return;
+    }
+    let html = "";
+    cartArr.forEach(it=>{
+        html += `
+        <div class="cart-item">
+            <div>
+                <div>${it.name}</div>
+                <div style="font-size:13px; color:#92400e;">$${it.price.toFixed(2)}</div>
+            </div>
+            <div class="qty-buttons">
+                <button class="qty-btn" data-id="${it.id}" data-delta="-1">−</button>
+                <span>${it.qty}</span>
+                <button class="qty-btn" data-id="${it.id}" data-delta="1">+</button>
+                <button class="del-btn" data-id="${it.id}">✕</button>
+            </div>
+        </div>`;
+    });
+    cartBox.innerHTML = html;
+    totalDom.textContent = "$"+calcTotal().toFixed(2);
+    // 绑定按钮点击
+    document.querySelectorAll(".qty-btn").forEach(btn=>{
+        btn.onclick = ()=>changeQty(Number(btn.dataset.id), Number(btn.dataset.delta));
+    });
+    document.querySelectorAll(".del-btn").forEach(btn=>{
+        btn.onclick = ()=>deleteCartItem(Number(btn.dataset.id));
+    });
+}
+
+// 获取下一个订单编号
+async function getNextOrderNum(){
+    const snap = await counterRef.transaction(val=>(val||0)+1);
+    return snap.snapshot.val();
+}
+
+// 更新顶部最后一单显示
+function updateLastOrderDisplay(num, table){
+    document.getElementById("lastOrderNum").textContent = num ? "#"+num : "—";
+    document.getElementById("lastTableNum").textContent = table || "—";
+}
+
+// 提交下单主逻辑
+async function submitOrder(){
+    if(cartArr.length === 0){
+        showError(langPack[currentLang].cartEmptyErr);
+        return;
+    }
+    let tableVal = document.getElementById("tableNumber").value.trim();
+    if(!tableVal) tableVal = "Takeaway";
+    const payWay = document.getElementById("paymentMethod").value;
+    // 存数据库用中文菜名
+    const saveItems = cartArr.map(it=>({
+        name: menuNameList.zh[it.id],
+        qty: it.qty,
+        price: it.price
+    }));
+    const orderData = {
+        table: tableVal,
+        items: saveItems,
+        total: calcTotal(),
+        time: new Date().toISOString(),
+        completed: false,
+        paymentMethod: payWay
     };
-
-    const MENU_NAMES = {
-        'zh-CN': { 1: "🍜 麻酱鸡肉", 2: "🍜 水果酸汤鱼片", 3: "🍜 甘榜鸡丝", 4: "🍜 香港甜汁", 5: "🍜 番茄肥牛", 6: "🍜 生豉牛肉", 7: "🍜 招牌肉糜", 8: "🍜 海鲜姜汁", 9: "🍠 台湾香肠", 10: "🥗 盐酥杏鲍菇", 11: "🥗 鱼肉丸", 12: "🥗 牛肉丸", 13: "🍗 小酥肉", 14: "🥤 杨梅汁", 15: "🥤 玫瑰爆珠木瓜水", 16: "🍰 马踏樱花", 17: "🍰 北海道黑糖布丁", 18: "🥟 玫瑰鲜花饼", 19: "🥚 鹌鹑蛋" },
-        'en': { 1: "🍜 Sesame Chicken", 2: "🍜 Fruit Sour Fish", 3: "🍜 Kampong Chicken Matsutake", 4: "🍜 HK Sweet Broth", 5: "🍜 Tomato Beef", 6: "🍜 Scalded Beef", 7: "🍜 Minced Meat", 8: "🍜 Seafood Ginger", 9: "🍠 Taiwan Sausage", 10: "🥗 Crispy Mushroom", 11: "🥗 Fish Ball", 12: "🥗 Beef Ball", 13: "🍗 Crispy Pork", 14: "🥤 Bayberry Juice", 15: "🥤 Rose Popping Boba", 16: "🍰 Sakura Pudding", 17: "🍰 Hokkaido Pudding", 18: "🥟 Rose Pastry", 19: "🥚 Quail Eggs" }
-    };
-
-    let currentLang = 'zh-CN';
-    const LOGIN_PASSWORD = "123456";
-
-    // ====================== 蓝牙打印全局变量 ======================
-    let btDevice = null;
-    let btServer = null;
-    let btTxCharacteristic = null;
-    const BT_SERVICE_UUID = 0xff00;
-    const BT_CHAR_TX_UUID = 0xff02;
-    const printerBtn = document.getElementById('bluetoothPrintBtn');
-    const btDot = document.getElementById('btDot');
-    const btText = document.getElementById('btText');
-
-    // 更新蓝牙UI状态
-    function setBtStatus(connected, textKey) {
-        btDevice = connected ? btDevice : null;
-        btDot.classList.toggle('on', connected);
-        printerBtn.classList.toggle('connected', connected);
-        btText.innerText = translations[currentLang][textKey];
-    }
-
-    // 连接蓝牙打印机
-    async function connectBluetoothPrinter() {
-        if (!navigator.bluetooth) {
-            showStatus(translations[currentLang].btApiNoSupport, true);
-            return;
-        }
-        try {
-            const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: [BT_SERVICE_UUID]
-            });
-            btDevice = device;
-            device.addEventListener('gattserverdisconnected', () => {
-                setBtStatus(false, 'btDisconnected');
-                showStatus(translations[currentLang].btDisconnected, true);
-            });
-            const server = await device.gatt.connect();
-            btServer = server;
-            const service = await server.getPrimaryService(BT_SERVICE_UUID);
-            const char = await service.getCharacteristic(BT_CHAR_TX_UUID);
-            btTxCharacteristic = char;
-            setBtStatus(true, 'btConnected');
-            showStatus(translations[currentLang].btConnected);
-        } catch (err) {
-            console.error('BT connect error:', err);
-            setBtStatus(false, 'btDisconnected');
-            if (err.name === 'NotFoundError') showStatus(translations[currentLang].btNoDevice, true);
-            else showStatus(translations[currentLang].btFail, true);
-        }
-    }
-
-    // 发送字节到打印机
-    async function writeToPrinter(data) {
-        if (!btTxCharacteristic || !btDevice?.gatt?.connected) {
-            throw new Error('Printer not connected');
-        }
-        const chunkSize = 64;
-        for (let i = 0; i < data.length; i += chunkSize) {
-            const chunk = data.slice(i, i + chunkSize);
-            await btTxCharacteristic.writeValueWithoutResponse(chunk);
-            await new Promise(r => setTimeout(r, 10));
-        }
-    }
-
-    // ===== 关键修改：小票全部英文，菜品读取英文名称 =====
-    function buildReceiptPrintData(orderNum, table, items, total, payMethod, timeStr) {
-        const encoder = new TextEncoder();
-        const commands = [];
-        // 初始化打印机
-        commands.push(new Uint8Array([0x1B, 0x40]));
-        // 居中标题放大
-        commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
-        commands.push(new Uint8Array([0x1D, 0x21, 0x11]));
-        commands.push(encoder.encode(`ORDER RECEIPT #${orderNum}\n`));
-        commands.push(new Uint8Array([0x1D, 0x21, 0x00]));
-        commands.push(new Uint8Array([0x1B, 0x61, 0x00]));
-        commands.push(encoder.encode('--------------------------------\n'));
-        commands.push(encoder.encode(`Table: ${table}\n`));
-        commands.push(encoder.encode(`Time: ${timeStr}\n`));
-        commands.push(encoder.encode(`Payment: ${payMethod}\n`));
-        commands.push(encoder.encode('--------------------------------\n'));
-        // 菜品明细：强制读取英文菜名打印
-        items.forEach(it => {
-            // 匹配英文名称
-            let enName = "";
-            for(let mid in MENU_NAMES.en){
-                if(MENU_NAMES.en[mid].includes(it.name.replace(/🍜|🥗|🍠|🍗|🥤|🍰|🥟|🥚/g,'')) || MENU_NAMES.zh-CN[mid] === it.name){
-                    enName = MENU_NAMES.en[mid];
-                    break;
-                }
-            }
-            if(!enName) enName = it.name;
-            const line = `${enName.padEnd(20)} x${it.qty} $${it.price.toFixed(2)}\n`;
-            commands.push(encoder.encode(line));
-        });
-        commands.push(encoder.encode('--------------------------------\n'));
-        // 总价加粗放大
-        commands.push(new Uint8Array([0x1D, 0x21, 0x10]));
-        commands.push(encoder.encode(`GRAND TOTAL: $${total.toFixed(2)}\n`));
-        commands.push(new Uint8Array([0x1D, 0x21, 0x00]));
-        commands.push(encoder.encode('================================\n\n\n\n'));
-        // 切纸
-        commands.push(new Uint8Array([0x1B, 0x64, 0x04]));
-
-        // 合并所有字节流
-        let totalLen = 0;
-        commands.forEach(c => totalLen += c.length);
-        const fullBuffer = new Uint8Array(totalLen);
-        let offset = 0;
-        commands.forEach(c => {
-            fullBuffer.set(c, offset);
-            offset += c.length;
-        });
-        return fullBuffer;
-    }
-
-    // 打印订单小票对外调用
-    async function printOrderReceipt(orderNumber, tableNo, items, totalAmt, payMethod) {
-        if (!btTxCharacteristic || !btDevice?.gatt?.connected) {
-            showStatus(translations[currentLang].btDisconnected + '，跳过打印', true);
-            return;
-        }
-        try {
-            showStatus(translations[currentLang].btPrinting);
-            const now = new Date().toLocaleString();
-            const printData = buildReceiptPrintData(orderNumber, tableNo, items, totalAmt, payMethod, now);
-            await writeToPrinter(printData);
-            showStatus(translations[currentLang].btPrintOk);
-        } catch (e) {
-            console.error('Print fail:', e);
-            showStatus('打印失败:' + e.message, true);
-        }
-    }
-
-    function updateStaticTexts() {
-        document.querySelectorAll('[data-lang]').forEach(el => {
-            const key = el.getAttribute('data-lang');
-            if (translations[currentLang][key]) {
-                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-                    if (el.tagName === 'SELECT') return;
-                    el.placeholder = translations[currentLang][key];
-                } else {
-                    el.innerText = translations[currentLang][key];
-                }
-            }
-        });
-        const paymentSelect = document.getElementById('paymentMethod');
-        if (paymentSelect) {
-            for (let i = 0; i < paymentSelect.options.length; i++) {
-                const opt = paymentSelect.options[i];
-                const langKey = opt.getAttribute('data-lang');
-                if (langKey && translations[currentLang][langKey]) {
-                    opt.text = translations[currentLang][langKey];
-                }
-            }
-        }
-        const currentCat = currentCategory;
-        if (currentCat === 'main') document.getElementById('currentCategoryTitle').innerText = translations[currentLang].mainTitle;
-        else if (currentCat === 'side') document.getElementById('currentCategoryTitle').innerText = translations[currentLang].sideTitle;
-        else document.getElementById('currentCategoryTitle').innerText = translations[currentLang].extraTitle;
-        const lastOrderLabelSpan = document.querySelector('#lastOrderCard .last-order-label:first-child');
-        const lastTableLabelSpan = document.querySelector('#lastOrderCard .last-order-label:last-child');
-        if (lastOrderLabelSpan) lastOrderLabelSpan.innerText = translations[currentLang].lastOrderLabel;
-        if (lastTableLabelSpan) lastTableSpan.innerText = translations[currentLang].lastTableLabel;
-        if (modal && modal.style.display === 'block') renderHistoryTable();
-        printerBtn.querySelector('span').innerText = translations[currentLang].btConnect;
-        btText.innerText = btDevice ? translations[currentLang].btConnected : translations[currentLang].btDisconnected;
-    }
-
-    function getMenuItemName(id) { return MENU_NAMES[currentLang][id] || `Item ${id}`; }
-    function switchLanguage(lang) {
-        if (lang === currentLang) return;
-        currentLang = lang;
-        updateStaticTexts();
-        renderMenuByCategory(currentCategory);
+    const submitBtn = document.getElementById("submitOrder");
+    submitBtn.disabled = true;
+    try{
+        const orderNum = await getNextOrderNum();
+        orderData.orderNumber = orderNum;
+        await orderRef.push(orderData);
+        // 自动打印英文小票
+        await printReceipt(orderNum, tableVal, saveItems, calcTotal(), payWay);
+        showSuccess(langPack[currentLang].sendSuccess + orderNum + langPack[currentLang].sendTail + tableVal + langPack[currentLang].totalTail + calcTotal().toFixed(2));
+        updateLastOrderDisplay(orderNum, tableVal);
+        cartArr = [];
         renderCart();
-        if (modal && modal.style.display === 'block') renderHistoryTable();
-        document.getElementById('langSwitchBtn').innerText = currentLang === 'zh-CN' ? 'English' : '中文';
+    }catch(err){
+        let errMsg = err.message;
+        if(errMsg.includes("PERMISSION_DENIED")) errMsg = langPack[currentLang].permErr;
+        else if(errMsg.includes("databaseURL")) errMsg = langPack[currentLang].urlErr;
+        showError(langPack[currentLang].sendFail + errMsg);
+    }finally{
+        submitBtn.disabled = false;
     }
+}
 
-    // Firebase
-    const firebaseConfig = { apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc", authDomain: "create-for-payment.firebaseapp.com", databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "create-for-payment", storageBucket: "create-for-payment.firebasestorage.app", messagingSenderId: "505063429802", appId: "1:505063429802:web:8ec8cca8c788610bad62d3", measurementId: "G-SHP91WNP0H" };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const ordersRef = database.ref('orders');
-    const counterRef = database.ref('orderCounter');
+// 清空购物车
+function clearWholeCart(){
+    cartArr = [];
+    renderCart();
+}
 
-    const MENU_BASE = {
-        main: [{ id: 1, price: 8.90 },{ id: 2, price: 8.90 },{ id: 3, price: 8.90 },{ id: 4, price: 8.90 },{ id: 5, price: 9.90 },{ id: 6, price: 9.90 },{ id: 7, price: 6.90 },{ id: 8, price: 7.90 }],
-        side: [{ id: 9, price: 2.90 },{ id: 10, price: 2.90 },{ id: 11, price: 2.00 },{ id: 12, price: 2.90 },{ id: 13, price: 2.00 }],
-        extra: [{ id: 14, price: 2.90 },{ id: 15, price: 2.90 },{ id: 16, price: 3.50 },{ id: 17, price: 3.50 },{ id: 18, price: 1.90 },{ id: 19, price: 1.00 }]
-    };
-
-    let currentCategory = "main", cart = [];
-    let menuContainer, cartContainer, totalSpan, tableInput, submitBtn, clearCartBtn, statusDiv, categoryTitle, catBtns;
-    let historyBtn, modal, closeModal, exportExcelBtn, clearAllOrdersBtn, resetCounterBtn, historyTbody;
-    let lastOrderNumberSpan, lastTableSpan, paymentSelect;
-    let timeoutId = null;
-    function showStatus(msg, isError = false) { if (!statusDiv) return; statusDiv.innerText = msg; statusDiv.style.display = 'block'; statusDiv.classList.toggle('error-feedback', isError); if (timeoutId) clearTimeout(timeoutId); timeoutId = setTimeout(() => statusDiv.style.display = 'none', 3000); }
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-    function getLocalDateString(isoString) { if (!isoString) return null; const date = new Date(isoString); if (isNaN(date.getTime())) return null; return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }
-    function computeDailyTotals(orders) { const todayStr = getLocalDateString(new Date().toISOString()); const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1); const yesterdayStr = getLocalDateString(yesterday.toISOString()); let todayTotal=0, yesterdayTotal=0; for(const o of orders){ if(!o.time) continue; const d = getLocalDateString(o.time); if(d===todayStr) todayTotal+= (o.total||0); else if(d===yesterdayStr) yesterdayTotal+= (o.total||0); } return {todayTotal, yesterdayTotal}; }
-    function updateSalesStats(orders) { const container = document.getElementById('salesStatsContainer'); if(!container) return; const {todayTotal, yesterdayTotal} = computeDailyTotals(orders); container.innerHTML = `<div class="stats-item"><span class="stats-label">${translations[currentLang].todayTotalLabel}</span><span class="stats-amount">$${todayTotal.toFixed(2)}</span></div><div class="stats-item"><span class="stats-label">${translations[currentLang].yesterdayTotalLabel}</span><span class="stats-amount">$${yesterdayTotal.toFixed(2)}</span></div>`; }
-    function getCurrentMenu() { const result={}; for(let cat in MENU_BASE){ result[cat]=MENU_BASE[cat].map(item=>({...item, name: getMenuItemName(item.id)})); } return result; }
-    function renderMenuByCategory(cat) { const items = getCurrentMenu()[cat]||[]; menuContainer.innerHTML=''; items.forEach(item=>{ const card=document.createElement('div'); card.className='menu-card'; card.innerHTML=`<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">$${item.price}</div>`; card.addEventListener('click',()=>addToCart(item)); menuContainer.appendChild(card); }); if(items.length===0) menuContainer.innerHTML='<div style="text-align:center; padding:40px;">'+(currentLang==='zh-CN'?'暂无菜品':'No items')+'</div>'; if(cat==='main') categoryTitle.innerText=translations[currentLang].mainTitle; else if(cat==='side') categoryTitle.innerText=translations[currentLang].sideTitle; else categoryTitle.innerText=translations[currentLang].extraTitle; }
-    function switchCategory(cat) { currentCategory=cat; renderMenuByCategory(cat); catBtns.forEach(btn=>btn.classList.toggle('active', btn.dataset.cat===cat)); }
-    function addToCart(item) { const existing=cart.find(i=>i.id===item.id); if(existing) existing.qty++; else cart.push({...item, qty:1}); renderCart(); showStatus(`${translations[currentLang].addStatus}${item.name}`); }
-    function updateQty(id, delta) { const idx=cart.findIndex(i=>i.id===id); if(idx!==-1){ const newQty=cart[idx].qty+delta; if(newQty<=0) cart.splice(idx,1); else cart[idx].qty=newQty; renderCart(); } }
-    function removeItem(id) { cart=cart.filter(i=>i.id!==id); renderCart(); showStatus(translations[currentLang].removeStatus); }
-    function calcTotal(){ return cart.reduce((s,i)=>s+i.price*i.qty,0); }
-    function renderCart() { if(!cartContainer) return; if(cart.length===0){ cartContainer.innerHTML=`<div style="color:#aa9f93; text-align:center;">${translations[currentLang].emptyCart}</div>`; totalSpan.innerText='$0.00'; return; } let html=''; cart.forEach(item=>{ html+=`<div class="cart-item"><div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>$${item.price}</div></div><div class="cart-item-controls"><button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button><span class="cart-qty">${item.qty}</span><button class="btn-qty" data-id="${item.id}" data-delta="1">+</button><button class="remove-item" data-id="${item.id}">✕</button></div></div>`; }); cartContainer.innerHTML=html; totalSpan.innerText=`$${calcTotal().toFixed(2)}`; document.querySelectorAll('.btn-qty').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); updateQty(parseInt(btn.dataset.id), parseInt(btn.dataset.delta)); })); document.querySelectorAll('.remove-item').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); removeItem(parseInt(btn.dataset.id)); })); }
-    async function getNextOrderNumber() { try { const snapshot = await counterRef.transaction(current => (current||0)+1); return snapshot.snapshot.val(); } catch(err) { console.error(err); throw err; } }
-    function updateLastOrderDisplay(orderNumber, tableNo){ if(lastOrderNumberSpan) lastOrderNumberSpan.innerText=orderNumber?`#${orderNumber}`:'—'; if(lastTableSpan) lastTableSpan.innerText=tableNo||'—'; }
-    async function submitOrder() {
-        if(cart.length===0){ showStatus(translations[currentLang].cartEmptyError,true); return; }
-        let tableNo=tableInput.value.trim(); if(!tableNo) tableNo="Takeaway"; // 数据库存英文外带标识
-        const payment = paymentSelect ? paymentSelect.value : "Cash";
-        const itemsForOrder=cart.map(item=>{ const chineseName=MENU_NAMES['zh-CN'][item.id]||item.name; return {name:chineseName, qty:item.qty, price:item.price}; });
-        const orderData={ table:tableNo, items:itemsForOrder, total:calcTotal(), time:new Date().toISOString(), completed:false, paymentMethod:payment };
-        submitBtn.disabled=true; submitBtn.style.opacity='0.6'; const originalText=submitBtn.innerHTML; submitBtn.innerHTML=translations[currentLang].gettingOrderNo;
-        try{ 
-            const orderNumber=await getNextOrderNumber(); 
-            orderData.orderNumber=orderNumber; 
-            submitBtn.innerHTML=translations[currentLang].sending; 
-            await ordersRef.push(orderData); 
-            // ====== 下单成功后自动打印小票 ======
-            await printOrderReceipt(orderNumber, tableNo, itemsForOrder, calcTotal(), payment);
-            showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`); 
-            updateLastOrderDisplay(orderNumber,tableNo); 
-            cart=[]; renderCart(); 
-        } catch(err){ 
-            let errorMsg=err.message||'网络错误'; 
-            if(errorMsg.includes('PERMISSION_DENIED')) errorMsg=translations[currentLang].permissionDenied; 
-            else if(errorMsg.includes('databaseURL')) errorMsg=translations[currentLang].urlError; 
-            showStatus(`${translations[currentLang].orderFail}${errorMsg}`,true); 
-        } finally{ 
-            submitBtn.disabled=false; submitBtn.style.opacity='1'; submitBtn.innerHTML=originalText; 
+// ========== 5. 历史订单、导出、重置功能 ==========
+const historyModal = document.getElementById("historyModal");
+async function loadAllOrders(){
+    const snap = await orderRef.once("value");
+    const raw = snap.val() || {};
+    const list = Object.entries(raw).map(([id,data])=>({id,...data}));
+    list.sort((a,b)=>new Date(b.time)-new Date(a.time));
+    return list;
+}
+function calcSalesTotal(orderList){
+    const today = new Date().toISOString().split("T")[0];
+    const yest = new Date(Date.now()-86400000).toISOString().split("T")[0];
+    let todaySum=0, yestSum=0;
+    orderList.forEach(o=>{
+        if(!o.time) return;
+        const day = o.time.split("T")[0];
+        if(day === today) todaySum += o.total||0;
+        else if(day === yest) yestSum += o.total||0;
+    });
+    return {todaySum, yestSum};
+}
+async function renderHistoryTable(){
+    const tbody = document.getElementById("orderTableBody");
+    tbody.innerHTML = `<tr><td colspan="8">${langPack[currentLang].loadingText}</td></tr>`;
+    const thead = document.getElementById("tableHead");
+    thead.innerHTML = `
+    <tr>
+        <th>${langPack[currentLang].thOrderNo}</th>
+        <th>${langPack[currentLang].thOrderId}</th>
+        <th>${langPack[currentLang].thTable}</th>
+        <th>${langPack[currentLang].thTime}</th>
+        <th>${langPack[currentLang].thItems}</th>
+        <th>${langPack[currentLang].thTotal}</th>
+        <th>${langPack[currentLang].thStatus}</th>
+        <th>${langPack[currentLang].thPay}</th>
+    </tr>`;
+    try{
+        const orders = await loadAllOrders();
+        // 销售额统计
+        const {todaySum,yestSum} = calcSalesTotal(orders);
+        document.getElementById("statContainer").innerHTML = `
+        <div class="stat-item">
+            <div class="stat-label">${langPack[currentLang].statToday}</div>
+            <div class="stat-value">$${todaySum.toFixed(2)}</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">${langPack[currentLang].statYest}</div>
+            <div class="stat-value">$${yestSum.toFixed(2)}</div>
+        </div>`;
+        if(orders.length === 0){
+            tbody.innerHTML = `<tr><td colspan="8">${langPack[currentLang].noOrderText}</td></tr>`;
+            return;
         }
+        let html = "";
+        orders.forEach(o=>{
+            const num = o.orderNumber ? "#"+o.orderNumber : "—";
+            const itemStr = o.items.map(i=>`${i.name} x${i.qty}`).join(" | ");
+            const timeStr = o.time ? new Date(o.time).toLocaleString() : "";
+            const statusTxt = o.completed ? langPack[currentLang].statusDone : langPack[currentLang].statusPending;
+            const payTxt = o.paymentMethod || "—";
+            const rowClass = o.completed ? "completed-tr" : "";
+            html += `
+            <tr class="${rowClass}">
+                <td>${num}</td>
+                <td>${o.id}</td>
+                <td>${o.table}</td>
+                <td>${timeStr}</td>
+                <td>${itemStr}</td>
+                <td>$${(o.total||0).toFixed(2)}</td>
+                <td>${statusTxt}</td>
+                <td>${payTxt}</td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    }catch(e){
+        tbody.innerHTML = `<tr><td colspan="8">${langPack[currentLang].loadFailText}</td></tr>`;
     }
-    function clearCart(){ if(cart.length===0) return; cart=[]; renderCart(); showStatus(translations[currentLang].removeStatus); }
-    async function fetchAllOrders() { const snapshot=await ordersRef.once('value'); const orders=snapshot.val();
+}
+function openHistoryModal(){
+    historyModal.style.display = "block";
+    renderHistoryTable();
+}
+function closeHistoryModal(){
+    historyModal.style.display = "none";
+}
+// 导出CSV表格
+async function exportCSV(){
+    const orders = await loadAllOrders();
+    if(orders.length === 0){
+        alert(langPack[currentLang].noOrderText);
+        return;
+    }
+    const header = [
+        langPack[currentLang].thOrderNo,langPack[currentLang].thOrderId,langPack[currentLang].thTable,
+        langPack[currentLang].thTime,langPack[currentLang].thItems,langPack[currentLang].thTotal,
+        langPack[currentLang].thStatus,langPack[currentLang].thPay
+    ];
+    const rows = orders.map(o=>[
+        o.orderNumber ? "#"+o.orderNumber : "",
+        o.id,
+        o.table,
+        o.time ? new Date(o.time).toLocaleString() : "",
+        o.items.map(i=>`${i.name} x${i.qty}`).join(";"),
+        (o.total||0).toFixed(2),
+        o.completed ? langPack[currentLang].statusDone : langPack[currentLang].statusPending,
+        o.paymentMethod || ""
+    ]);
+    const csvText = [header,...rows].map(r=>r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF"+csvText], {type:"text/csv;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `OrderRecord_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+// 清空全部订单
+async function clearAllOrderData(){
+    if(!confirm(langPack[currentLang].confirmClear)) return;
+    const inputPwd = prompt(langPack[currentLang].loginTitle);
+    if(inputPwd !== loginPass){
+        alert("Password Wrong");
+        return;
+    }
+    try{
+        await orderRef.remove();
+        await counterRef.remove();
+        alert(langPack[currentLang].clearOk);
+        renderHistoryTable();
+    }catch(e){
+        alert(langPack[currentLang].sendFail + e.message);
+    }
+}
+// 重置订单计数器
+async function resetOrderCounter(){
+    if(!confirm(langPack[currentLang].confirmReset)) return;
+    try{
+        await counterRef.set(0);
+        alert(langPack[currentLang].resetOk);
+    }catch(e){
+        alert(langPack[currentLang].sendFail + e.message);
+    }
+}
+
+// ========== 6. 页面初始化、登录绑定 ==========
+function initApp(){
+    // 按钮绑定事件
+    document.getElementById("bluetoothBtn").onclick = connectPrinter;
+    document.getElementById("langToggle").onclick = toggleLanguage;
+    document.querySelectorAll(".tab-btn").forEach(btn=>btn.onclick=()=>switchCategory(btn.dataset.cat));
+    document.getElementById("submitOrder").onclick = submitOrder;
+    document.getElementById("clearCart").onclick = clearWholeCart;
+    document.getElementById("historyBtn").onclick = openHistoryModal;
+    document.getElementById("closeModal").onclick = closeHistoryModal;
+    document.getElementById("exportCSV").onclick = exportCSV;
+    document.getElementById("clearAllOrders").onclick = clearAllOrderData;
+    document.getElementById("resetCounter").onclick = resetOrderCounter;
+    window.onclick = (e)=>{ if(e.target === historyModal) closeHistoryModal(); };
+    // 初始渲染
+    refreshAllText();
+    renderMenu();
+    renderCart();
+    updateLastOrderDisplay(null,null);
+}
+
+// 登录逻辑
+const loginOverlay = document.getElementById("loginOverlay");
+const mainPage = document.getElementById("mainPage");
+const pwdInput = document.getElementById("passwordInput");
+const loginBtn = document.getElementById("loginBtn");
+const loginErr = document.getElementById("loginError");
+function doLoginCheck(){
+    if(pwdInput.value.trim() === loginPass){
+        loginOverlay.style.display = "none";
+        mainPage.style.display = "block";
+        initApp();
+    }else{
+        loginErr.textContent = currentLang === "zh" ? "密码错误" : "Incorrect Password";
+        pwdInput.value = "";
+    }
+}
+loginBtn.onclick = doLoginCheck;
+pwdInput.onkeydown = (e)=>{ if(e.key === "Enter") doLoginCheck(); };
+</script>
+</body>
+</html>
