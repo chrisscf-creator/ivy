@@ -215,7 +215,7 @@
     const ordersRef = database.ref('orders');
     const counterRef = database.ref('orderCounter');
     
-    const MENU_BASE = { main: [{ id:1,price:28.00},{id:2,price:33.00},{id:3,price:20.00},{id:4,price:60.00},{id:5,price:100.00},{id:6,price:150.00},{id:7,price:120.00},{id:8,price:250.00}], side: [{ id:9,price:350.00},{id:10,price:120.00},{id:11,price:250.00},{id:12,price:100.00},{id:13,price:90.00}], extra: [{ id:14,price:80.00},{id:15,price:80.00},{id:16,price:80.00},{id:17,price:5.00},{id:18,price:10.00},{id:19,price:50.00}] };
+    const MENU_BASE = { main: [{ id:1,price:28.00},{id:2,price:33.00},{id:3,price:20.00},{id:4,price:60.00},{id:5,price:100.00},{id:6,price:150.00},{id:7,price:120.00},{id:8,price:250.00},{ id:9,price:350.00}],side: [{id:10,price:120.00},{id:11,price:250.00},{id:12,price:100.00},{id:13,price:90.00},{ id:14,price:80.00},{id:15,price:80.00},{id:16,price:80.00}],extra: [{id:17,price:5.00},{id:18,price:10.00},{id:19,price:50.00}] };
     
     function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
     function showStatus(msg, isError){ if(!statusDiv) return; statusDiv.innerText=msg; statusDiv.style.display='block'; statusDiv.classList.toggle('error-feedback',isError); if(timeoutId) clearTimeout(timeoutId); timeoutId=setTimeout(()=>statusDiv.style.display='none',3000); }
