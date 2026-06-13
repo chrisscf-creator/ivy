@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 订单历史销售总额统计</title>
-    <!-- ✅ 使用 Google 官方 CDN，更稳定 -->
+    <title>智慧柜台POS · 蓝牙打印修复版</title>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
     <style>
@@ -51,8 +51,6 @@
         button { background: #ffa500; border: none; padding: 12px 16px; border-radius: 40px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; color: #2c2c2c; }
         button:active { transform: scale(0.97); }
         .btn-submit { width: 100%; background: #2c6e2c; color: white; font-size: 1.2rem; margin-top: 8px; display: flex; justify-content: center; gap: 10px; }
-        .btn-print { width: 100%; background: #1565C0; color: white; font-size: 1.2rem; margin-top: 8px; display: flex; justify-content: center; gap: 10px; }
-        .btn-bluetooth { background: #673AB7; color: white; border: none; padding: 8px 14px; border-radius: 30px; cursor: pointer; font-size: 0.9rem; margin-bottom: 12px; width: 100%; }
         .clear-cart { background: #cdd4d9; color: #2d3e45; margin-top: 8px; }
         .feedback { margin-top: 12px; font-size: 0.85rem; text-align: center; padding: 6px; border-radius: 100px; background: #e9f5e9; color: #2e7d32; }
         .error-feedback { background: #ffe6e5; color: #c62828; }
@@ -62,11 +60,11 @@
         .close { position: absolute; right: 24px; top: 16px; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
         .close:hover { color: black; }
         .modal h2 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .export-btn, .clear-all-btn, .reset-counter-btn { background: #2c6e2c; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
+        .export-btn, .clear-all-btn, .reset-counter-btn, .bluetooth-print-btn { background: #2c6e2c; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
+        .bluetooth-print-btn { background: #1e5f8e; display: inline-flex; align-items: center; gap: 6px; }
+        .bluetooth-print-btn:hover { background: #0a4468; }
         .clear-all-btn { background: #c62828; }
         .reset-counter-btn { background: #ff8c00; }
-        .clear-all-btn:hover { background: #8b1e1e; }
-        .reset-counter-btn:hover { background: #cc7000; }
         .order-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
         .order-table th, .order-table td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: top; }
         .order-table th { background: #ffa50020; }
@@ -77,60 +75,13 @@
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 40px; }
         .login-box button { width: 100%; margin-top: 15px; }
         .login-error { color: #c62828; margin-top: 10px; }
-        .sales-stats {
-            background: #f8f4ef;
-            border-radius: 28px;
-            padding: 14px 20px;
-            margin: 16px 0 12px 0;
-            display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #ffddb0;
-            font-weight: 500;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-        }
-        .stats-item {
-            background: white;
-            padding: 8px 18px;
-            border-radius: 40px;
-            display: inline-flex;
-            align-items: baseline;
-            gap: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .stats-label {
-            font-size: 0.9rem;
-            color: #8b6b42;
-        }
-        .stats-amount {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #2c6e2c;
-            letter-spacing: 0.5px;
-        }
-        .printer-status {
-            font-size: 0.85rem;
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: #e8f5e9;
-            color: #2e7d32;
-            display: inline-block;
-            margin-bottom: 12px;
-        }
-        .printer-status.disconnected {
-            background: #ffebee;
-            color: #c62828;
-        }
-        @media (max-width: 780px) {
-            .pos-container { padding: 16px; }
-            .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-            .modal-content { width: 95%; padding: 16px; }
-            .last-order-number { font-size: 1.2rem; }
-            .stats-amount { font-size: 1.2rem; }
-            .stats-item { padding: 4px 12px; }
-        }
+        .sales-stats { background: #f8f4ef; border-radius: 28px; padding: 14px 20px; margin: 16px 0 12px 0; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; border: 1px solid #ffddb0; }
+        .stats-item { background: white; padding: 8px 18px; border-radius: 40px; display: inline-flex; align-items: baseline; gap: 8px; }
+        .stats-label { font-size: 0.9rem; color: #8b6b42; }
+        .stats-amount { font-size: 1.5rem; font-weight: bold; color: #2c6e2c; }
+        .bluetooth-bar { background: #eaeef2; border-radius: 50px; padding: 8px 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
+        .bluetooth-status { font-size: 0.85rem; font-weight: 500; color: #2d5f7e; }
+        @media (max-width: 780px) { .pos-container { padding: 16px; } .menu-items { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } .modal-content { width: 95%; } .stats-amount { font-size: 1.2rem; } }
     </style>
 </head>
 <body>
@@ -139,7 +90,7 @@
     <div class="login-box">
         <h2 data-lang="loginTitle">🔐 系统登录</h2>
         <input type="password" id="passwordInput" placeholder="请输入密码" autofocus>
-        <button id="loginBtn">登 录</button>
+        <button id="loginBtn" data-lang="loginBtn">登 录</button>
         <div id="loginError" class="login-error"></div>
     </div>
 </div>
@@ -150,798 +101,376 @@
         <h1><span data-lang="posTitle">柜台·点餐终端</span></h1>
         <div style="display: flex; gap: 12px;">
             <button id="langSwitchBtn" class="btn-lang">English</button>
-            <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史 / 导出 Excel</span></button>
+            <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
         </div>
     </div>
-    <div class="sub" data-lang="subText">实时同步厨房 | 分类菜单 · 订单号自动递增</div>
+    <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码 - 英文数字版)</div>
+
+    <div class="bluetooth-bar">
+        <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机 (58mm)</button>
+        <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
+        <button id="testPrintBtn" class="bluetooth-print-btn" style="background:#ff8c00;">🖨️ 测试打印</button>
+    </div>
 
     <div id="lastOrderCard" class="last-order-card">
-        <div class="last-order-info">
-            <span class="last-order-label" data-lang="lastOrderLabel">📋 最后一单</span>
-            <span id="lastOrderNumberDisplay" class="last-order-number">—</span>
-        </div>
-        <div class="last-order-info">
-            <span class="last-order-label" data-lang="lastTableLabel">🏷️ 桌号</span>
-            <span id="lastTableDisplay" class="last-order-table">—</span>
-        </div>
+        <div class="last-order-info"><span class="last-order-label" data-lang="lastOrderLabel">📋 最后一单</span><span id="lastOrderNumberDisplay" class="last-order-number">—</span></div>
+        <div class="last-order-info"><span class="last-order-label" data-lang="lastTableLabel">🏷️ 桌号</span><span id="lastTableDisplay" class="last-order-table">—</span></div>
     </div>
 
     <div class="category-tabs" id="categoryTabs">
-        <button class="cat-btn active" data-cat="main" data-lang="catMain">主页</button>
-        <button class="cat-btn" data-cat="side" data-lang="catSide">🥗 额外</button>
-        <button class="cat-btn" data-cat="product" data-lang="catExtra">➕ 产品</button>
+        <button class="cat-btn active" data-cat="main" data-lang="catMain"> 剪头发</button>
+        <button class="cat-btn" data-cat="side" data-lang="catSide"> 护理</button>
+        <button class="cat-btn" data-cat="extra" data-lang="catExtra">➕加</button>
     </div>
 
     <div class="pos-grid">
-        <div class="menu-panel">
-            <div class="menu-header" id="currentCategoryTitle" data-lang="mainTitle">📋头发护理</div>
-            <div class="menu-items" id="menuList"></div>
-        </div>
+        <div class="menu-panel"><div class="menu-header" id="currentCategoryTitle">剪头发</div><div id="menuList" class="menu-items"></div></div>
         <div class="cart-panel">
             <div class="cart-header" data-lang="cartHeader">🛒 当前订单</div>
-            
-            <!-- 蓝牙打印机模块 -->
-            <div id="printerStatus" class="printer-status disconnected" data-lang="printerDisconnected">🔌 打印机未连接</div>
-            <button id="connectPrinterBtn" class="btn-bluetooth" data-lang="connectPrinter">🔍 搜索并连接蓝牙打印机</button>
-            
-            <div id="cartItems" class="cart-items"><div style="color:#aa9f93;" data-lang="emptyCart">暂无菜品，点菜加购</div></div>
-            <div class="table-input">
-                <label data-lang="tableLabel">🏷️ 桌号 / 外带</label>
-                <input type="text" id="tableNumber" value="1">
-            </div>
-            <div class="order-row">
-                <span data-lang="totalLabel">合计金额</span>
-                <span id="totalAmount">$0.00</span>
-            </div>
-            <button id="submitOrderBtn" class="btn-submit"><span data-lang="submitBtn">📨 下单 → 厨房</span></button>
-            <button id="printOrderBtn" class="btn-print" disabled><span data-lang="printBtn">🖨️ 打印小票</span></button>
+            <div id="cartItems" class="cart-items"><div style="color:#aa9f93;">暂无菜品</div></div>
+            <div class="table-input"><label data-lang="tableLabel">🏷️ 桌号</label><input type="text" id="tableNumber" value="1"></div>
+            <div class="order-row"><span data-lang="totalLabel">合计金额</span><span id="totalAmount">$0.00</span></div>
+            <button id="submitOrderBtn" class="btn-submit"><span data-lang="submitBtn">📨 下单 + 打印</span></button>
             <button id="clearCartBtn" class="clear-cart"><span data-lang="clearCartBtn">🗑️ 清空购物车</span></button>
             <div id="statusMsg" class="feedback" style="display:none;"></div>
         </div>
     </div>
-    <div class="footer-credit" data-lang="footer">✅ 订单永久保存，订单号自动连续</div>
+    <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印 (使用英文/数字避免乱码)</div>
 </div>
 
 <div id="historyModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <h2><span data-lang="historyTitle">📋 全部订单（已完成+未完成）</span>
+        <h2><span data-lang="historyTitle">📋 全部订单</span>
             <div style="display: flex; gap: 10px;">
-                <button id="exportExcelBtn" class="export-btn"><span data-lang="exportBtn">📎 导出 Excel</span></button>
-                <button id="resetCounterBtn" class="reset-counter-btn"><span data-lang="resetCounterBtn">🔄 重置订单号码</span></button>
-                <button id="clearAllOrdersBtn" class="clear-all-btn"><span data-lang="clearAllBtn">🗑️ 一键清除所有订单</span></button>
+                <button id="exportExcelBtn" class="export-btn">📎 导出 Excel</button>
+                <button id="resetCounterBtn" class="reset-counter-btn">🔄 重置号码</button>
+                <button id="clearAllOrdersBtn" class="clear-all-btn">🗑️ 清除所有</button>
             </div>
         </h2>
         <div id="salesStatsContainer" class="sales-stats"></div>
-        <div style="overflow-x: auto;">
-            <table class="order-table">
-                <thead id="orderTableHead"></thead>
-                <tbody id="historyTbody"><tr><td colspan="7" data-lang="loadingHistory">加载中...</td></tr>
-            </table>
-        </div>
-    </div>
-</div>
-</div>
+        <div style="overflow-x: auto;"><table class="order-table"><thead id="orderTableHead"></thead><tbody id="historyTbody"><tr><td colspan="7">加载中...<\/td><\/tr><\/tbody><\/table><\/div>
+    <\/div>
+<\/div>
+<\/div>
 
 <script>
-    // 等待 Firebase 加载完成
-    window.addEventListener('load', function() {
-        // 检查 Firebase 是否加载成功
-        if (typeof firebase === 'undefined') {
-            document.getElementById('loginError').innerText = '⚠️ 网络连接失败，请通过本地服务器访问（不能直接双击打开文件）';
-            console.error('Firebase 加载失败，请确保：\n1. 使用本地服务器访问（python -m http.server 8080）\n2. 网络连接正常');
+    // ========== 多语言 ==========
+    const translations = {
+        'zh-CN': {
+            loginTitle:'🔐 系统登录',loginBtn:'登 录',posTitle:'柜台·点餐终端',historyBtn:'📊 订单历史',subText:'实时同步厨房 | 蓝牙打印 (英文数字版无乱码)',
+            catMain:'剪头发',catSide:'护理',catExtra:'➕ 额外加',mainTitle:'剪头发',sideTitle:'护理',extraTitle:'✨ 额外',
+            cartHeader:'🛒 当前订单',emptyCart:'暂无菜品',tableLabel:'🏷️ 桌号',totalLabel:'合计金额',submitBtn:'📨 下单 + 打印',clearCartBtn:'🗑️ 清空',
+            footer:'✅ 订单永久保存',historyTitle:'📋 全部订单',exportBtn:'📎 导出',resetCounterBtn:'🔄 重置号码',clearAllBtn:'🗑️ 清除',
+            loadingHistory:'加载中...',noOrders:'暂无订单',loadFailed:'加载失败',statusPending:'⏳ 制作中',statusCompleted:'✅ 已完成',
+            tableHeaderOrderNo:'订单号',tableHeaderOrderId:'订单ID',tableHeaderTable:'桌号',tableHeaderTime:'时间',tableHeaderItems:'菜品',tableHeaderTotal:'总价',tableHeaderStatus:'状态',
+            confirmClear:'⚠️ 确认删除所有订单？',clearSuccess:'✅ 已清除',clearFail:'清除失败',confirmReset:'⚠️ 重置计数器？',resetSuccess:'✅ 已重置',resetFail:'重置失败',
+            exportNoData:'无数据',exportFail:'导出失败',addStatus:'➕ 已添加',removeStatus:'🗑️ 已移除',cartEmptyError:'❌ 购物车为空',
+            orderSuccess:'✅ 订单 #',orderSent:' 已发送，桌号:',orderTotal:' 总价 $',orderFail:'❌ 下单失败',permissionDenied:'权限不足',urlError:'数据库错误',
+            gettingOrderNo:'📡 获取订单号...',sending:'📡 发送中...',lastOrderLabel:'📋 最后一单',lastTableLabel:'🏷️ 桌号',todayTotalLabel:'📅 今日销售',yesterdayTotalLabel:'⏪ 昨日销售',
+            printSuccess:'🖨️ 小票已打印',printFail:'❌ 打印失败',bluetoothConnected:'✅ 打印机已连接',bluetoothDisconnected:'⚠️ 未连接',connecting:'🔄 连接中...'
+        },
+        'en': {
+            loginTitle:'🔐 Login',loginBtn:'Login',posTitle:'Counter POS',historyBtn:'📊 History',subText:'Sync + Bluetooth Print (No garbled)',
+            catMain:'🍜 Main',catSide:'🥗 Side',catExtra:'➕ Extra',mainTitle:'📋 POT',sideTitle:'🥢 Side',extraTitle:'✨ Extra',
+            cartHeader:'🛒 Cart',emptyCart:'Empty',tableLabel:'🏷️ Table',totalLabel:'Total',submitBtn:'📨 Submit + Print',clearCartBtn:'🗑️ Clear',
+            footer:'✅ Orders saved',historyTitle:'All Orders',exportBtn:'📎 Export',resetCounterBtn:'🔄 Reset',clearAllBtn:'🗑️ Clear',
+            loadingHistory:'Loading...',noOrders:'No orders',loadFailed:'Failed',statusPending:'⏳ Progress',statusCompleted:'✅ Done',
+            tableHeaderOrderNo:'Order #',tableHeaderOrderId:'ID',tableHeaderTable:'Table',tableHeaderTime:'Time',tableHeaderItems:'Items',tableHeaderTotal:'Total',tableHeaderStatus:'Status',
+            confirmClear:'⚠️ Delete all?',clearSuccess:'✅ Cleared',clearFail:'Fail',confirmReset:'⚠️ Reset counter?',resetSuccess:'✅ Reset',resetFail:'Fail',
+            exportNoData:'No data',exportFail:'Fail',addStatus:'➕ Added',removeStatus:'🗑️ Removed',cartEmptyError:'❌ Cart empty',
+            orderSuccess:'✅ Order #',orderSent:' sent, Table:',orderTotal:' Total $',orderFail:'❌ Failed',permissionDenied:'Denied',urlError:'DB error',
+            gettingOrderNo:'📡 Getting number...',sending:'📡 Sending...',lastOrderLabel:'📋 Last',lastTableLabel:'🏷️ Table',todayTotalLabel:'📅 Today',yesterdayTotalLabel:'⏪ Yesterday',
+            printSuccess:'🖨️ Printed',printFail:'❌ Print fail',bluetoothConnected:'✅ Connected',bluetoothDisconnected:'⚠️ Disconnected',connecting:'🔄 Connecting...'
+        }
+    };
+    
+    // 菜品英文名称 (用于打印，避免中文乱码)
+    const MENU_ENGLISH = {
+        1: "1.Hair Cut(M)", 2: "2.Hair Cut(F)", 3: "3.Hair Cut (Child)", 4: "4.Traetment Hair",
+        5: "5.Scalp", 6: "6.Keratin", 7: "7.Short", 8: "8.Medium Shoulder",
+        9: "9.Above", 10: "10.Perm(Cold)", 11: "11.Perm(Hot)", 12: "12.Perm(Root)",
+        13: "13.Colour (Touch Up)", 14: "14.Basic Colour", 15: "15.Colour(Highlight)", 16: "16.Colour (Bleach)",
+        17: "17.Add", 18: "18.Add", 19: "19.Add"
+    };
+    
+    const MENU_NAMES = {
+        'zh-CN':{1:" 1.剪头发（男)",2:" 2.剪头发(女)",3:" 3.剪头发(小孩)",4:" 4.头发护理",5:" 5.头皮护理",6:" 6.胶原蛋白护发",7:" 7.短发",8:" 8.中长发",9:" 9.胸部以上长度",10:" 10.冷烫",11:" 11.热烫",12:" 12.补染发根",13:" 13.小补染",14:" 14.染发",15:" 15.挑染",16:"漂白 16.加",17:" 17.加",18:" 18.加",19:" 19.加"},
+        'en':{1:" 1.Hair Cut(M)",2:" 2.Hair Cut (F)",3:" 3.Hair Cut (Child)",4:" 4.Treatment Hair",5:" 5.Scalp",6:" 6.Keratin",7:" 7.Short",8:" 8.Medium Shoulder",9:" 9.Above",10:" 10.Cold",11:" 11.Hot",12:" 12.Root",13:" 13.Touch up",14:" 14.Basic Colour",15:" 15.Highlight",16:" 16.Bleach",17:" 17.Add",18:" 18.Add",19:" 19.Add"}
+    };
+    
+    let currentLang = 'zh-CN';
+    let bluetoothCharacteristic = null;
+    let currentCategory = "main";
+    let cart = [];
+    let menuContainer, cartContainer, totalSpan, tableInput, submitBtn, clearCartBtn, statusDiv, categoryTitle, catBtns;
+    let historyBtn, modal, closeModal, exportExcelBtn, clearAllOrdersBtn, resetCounterBtn, historyTbody;
+    let lastOrderNumberSpan, lastTableSpan;
+    let timeoutId = null;
+
+    // Firebase 配置
+    const firebaseConfig = { apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc", authDomain: "create-for-payment.firebaseapp.com", databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "create-for-payment", storageBucket: "create-for-payment.firebasestorage.app", messagingSenderId: "505063429802", appId: "1:505063429802:web:8ec8cca8c788610bad62d3" };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const ordersRef = database.ref('orders');
+    const counterRef = database.ref('orderCounter');
+    
+    const MENU_BASE = { main: [{ id:1,price:28.00},{id:2,price:33.00},{id:3,price:20.00},{id:4,price:60.00},{id:5,price:100.00},{id:6,price:150.00},{id:7,price:120.00},{id:8,price:250.00}], side: [{ id:9,price:350.00},{id:10,price:120.00},{id:11,price:250.00},{id:12,price:100.00},{id:13,price:90.00}], extra: [{ id:14,price:80.00},{id:15,price:80.00},{id:16,price:80.00},{id:17,price:5.00},{id:18,price:10.00},{id:19,price:50.00}] };
+    
+    function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
+    function showStatus(msg, isError){ if(!statusDiv) return; statusDiv.innerText=msg; statusDiv.style.display='block'; statusDiv.classList.toggle('error-feedback',isError); if(timeoutId) clearTimeout(timeoutId); timeoutId=setTimeout(()=>statusDiv.style.display='none',3000); }
+    function getMenuItemName(id){ return MENU_NAMES[currentLang][id] || `Item ${id}`; }
+    function getCurrentMenu(){ let result={}; for(let cat in MENU_BASE){ result[cat]=MENU_BASE[cat].map(item=>({...item, name: getMenuItemName(item.id)})); } return result; }
+    function renderMenuByCategory(cat){ let items=getCurrentMenu()[cat]||[]; menuContainer.innerHTML=''; items.forEach(item=>{ let card=document.createElement('div'); card.className='menu-card'; card.innerHTML=`<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">$${item.price}</div>`; card.addEventListener('click',()=>addToCart(item)); menuContainer.appendChild(card); }); if(cat==='main') categoryTitle.innerText=translations[currentLang].mainTitle; else if(cat==='side') categoryTitle.innerText=translations[currentLang].sideTitle; else categoryTitle.innerText=translations[currentLang].extraTitle; }
+    function switchCategory(cat){ currentCategory=cat; renderMenuByCategory(cat); catBtns.forEach(btn=>btn.classList.toggle('active',btn.dataset.cat===cat)); }
+    function addToCart(item){ let existing=cart.find(i=>i.id===item.id); if(existing) existing.qty++; else cart.push({...item,qty:1}); renderCart(); showStatus(`${translations[currentLang].addStatus}${item.name}`); }
+    function updateQty(id,delta){ let idx=cart.findIndex(i=>i.id===id); if(idx!==-1){ let newQty=cart[idx].qty+delta; if(newQty<=0) cart.splice(idx,1); else cart[idx].qty=newQty; renderCart(); } }
+    function removeItem(id){ cart=cart.filter(i=>i.id!==id); renderCart(); showStatus(translations[currentLang].removeStatus); }
+    function calcTotal(){ return cart.reduce((s,i)=>s+i.price*i.qty,0); }
+    function renderCart(){ if(!cartContainer) return; if(cart.length===0){ cartContainer.innerHTML=`<div style="color:#aa9f93;">${translations[currentLang].emptyCart}</div>`; totalSpan.innerText='$0.00'; return; } let html=''; cart.forEach(item=>{ html+=`<div class="cart-item"><div><div>${escapeHtml(item.name)}</div><div>$${item.price}</div></div><div class="cart-item-controls"><button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button><span>${item.qty}</span><button class="btn-qty" data-id="${item.id}" data-delta="1">+</button><button class="remove-item" data-id="${item.id}">✕</button></div></div>`; }); cartContainer.innerHTML=html; totalSpan.innerText=`$${calcTotal().toFixed(2)}`; document.querySelectorAll('.btn-qty').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); updateQty(parseInt(btn.dataset.id),parseInt(btn.dataset.delta)); })); document.querySelectorAll('.remove-item').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); removeItem(parseInt(btn.dataset.id)); })); }
+    
+    async function getNextOrderNumber(){ let snapshot=await counterRef.transaction(c=>(c||0)+1); return snapshot.snapshot.val(); }
+    function updateLastOrderDisplay(orderNumber,tableNo){ if(lastOrderNumberSpan) lastOrderNumberSpan.innerText=orderNumber?`#${orderNumber}`:'—'; if(lastTableSpan) lastTableSpan.innerText=tableNo||'—'; }
+    
+    // ========== 修复后的蓝牙打印 - 使用纯英文+ESC/POS指令 ==========
+    const ESC = '\x1B';
+    const GS = '\x1D';
+    
+    // ESC/POS 命令
+    function initPrinter() { return ESC + '@'; }
+    function setAlignCenter() { return ESC + 'a' + '\x01'; }
+    function setAlignLeft() { return ESC + 'a' + '\x00'; }
+    function setBoldOn() { return ESC + 'E' + '\x01'; }
+    function setBoldOff() { return ESC + 'E' + '\x00'; }
+    function setFontSizeLarge() { return GS + '!' + '\x11'; }  // 双倍高宽
+    function setFontSizeNormal() { return GS + '!' + '\x00'; }
+    function feedLines(n) { return ESC + 'd' + String.fromCharCode(n); }
+    function cutPaper() { return GS + 'V' + '\x41' + '\x00'; }
+    
+    // 生成纯英文打印内容 (保证无乱码)
+    function generateEnglishReceipt(orderNumber, tableNo, itemsList, totalPrice) {
+        let content = "";
+        content += setAlignCenter();
+        content += setFontSizeLarge();
+        content += "SMART POS\n";
+        content += setFontSizeNormal();
+        content += "============\n";
+        content += setAlignLeft();
+        content += "Order #: " + orderNumber + "\n";
+        content += "Table: " + tableNo + "\n";
+        content += "Time: " + new Date().toLocaleString() + "\n";
+        content += "Pay: Cash\n";
+        content += "--------------------------------\n";
+        
+        itemsList.forEach(it => {
+            let name = it.nameEn || it.name;
+            // 限制长度
+            if(name.length > 18) name = name.substring(0, 15) + "...";
+            let line = name;
+            let spaces = 24 - name.length - it.qty.toString().length - 6;
+            if(spaces < 2) spaces = 2;
+            line += " ".repeat(spaces) + "x" + it.qty + "  $" + (it.price * it.qty).toFixed(2);
+            content += line + "\n";
+        });
+        
+        content += "--------------------------------\n";
+        content += setBoldOn();
+        content += "TOTAL:".padEnd(18) + "$" + totalPrice.toFixed(2) + "\n";
+        content += setBoldOff();
+        content += "================================\n";
+        content += setAlignCenter();
+        content += "Thank you!\n";
+        content += "Welcome Again!\n";
+        content += feedLines(4);
+        content += cutPaper;
+        
+        return content;
+    }
+    
+    // 发送打印数据
+    async function sendPrintData(dataString) {
+        if(!bluetoothCharacteristic) return false;
+        try {
+            // 使用 UTF-8 编码，但只包含 ASCII 字符 (英文+数字+符号)
+            const encoder = new TextEncoder();
+            let fullData = encoder.encode(initPrinter());
+            let contentData = encoder.encode(dataString);
+            let finalData = new Uint8Array(fullData.length + contentData.length);
+            finalData.set(fullData, 0);
+            finalData.set(contentData, fullData.length);
+            
+            // 分块发送
+            const chunkSize = 128;
+            for(let i=0; i<finalData.length; i+=chunkSize) {
+                const chunk = finalData.slice(i, i+chunkSize);
+                await bluetoothCharacteristic.writeValue(chunk);
+                await new Promise(r => setTimeout(r, 30));
+            }
+            return true;
+        } catch(e) {
+            console.error("Send error:", e);
+            return false;
+        }
+    }
+    
+    async function connectBluetooth() {
+        const statusSpan = document.getElementById('bluetoothStatus');
+        if(!navigator.bluetooth){ 
+            statusSpan.innerText='❌ 不支持'; 
+            showStatus('浏览器不支持Web Bluetooth，请使用Chrome',true); 
+            return; 
+        }
+        try{
+            statusSpan.innerText=translations[currentLang].connecting;
+            const device = await navigator.bluetooth.requestDevice({ 
+                filters:[{ services:['000018f0-0000-1000-8000-00805f9b34fb'] }],
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+            });
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+            const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+            bluetoothCharacteristic = characteristic;
+            statusSpan.innerText = translations[currentLang].bluetoothConnected;
+            showStatus('✅ 打印机已连接', false);
+            device.addEventListener('gattserverdisconnected', () => { 
+                bluetoothCharacteristic = null; 
+                statusSpan.innerText = translations[currentLang].bluetoothDisconnected; 
+                showStatus('打印机已断开', true);
+            });
+        } catch(e) { 
+            statusSpan.innerText = '❌ 连接失败'; 
+            showStatus('连接失败:' + e.message, true);
+        }
+    }
+    
+    async function testPrint() {
+        if(!bluetoothCharacteristic) {
+            showStatus('请先连接打印机', true);
             return;
         }
-        
-        // ========== 多语言资源 ==========
-        const translations = {
-            'zh-CN': {
-                loginTitle: '🔐 系统登录',
-                loginBtn: '登 录',
-                posTitle: '柜台·点餐终端',
-                historyBtn: '📊 订单历史 / 导出 Excel',
-                subText: '实时同步厨房 | 分类菜单 · 订单号自动递增',
-                catMain: '🍜 主页',
-                catSide: '🥗 额外',
-                catExtra: '➕ 产品',
-                mainTitle: '📋 头发护理',
-                sideTitle: '🥢 额外',
-                extraTitle: '✨ 产品',
-                cartHeader: '🛒 当前订单',
-                emptyCart: '暂无菜品，点菜加购',
-                tableLabel: '🏷️ 桌号 / 外带',
-                totalLabel: '合计金额',
-                submitBtn: '📨 下单 → 厨房',
-                printBtn: '🖨️ 打印小票',
-                clearCartBtn: '🗑️ 清空购物车',
-                footer: '✅ 订单永久保存，订单号自动连续',
-                historyTitle: '📋 全部订单（已完成+未完成）',
-                exportBtn: '📎 导出 Excel',
-                resetCounterBtn: '🔄 重置订单号码',
-                clearAllBtn: '🗑️ 一键清除所有订单',
-                loadingHistory: '加载中...',
-                noOrders: '暂无任何订单',
-                loadFailed: '加载失败，请检查网络',
-                statusPending: '⏳ 制作中',
-                statusCompleted: '✅ 已完成',
-                tableHeaderOrderNo: '订单号',
-                tableHeaderOrderId: '订单ID',
-                tableHeaderTable: '桌号',
-                tableHeaderTime: '下单时间',
-                tableHeaderItems: '菜品明细',
-                tableHeaderTotal: '总价($)',
-                tableHeaderStatus: '状态',
-                confirmClear: '⚠️ 确认删除所有订单吗？不可恢复！',
-                clearSuccess: '✅ 所有订单已清除，计数器已重置',
-                clearFail: '清除失败：',
-                confirmReset: '⚠️ 确认重置订单号码吗？下次下单将从 1 开始计数。\n注意：已存在的订单号码不会改变。',
-                resetSuccess: '✅ 订单计数器已重置为 0，下一单将是 #1',
-                resetFail: '重置失败：',
-                exportNoData: '没有订单可导出',
-                exportFail: '导出失败：',
-                addStatus: '➕ 已添加 ',
-                removeStatus: '🗑️ 已移除菜品',
-                cartEmptyError: '❌ 购物车为空，请先点餐',
-                orderSuccess: '✅ 订单 #',
-                orderSent: ' 已发送至厨房！ 桌号: ',
-                orderTotal: ' 总价 $',
-                orderFail: '❌ 下单失败: ',
-                permissionDenied: '权限不足，请检查 Firebase 数据库规则',
-                urlError: '数据库URL配置错误',
-                gettingOrderNo: '📡 获取订单号...',
-                sending: '📡 发送中...',
-                lastOrderLabel: '📋 最后一单',
-                lastTableLabel: '🏷️ 桌号',
-                todayTotalLabel: '📅 今日销售总额',
-                yesterdayTotalLabel: '⏪ 昨日销售总额',
-                printerDisconnected: '🔌 打印机未连接',
-                printerConnected: '✅ 打印机已连接',
-                connectPrinter: '🔍 搜索并连接蓝牙打印机',
-                printSuccess: '✅ 小票打印成功',
-                printFail: '❌ 打印失败: ',
-                bluetoothNotSupported: '❌ 浏览器不支持蓝牙功能，请使用Chrome/Edge',
-                searchingPrinter: '🔍 正在搜索打印机...',
-                connectSuccess: '✅ 打印机连接成功',
-                connectFail: '❌ 连接失败: '
-            },
-            'en': {
-                loginTitle: '🔐 System Login',
-                loginBtn: 'Login',
-                posTitle: 'Counter POS Terminal',
-                historyBtn: '📊 Order History / Export Excel',
-                subText: 'Real-time sync to kitchen | Categories · Auto order numbers',
-                catMain: '🍜 Main Course',
-                catSide: '🥗 Side Dishes',
-                catExtra: '➕ Extras',
-                mainTitle: '📋 Hair Care',
-                sideTitle: '🥢 Side Dishes',
-                extraTitle: '✨ Products',
-                cartHeader: '🛒 Current Order',
-                emptyCart: 'No items, click menu to add',
-                tableLabel: '🏷️ Table / Takeaway',
-                totalLabel: 'Total',
-                submitBtn: '📨 Submit → Kitchen',
-                printBtn: '🖨️ Print Receipt',
-                clearCartBtn: '🗑️ Clear Cart',
-                footer: '✅ Orders saved permanently, order numbers auto increment',
-                historyTitle: '📋 All Orders (Completed + Pending)',
-                exportBtn: '📎 Export to Excel',
-                resetCounterBtn: '🔄 Reset Order Numbers',
-                clearAllBtn: '🗑️ Clear All Orders',
-                loadingHistory: 'Loading...',
-                noOrders: 'No orders yet',
-                loadFailed: 'Failed to load, check network',
-                statusPending: '⏳ In Progress',
-                statusCompleted: '✅ Completed',
-                tableHeaderOrderNo: 'Order #',
-                tableHeaderOrderId: 'Order ID',
-                tableHeaderTable: 'Table',
-                tableHeaderTime: 'Time',
-                tableHeaderItems: 'Items',
-                tableHeaderTotal: 'Total ($)',
-                tableHeaderStatus: 'Status',
-                confirmClear: '⚠️ Delete ALL orders? This cannot be undone!',
-                clearSuccess: '✅ All orders cleared, counter reset',
-                clearFail: 'Clear failed: ',
-                confirmReset: '⚠️ Reset order number counter? Next order will start from #1.\nExisting orders keep their numbers.',
-                resetSuccess: '✅ Order counter reset to 0, next order will be #1',
-                resetFail: 'Reset failed: ',
-                exportNoData: 'No orders to export',
-                exportFail: 'Export failed: ',
-                addStatus: '➕ Added ',
-                removeStatus: '🗑️ Item removed',
-                cartEmptyError: '❌ Cart is empty, please add items',
-                orderSuccess: '✅ Order #',
-                orderSent: ' sent to kitchen! Table: ',
-                orderTotal: ' Total $',
-                orderFail: '❌ Order failed: ',
-                permissionDenied: 'Permission denied, check Firebase rules',
-                urlError: 'Invalid database URL',
-                gettingOrderNo: '📡 Getting order number...',
-                sending: '📡 Sending...',
-                lastOrderLabel: '📋 Last Order',
-                lastTableLabel: '🏷️ Table',
-                todayTotalLabel: '📅 Today\'s Sales',
-                yesterdayTotalLabel: '⏪ Yesterday\'s Sales',
-                printerDisconnected: '🔌 Printer Disconnected',
-                printerConnected: '✅ Printer Connected',
-                connectPrinter: '🔍 Search & Connect Printer',
-                printSuccess: '✅ Receipt printed',
-                printFail: '❌ Print failed: ',
-                bluetoothNotSupported: '❌ Bluetooth not supported, use Chrome/Edge',
-                searchingPrinter: '🔍 Searching for printer...',
-                connectSuccess: '✅ Printer connected',
-                connectFail: '❌ Connect failed: '
-            }
-        };
-
-        // 菜品中英文名称映射
-        const MENU_NAMES = {
-            'zh-CN': {
-                1: "1.剪头发（男）", 2: "2.剪头发（女）", 3: "3.洗头", 4: "4.染头发", 5: "5.电头发",
-                6: "6.拉直", 7: "7.护发", 8: "8.洗发液(抗头皮屑)", 9: "9.洗发液（护发液)", 10: "10.护发液",
-                11: "11.剪头发", 12: "12.剪头发", 13: "13.剪头发", 14: "14.剪头发", 15: "15.剪头发"
-            },
-            'en': {
-                1: "1.HairCut(Male)", 2: "2.HairCut(Female)", 3: "3.Hair wash", 4: "4.Hair Dye", 5: "5.Permed Hair",
-                6: "6.Straighten", 7: "7.Treatment", 8: "8.Shampoo(Anti-Dandruff)", 9: "9.Shampoo(Treatment)", 10: "10.Treatment Formula",
-                11: "11.HairCut", 12: "12.HairCut", 13: "13.HairCut", 14: "14.HairCut", 15: "15.HairCut"
-            }
-        };
-
-        let currentLang = 'zh-CN';
-
-        function updateStaticTexts() {
-            document.querySelectorAll('[data-lang]').forEach(el => {
-                const key = el.getAttribute('data-lang');
-                if (translations[currentLang][key]) {
-                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                        el.placeholder = translations[currentLang][key];
-                    } else {
-                        el.innerText = translations[currentLang][key];
-                    }
-                }
-            });
-            const currentCat = currentCategory;
-            if (currentCat === 'main') document.getElementById('currentCategoryTitle').innerText = translations[currentLang].mainTitle;
-            else if (currentCat === 'side') document.getElementById('currentCategoryTitle').innerText = translations[currentLang].sideTitle;
-            else document.getElementById('currentCategoryTitle').innerText = translations[currentLang].extraTitle;
-            const labels = document.querySelectorAll('#lastOrderCard .last-order-label');
-            if(labels[0]) labels[0].innerText = translations[currentLang].lastOrderLabel;
-            if(labels[1]) labels[1].innerText = translations[currentLang].lastTableLabel;
-            if (modal && modal.style.display === 'block') {
-                renderHistoryTable();
-            }
+        const testContent = setAlignCenter() + setFontSizeLarge() + "TEST PRINT\n" + setFontSizeNormal() + setAlignLeft() + "--------------------------------\n" + "Printer Model: POS-5810DD\n" + "Status: Working\n" + "Date: " + new Date().toLocaleString() + "\n" + "--------------------------------\n" + feedLines(2) + cutPaper;
+        const success = await sendPrintData(testContent);
+        if(success) {
+            showStatus('✅ 测试打印成功！', false);
+        } else {
+            showStatus('❌ 测试打印失败', true);
         }
-
-        function getMenuItemName(id) {
-            return MENU_NAMES[currentLang][id] || `Item ${id}`;
+    }
+    
+    async function printReceipt(orderNumber, tableNo, itemsList, totalPrice){
+        if(!bluetoothCharacteristic){ 
+            showStatus('请先连接打印机', true); 
+            return false; 
         }
-
-        function switchLanguage(lang) {
-            if (lang === currentLang) return;
-            currentLang = lang;
-            updateStaticTexts();
-            renderMenuByCategory(currentCategory);
-            renderCart();
-            if (modal && modal.style.display === 'block') {
-                renderHistoryTable();
-            }
-            document.getElementById('langSwitchBtn').innerText = currentLang === 'zh-CN' ? 'English' : '中文';
-        }
-
-        // ========== 登录 ==========
-        const LOGIN_PASSWORD = "123456";
-        const loginOverlay = document.getElementById('loginOverlay');
-        const mainContent = document.getElementById('mainContent');
-        
-        function doLogin() {
-            const pwdInput = document.getElementById('passwordInput');
-            const loginErrorDiv = document.getElementById('loginError');
-            if (pwdInput.value.trim() === LOGIN_PASSWORD) {
-                loginOverlay.style.display = 'none';
-                mainContent.style.display = 'block';
-                initPOS();
-            } else {
-                loginErrorDiv.innerText = '❌ 密码错误，请重新输入';
-                pwdInput.value = '';
-            }
-        }
-        document.getElementById('loginBtn').addEventListener('click', doLogin);
-        document.getElementById('passwordInput').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
-
-        // ========== Firebase 配置 ==========
-        const firebaseConfig = {
-            apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-            authDomain: "create-for-payment.firebaseapp.com",
-            databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "create-for-payment",
-            storageBucket: "create-for-payment.firebasestorage.app",
-            messagingSenderId: "505063429802",
-            appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
-            measurementId: "G-SHP91WNP0H"
-        };
-        
-        let database, ordersRef, counterRef;
-        try {
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            ordersRef = database.ref('orders');
-            counterRef = database.ref('orderCounter');
-            console.log('✅ Firebase 初始化成功');
-        } catch(e) {
-            console.error('Firebase 初始化失败:', e);
-            alert('Firebase 连接失败，请检查网络后刷新页面');
-        }
-
-        // 菜单基础数据
-        const MENU_BASE = {
-            main: [
-                { id: 1, price: 30.00, cat: "main" }, { id: 2, price: 32.00, cat: "main" },
-                { id: 3, price: 51.90, cat: "main" }, { id: 4, price: 180.90, cat: "main" },
-                { id: 5, price: 58.90, cat: "main" }, { id: 6, price: 80.90, cat: "main" },
-                { id: 7, price: 120.90, cat: "main" }
-            ],
-            side: [
-                { id: 8, price: 32.00, cat: "side" }, { id: 9, price: 32.00, cat: "side" },
-                { id: 10, price: 32.00, cat: "side" }
-            ],
-            product: [
-                { id: 11, price: 35.00, cat: "extra" }, { id: 12, price: 40.00, cat: "extra" },
-                { id: 13, price: 45.00, cat: "extra" }, { id: 14, price: 50.00, cat: "extra" },
-                { id: 15, price: 55.00, cat: "extra" }
-            ]
-        };
-
-        let currentCategory = "main";
-        let cart = [];
-        let menuContainer, cartContainer, totalSpan, tableInput, submitBtn, printBtn, clearCartBtn, statusDiv, categoryTitle, catBtns;
-        let historyBtn, modal, closeModal, exportExcelBtn, clearAllOrdersBtn, resetCounterBtn, historyTbody;
-        let lastOrderNumberSpan, lastTableSpan;
-        let timeoutId = null;
-
-        // ========== 蓝牙打印机核心逻辑 ==========
-        let bluetoothDevice;
-        let printerCharacteristic;
-        const PRINTER_SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb';
-        const PRINTER_CHAR_UUID = '0000ff02-0000-1000-8000-00805f9b34fb';
-
-        function updatePrinterStatus(connected) {
-            const statusEl = document.getElementById('printerStatus');
-            if (connected) {
-                statusEl.innerText = translations[currentLang].printerConnected;
-                statusEl.classList.remove('disconnected');
-                if(printBtn) printBtn.disabled = false;
-            } else {
-                statusEl.innerText = translations[currentLang].printerDisconnected;
-                statusEl.classList.add('disconnected');
-                if(printBtn) printBtn.disabled = true;
-            }
-        }
-
-        async function connectBluetoothPrinter() {
-            if (!navigator.bluetooth) {
-                showStatus(translations[currentLang].bluetoothNotSupported, true);
-                return;
-            }
-            try {
-                showStatus(translations[currentLang].searchingPrinter);
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ services: [PRINTER_SERVICE_UUID] }],
-                    optionalServices: [PRINTER_SERVICE_UUID]
-                });
-                const server = await bluetoothDevice.gatt.connect();
-                const service = await server.getPrimaryService(PRINTER_SERVICE_UUID);
-                printerCharacteristic = await service.getCharacteristic(PRINTER_CHAR_UUID);
-                updatePrinterStatus(true);
-                showStatus(translations[currentLang].connectSuccess);
-                bluetoothDevice.addEventListener('gattserverdisconnected', () => {
-                    updatePrinterStatus(false);
-                });
-            } catch (err) {
-                showStatus(`${translations[currentLang].connectFail}${err.message}`, true);
-                updatePrinterStatus(false);
-            }
-        }
-
-        const ESC = 0x1B;
-        const commands = {
-            init: [ESC, 0x40], alignCenter: [ESC, 0x61, 0x01], alignLeft: [ESC, 0x61, 0x00],
-            boldOn: [ESC, 0x45, 0x01], boldOff: [ESC, 0x45, 0x00], cut: [ESC, 0x64, 0x02], feed: [ESC, 0x64, 0x03]
-        };
-
-        function textToBytes(text) {
-            const bytes = [];
-            for (let i = 0; i < text.length; i++) bytes.push(text.charCodeAt(i));
-            return bytes;
-        }
-
-        async function printReceipt(orderData) {
-            if (!printerCharacteristic || !bluetoothDevice?.gatt?.connected) {
-                showStatus(translations[currentLang].printerDisconnected, true);
-                return;
-            }
-            try {
-                let data = [];
-                data = data.concat(commands.init, commands.alignCenter, commands.boldOn);
-                data = data.concat(textToBytes("HAIR SALON\n====================\n"), commands.boldOff, commands.alignLeft);
-                data = data.concat(textToBytes(`Order No: #${orderData.orderNumber}\nTable: ${orderData.table}\nTime: ${new Date(orderData.time).toLocaleString()}\n----------------------\n`));
-                orderData.items.forEach(item => {
-                    data = data.concat(textToBytes(`${item.name} x${item.qty}  $${(item.price * item.qty).toFixed(2)}\n`));
-                });
-                data = data.concat(textToBytes("----------------------\n"), commands.boldOn);
-                data = data.concat(textToBytes(`TOTAL: $${orderData.total.toFixed(2)}\n`), commands.boldOff);
-                data = data.concat(textToBytes("====================\n\n\n"), commands.cut);
-                const chunkSize = 20;
-                for (let i = 0; i < data.length; i += chunkSize) {
-                    await printerCharacteristic.writeValue(new Uint8Array(data.slice(i, i + chunkSize)));
-                    await new Promise(r => setTimeout(r, 50));
-                }
-                showStatus(translations[currentLang].printSuccess);
-            } catch (err) {
-                showStatus(`${translations[currentLang].printFail}${err.message}`, true);
-            }
-        }
-
-        function printCurrentCart() {
-            if (cart.length === 0) {
-                showStatus(translations[currentLang].cartEmptyError, true);
-                return;
-            }
-            printReceipt({
-                orderNumber: lastOrderNumberSpan.innerText.replace('#', '') || 'TEMP',
-                table: tableInput.value || 'Takeaway',
-                time: new Date().toISOString(),
-                items: cart,
-                total: calcTotal()
-            });
-        }
-
-        function showStatus(msg, isError = false) {
-            if (!statusDiv) return;
-            statusDiv.innerText = msg;
-            statusDiv.style.display = 'block';
-            statusDiv.classList.toggle('error-feedback', isError);
-            if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => statusDiv.style.display = 'none', 3000);
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-        }
-
-        function getLocalDateString(isoString) {
-            if (!isoString) return null;
-            const date = new Date(isoString);
-            if (isNaN(date.getTime())) return null;
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        }
-
-        function computeDailyTotals(orders) {
-            const today = new Date();
-            const todayStr = getLocalDateString(today.toISOString());
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const yesterdayStr = getLocalDateString(yesterday.toISOString());
-            let todayTotal = 0, yesterdayTotal = 0;
-            for (const order of orders) {
-                if (!order.time) continue;
-                const orderDateStr = getLocalDateString(order.time);
-                if (orderDateStr === todayStr) todayTotal += order.total || 0;
-                else if (orderDateStr === yesterdayStr) yesterdayTotal += order.total || 0;
-            }
-            return { todayTotal, yesterdayTotal };
-        }
-
-        function updateSalesStats(orders) {
-            const container = document.getElementById('salesStatsContainer');
-            if (!container) return;
-            const { todayTotal, yesterdayTotal } = computeDailyTotals(orders);
-            container.innerHTML = `
-                <div class="stats-item"><span class="stats-label">${translations[currentLang].todayTotalLabel}</span><span class="stats-amount">$${todayTotal.toFixed(2)}</span></div>
-                <div class="stats-item"><span class="stats-label">${translations[currentLang].yesterdayTotalLabel}</span><span class="stats-amount">$${yesterdayTotal.toFixed(2)}</span></div>
-            `;
-        }
-
-        function getCurrentMenu() {
-            const result = {};
-            for (let cat in MENU_BASE) {
-                result[cat] = MENU_BASE[cat].map(item => ({ ...item, name: getMenuItemName(item.id) }));
-            }
-            return result;
-        }
-
-        function renderMenuByCategory(cat) {
-            if (!menuContainer) return;
-            const currentMenu = getCurrentMenu();
-            const items = currentMenu[cat] || [];
-            menuContainer.innerHTML = '';
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'menu-card';
-                card.innerHTML = `<div class="menu-name">${escapeHtml(item.name)}</div><div class="menu-price">$${item.price}</div>`;
-                card.addEventListener('click', () => addToCart(item));
-                menuContainer.appendChild(card);
-            });
-            if (items.length === 0) menuContainer.innerHTML = '<div style="text-align:center; padding:40px;">' + (currentLang === 'zh-CN' ? '暂无菜品' : 'No items') + '</div>';
-            if (categoryTitle) {
-                if (cat === 'main') categoryTitle.innerText = translations[currentLang].mainTitle;
-                else if (cat === 'side') categoryTitle.innerText = translations[currentLang].sideTitle;
-                else categoryTitle.innerText = translations[currentLang].extraTitle;
-            }
-        }
-
-        function switchCategory(cat) {
-            currentCategory = cat;
-            renderMenuByCategory(cat);
-            if (catBtns) catBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.cat === cat));
-        }
-
-        function addToCart(item) {
-            const existing = cart.find(i => i.id === item.id);
-            if (existing) existing.qty++;
-            else cart.push({ ...item, qty: 1 });
-            renderCart();
-            showStatus(`${translations[currentLang].addStatus}${item.name}`);
-        }
-
-        function updateQty(id, delta) {
-            const idx = cart.findIndex(i => i.id === id);
-            if (idx !== -1) {
-                const newQty = cart[idx].qty + delta;
-                if (newQty <= 0) cart.splice(idx, 1);
-                else cart[idx].qty = newQty;
-                renderCart();
-            }
-        }
-
-        function removeItem(id) {
-            cart = cart.filter(i => i.id !== id);
-            renderCart();
-            showStatus(translations[currentLang].removeStatus);
-        }
-
-        function calcTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
-
-        function renderCart() {
-            if (!cartContainer) return;
-            if (cart.length === 0) {
-                cartContainer.innerHTML = `<div style="color:#aa9f93; text-align:center;">${translations[currentLang].emptyCart}</div>`;
-                if(totalSpan) totalSpan.innerText = '$0.00';
-                return;
-            }
-            let html = '';
-            cart.forEach(item => {
-                html += `<div class="cart-item">
-                    <div class="cart-item-info"><div>${escapeHtml(item.name)}</div><div>$${item.price}</div></div>
-                    <div class="cart-item-controls">
-                        <button class="btn-qty" data-id="${item.id}" data-delta="-1">−</button>
-                        <span class="cart-qty">${item.qty}</span>
-                        <button class="btn-qty" data-id="${item.id}" data-delta="1">+</button>
-                        <button class="remove-item" data-id="${item.id}">✕</button>
-                    </div>
-                </div>`;
-            });
-            cartContainer.innerHTML = html;
-            if(totalSpan) totalSpan.innerText = `$${calcTotal().toFixed(2)}`;
-            document.querySelectorAll('.btn-qty').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    e.stopPropagation();
-                    updateQty(parseInt(btn.dataset.id), parseInt(btn.dataset.delta));
-                });
-            });
-            document.querySelectorAll('.remove-item').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    e.stopPropagation();
-                    removeItem(parseInt(btn.dataset.id));
-                });
-            });
-        }
-
-        async function getNextOrderNumber() {
-            if (!counterRef) return Math.floor(Math.random() * 10000);
-            try {
-                const snapshot = await counterRef.transaction(current => (current || 0) + 1);
-                return snapshot.snapshot.val();
-            } catch (err) {
-                console.error('获取订单号失败', err);
-                return Date.now() % 10000;
-            }
-        }
-
-        function updateLastOrderDisplay(orderNumber, tableNo) {
-            if (lastOrderNumberSpan) lastOrderNumberSpan.innerText = orderNumber ? `#${orderNumber}` : '—';
-            if (lastTableSpan) lastTableSpan.innerText = tableNo || '—';
-        }
-
-        async function submitOrder() {
-            if (cart.length === 0) {
-                showStatus(translations[currentLang].cartEmptyError, true);
-                return;
-            }
-            let tableNo = tableInput.value.trim();
-            if (!tableNo) tableNo = "外带";
-            const itemsForOrder = cart.map(item => ({
-                name: MENU_NAMES['zh-CN'][item.id] || item.name,
+        try{
+            // 转换为英文名称用于打印
+            const englishItems = itemsList.map(item => ({
+                nameEn: MENU_ENGLISH[item.id] || item.name.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 20),
+                name: item.name,
                 qty: item.qty,
                 price: item.price
             }));
-            const orderData = {
-                table: tableNo,
-                items: itemsForOrder,
-                total: calcTotal(),
-                time: new Date().toISOString(),
-                completed: false
-            };
-            if(submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.6';
+            const receiptText = generateEnglishReceipt(orderNumber, tableNo, englishItems, totalPrice);
+            const success = await sendPrintData(receiptText);
+            if(success) {
+                showStatus(translations[currentLang].printSuccess, false);
+            } else {
+                showStatus(translations[currentLang].printFail, true);
             }
-            const originalText = submitBtn ? submitBtn.innerHTML : '';
-            if(submitBtn) submitBtn.innerHTML = translations[currentLang].gettingOrderNo;
-            try {
-                const orderNumber = await getNextOrderNumber();
-                orderData.orderNumber = orderNumber;
-                if(submitBtn) submitBtn.innerHTML = translations[currentLang].sending;
-                if(ordersRef) await ordersRef.push(orderData);
-                showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`);
-                updateLastOrderDisplay(orderNumber, tableNo);
-                cart = [];
-                renderCart();
-            } catch (err) {
-                console.error(err);
-                showStatus(`${translations[currentLang].orderFail}${err.message}`, true);
-            } finally {
-                if(submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.innerHTML = originalText;
-                }
-            }
+            return success;
+        }catch(e){ 
+            console.error('打印错误:', e);
+            showStatus(`${translations[currentLang].printFail}${e.message}`, true); 
+            return false; 
         }
-
-        function clearCart() {
-            if (cart.length === 0) return;
-            cart = [];
+    }
+    
+    // 下单 + 打印
+    async function submitOrder(){
+        if(cart.length===0){ showStatus(translations[currentLang].cartEmptyError,true); return; }
+        let tableNo = tableInput.value.trim() || "1";
+        let itemsForOrder = cart.map(item => ({ 
+            id: item.id,
+            name: MENU_NAMES['zh-CN'][item.id] || item.name, 
+            qty: item.qty, 
+            price: item.price 
+        }));
+        let orderData = { table: tableNo, items: itemsForOrder, total: calcTotal(), time: new Date().toISOString(), completed: false };
+        submitBtn.disabled = true; 
+        let originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = translations[currentLang].gettingOrderNo;
+        try{
+            let orderNumber = await getNextOrderNumber();
+            orderData.orderNumber = orderNumber;
+            submitBtn.innerHTML = translations[currentLang].sending;
+            await ordersRef.push(orderData);
+            // 打印小票 (使用英文避免乱码)
+            await printReceipt(orderNumber, tableNo, cart.map(c => ({id:c.id, name:c.name, qty:c.qty, price:c.price})), calcTotal());
+            showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`);
+            updateLastOrderDisplay(orderNumber, tableNo);
+            cart = []; 
             renderCart();
-            showStatus(translations[currentLang].removeStatus);
+        } catch(err){ 
+            console.error(err);
+            showStatus(`${translations[currentLang].orderFail}${err.message}`, true); 
+        } finally { 
+            submitBtn.disabled = false; 
+            submitBtn.innerHTML = originalText; 
         }
-
-        async function fetchAllOrders() {
-            if (!ordersRef) return [];
-            const snapshot = await ordersRef.once('value');
-            const orders = snapshot.val();
-            if (!orders) return [];
-            const list = Object.entries(orders).map(([id, data]) => ({ id, ...data }));
-            list.sort((a,b) => new Date(b.time) - new Date(a.time));
-            return list;
-        }
-
-        function formatItems(items) {
-            if (!items || !Array.isArray(items)) return '';
-            return items.map(i => `${i.name} x${i.qty}`).join('; ');
-        }
-
-        async function renderHistoryTable() {
-            const tbody = document.getElementById('historyTbody');
-            if(!tbody) return;
-            tbody.innerHTML = `<tr><td colspan="7">${translations[currentLang].loadingHistory}</td></tr>`;
-            const thead = document.getElementById('orderTableHead');
-            if (thead) {
-                thead.innerHTML = `<tr><th>${translations[currentLang].tableHeaderOrderNo}</th><th>${translations[currentLang].tableHeaderOrderId}</th><th>${translations[currentLang].tableHeaderTable}</th><th>${translations[currentLang].tableHeaderTime}</th><th>${translations[currentLang].tableHeaderItems}</th><th>${translations[currentLang].tableHeaderTotal}</th><th>${translations[currentLang].tableHeaderStatus}</th></tr>`;
-            }
-            try {
-                const orders = await fetchAllOrders();
-                updateSalesStats(orders);
-                if (orders.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7">${translations[currentLang].noOrders}</td></tr>`;
-                    return;
-                }
-                let html = '';
-                orders.forEach(order => {
-                    html += `<tr class="${order.completed === true ? 'completed-row' : ''}">
-                        <td>${escapeHtml(order.orderNumber ? `#${order.orderNumber}` : '—')}</td>
-                        <td>${escapeHtml(order.id)}</td>
-                        <td>${escapeHtml(order.table || '外带')}</td>
-                        <td>${order.time ? escapeHtml(new Date(order.time).toLocaleString()) : '未知'}</td>
-                        <td>${escapeHtml(formatItems(order.items))}</td>
-                        <td>$${order.total ? order.total.toFixed(2) : '0.00'}</td>
-                        <td>${order.completed === true ? translations[currentLang].statusCompleted : translations[currentLang].statusPending}</td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html;
-            } catch(err) {
-                tbody.innerHTML = `<tr><td colspan="7">${translations[currentLang].loadFailed}</td></tr>`;
-            }
-        }
-
-        async function exportToExcel() {
-            const orders = await fetchAllOrders();
-            if (orders.length === 0) { alert(translations[currentLang].exportNoData); return; }
-            const headers = [translations[currentLang].tableHeaderOrderNo, translations[currentLang].tableHeaderOrderId, translations[currentLang].tableHeaderTable, translations[currentLang].tableHeaderTime, translations[currentLang].tableHeaderItems, translations[currentLang].tableHeaderTotal, translations[currentLang].tableHeaderStatus];
-            const rows = orders.map(order => [order.orderNumber ? `#${order.orderNumber}` : '', order.id, order.table || '外带', order.time ? new Date(order.time).toLocaleString() : '', formatItems(order.items), order.total ? order.total.toFixed(2) : '0.00', order.completed === true ? translations[currentLang].statusCompleted : translations[currentLang].statusPending]);
-            const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `orders_${new Date().toISOString().slice(0,19)}.csv`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
-
-        async function clearAllOrders() {
-            if (!confirm(translations[currentLang].confirmClear)) return;
-            try {
-                if(ordersRef) await ordersRef.remove();
-                if(counterRef) await counterRef.remove();
-                alert(translations[currentLang].clearSuccess);
-                if (modal && modal.style.display === 'block') await renderHistoryTable();
-            } catch(err) {
-                alert(translations[currentLang].clearFail + err.message);
-            }
-        }
-
-        async function resetOrderCounter() {
-            if (!confirm(translations[currentLang].confirmReset)) return;
-            try {
-                if(counterRef) await counterRef.set(0);
-                alert(translations[currentLang].resetSuccess);
-            } catch(err) {
-                alert(translations[currentLang].resetFail + err.message);
-            }
-        }
-
-        function openModal() { if(modal) modal.style.display = 'block'; renderHistoryTable(); }
-        function closeModalFunc() { if(modal) modal.style.display = 'none'; }
-
-        function initPOS(){
-            menuContainer = document.getElementById('menuList');
-            cartContainer = document.getElementById('cartItems');
-            totalSpan = document.getElementById('totalAmount');
-            tableInput = document.getElementById('tableNumber');
-            submitBtn = document.getElementById('submitOrderBtn');
-            clearCartBtn = document.getElementById('clearCartBtn');
-            statusDiv = document.getElementById('statusMsg');
-            categoryTitle = document.getElementById('currentCategoryTitle');
-            catBtns = document.querySelectorAll('.cat-btn');
-            historyBtn = document.getElementById('historyBtn');
-            modal = document.getElementById('historyModal');
-            closeModal = document.querySelector('.close');
-            exportExcelBtn = document.getElementById('exportExcelBtn');
-            clearAllOrdersBtn = document.getElementById('clearAllOrdersBtn');
-            resetCounterBtn = document.getElementById('resetCounterBtn');
-            historyTbody = document.getElementById('historyTbody');
-            lastOrderNumberSpan = document.getElementById('lastOrderNumberDisplay');
-            lastTableSpan = document.getElementById('lastTableDisplay');
-            printBtn = document.getElementById('printOrderBtn');
-            
-            const connectBtn = document.getElementById('connectPrinterBtn');
-            if(connectBtn) connectBtn.addEventListener('click', connectBluetoothPrinter);
-            if(printBtn) printBtn.addEventListener('click', printCurrentCart);
-
-            const langBtn = document.getElementById('langSwitchBtn');
-            if(langBtn) langBtn.addEventListener('click', () => switchLanguage(currentLang === 'zh-CN' ? 'en' : 'zh-CN'));
-
-            if(catBtns) catBtns.forEach(btn => btn.addEventListener('click', () => switchCategory(btn.dataset.cat)));
-            renderMenuByCategory('main');
-            renderCart();
-            if(submitBtn) submitBtn.addEventListener('click', submitOrder);
-            if(clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
-            if(tableInput) tableInput.addEventListener('keypress', e => { if (e.key === 'Enter' && submitBtn) submitOrder(); });
-            if(historyBtn) historyBtn.addEventListener('click', openModal);
-            if(closeModal) closeModal.addEventListener('click', closeModalFunc);
-            if(exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
-            if(clearAllOrdersBtn) clearAllOrdersBtn.addEventListener('click', clearAllOrders);
-            if(resetCounterBtn) resetCounterBtn.addEventListener('click', resetOrderCounter);
-            window.addEventListener('click', e => { if (e.target === modal) closeModalFunc(); });
-            if(database) database.ref('.info/connected').on('value', snap => console.log(snap.val() ? '✅ Firebase已连接' : '⚠️ 未连接'));
-
-            updateStaticTexts();
-            renderMenuByCategory(currentCategory);
-            updateLastOrderDisplay(null, null);
-        }
-    });
+    }
+    
+    function clearCart(){ if(cart.length===0) return; cart=[]; renderCart(); showStatus(translations[currentLang].removeStatus); }
+    
+    // 订单历史 & 统计
+    async function fetchAllOrders(){ let snap=await ordersRef.once('value'); let orders=snap.val(); if(!orders) return []; let list=Object.entries(orders).map(([id,data])=>({id,...data})); list.sort((a,b)=>new Date(b.time)-new Date(a.time)); return list; }
+    function getLocalDateString(iso){ if(!iso) return null; let d=new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function computeDailyTotals(orders){ let today=getLocalDateString(new Date().toISOString()); let yesterday=getLocalDateString(new Date(Date.now()-86400000).toISOString()); let todayTotal=0,yesterdayTotal=0; orders.forEach(o=>{ let d=getLocalDateString(o.time); if(d===today) todayTotal+=o.total||0; else if(d===yesterday) yesterdayTotal+=o.total||0; }); return {todayTotal,yesterdayTotal}; }
+    function updateSalesStats(orders){ let c=document.getElementById('salesStatsContainer'); if(!c) return; let{todayTotal,yesterdayTotal}=computeDailyTotals(orders); c.innerHTML=`<div class="stats-item"><span class="stats-label">${translations[currentLang].todayTotalLabel}</span><span class="stats-amount">$${todayTotal.toFixed(2)}</span></div><div class="stats-item"><span class="stats-label">${translations[currentLang].yesterdayTotalLabel}</span><span class="stats-amount">$${yesterdayTotal.toFixed(2)}</span></div>`; }
+    function formatItems(items){ if(!items) return ''; return items.map(i=>`${i.name} x${i.qty}`).join('; '); }
+    async function renderHistoryTable(){ let tbody=document.getElementById('historyTbody'); tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadingHistory}<\/td><\/tr>`; let thead=document.getElementById('orderTableHead'); if(thead) thead.innerHTML=`<tr><th>${translations[currentLang].tableHeaderOrderNo}<\/th><th>${translations[currentLang].tableHeaderOrderId}<\/th><th>${translations[currentLang].tableHeaderTable}<\/th><th>${translations[currentLang].tableHeaderTime}<\/th><th>${translations[currentLang].tableHeaderItems}<\/th><th>${translations[currentLang].tableHeaderTotal}<\/th><th>${translations[currentLang].tableHeaderStatus}<\/th><\/tr>`; try{ let orders=await fetchAllOrders(); updateSalesStats(orders); if(orders.length===0){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].noOrders}<\/td><\/tr>`; return; } let html=''; orders.forEach(o=>{ let orderNum=o.orderNumber?`#${o.orderNumber}`:'—'; let itemsStr=formatItems(o.items); let timeStr=o.time?new Date(o.time).toLocaleString():'未知'; let status=o.completed===true?translations[currentLang].statusCompleted:translations[currentLang].statusPending; html+=`<tr class="${o.completed?'completed-row':''}"><td>${escapeHtml(orderNum)}<\/td><td>${escapeHtml(o.id)}<\/td><td>${escapeHtml(o.table||'外带')}<\/td><td>${escapeHtml(timeStr)}<\/td><td>${escapeHtml(itemsStr)}<\/td><td>$${(o.total||0).toFixed(2)}<\/td><td>${status}<\/td><\/tr>`; }); tbody.innerHTML=html; }catch(e){ tbody.innerHTML=`<tr><td colspan="7">${translations[currentLang].loadFailed}<\/td><\/tr>`; } }
+    async function exportToExcel(){ let orders=await fetchAllOrders(); if(orders.length===0){ alert(translations[currentLang].exportNoData); return; } let headers=[translations[currentLang].tableHeaderOrderNo,translations[currentLang].tableHeaderOrderId,translations[currentLang].tableHeaderTable,translations[currentLang].tableHeaderTime,translations[currentLang].tableHeaderItems,translations[currentLang].tableHeaderTotal,translations[currentLang].tableHeaderStatus]; let rows=orders.map(o=>[o.orderNumber?`#${o.orderNumber}`:'',o.id,o.table||'外带',o.time?new Date(o.time).toLocaleString():'',formatItems(o.items),(o.total||0).toFixed(2),o.completed===true?translations[currentLang].statusCompleted:translations[currentLang].statusPending]); let csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'); let blob=new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8'}); let link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`orders_${new Date().toISOString().slice(0,19)}.csv`; link.click(); URL.revokeObjectURL(link.href); }
+    async function clearAllOrders(){ if(!confirm(translations[currentLang].confirmClear)) return; try{ await ordersRef.remove(); await counterRef.set(0); alert(translations[currentLang].clearSuccess); if(modal.style.display==='block') renderHistoryTable(); }catch(e){ alert(translations[currentLang].clearFail+e.message); } }
+    async function resetOrderCounter(){ if(!confirm(translations[currentLang].confirmReset)) return; try{ await counterRef.set(0); alert(translations[currentLang].resetSuccess); }catch(e){ alert(translations[currentLang].resetFail+e.message); } }
+    function openModal(){ modal.style.display='block'; renderHistoryTable(); }
+    function closeModalFunc(){ modal.style.display='none'; }
+    
+    function updateStaticTexts(){
+        document.querySelectorAll('[data-lang]').forEach(el=>{ let key=el.getAttribute('data-lang'); if(translations[currentLang][key]){ if(el.tagName==='INPUT') el.placeholder=translations[currentLang][key]; else el.innerText=translations[currentLang][key]; } });
+        if(currentCategory==='main') categoryTitle.innerText=translations[currentLang].mainTitle;
+        else if(currentCategory==='side') categoryTitle.innerText=translations[currentLang].sideTitle;
+        else categoryTitle.innerText=translations[currentLang].extraTitle;
+        if(modal && modal.style.display==='block') renderHistoryTable();
+    }
+    function switchLanguage(lang){ if(lang===currentLang) return; currentLang=lang; updateStaticTexts(); renderMenuByCategory(currentCategory); renderCart(); if(modal.style.display==='block') renderHistoryTable(); document.getElementById('langSwitchBtn').innerText=currentLang==='zh-CN'?'English':'中文'; }
+    
+    function initPOS(){
+        menuContainer=document.getElementById('menuList'); cartContainer=document.getElementById('cartItems'); totalSpan=document.getElementById('totalAmount'); tableInput=document.getElementById('tableNumber');
+        submitBtn=document.getElementById('submitOrderBtn'); clearCartBtn=document.getElementById('clearCartBtn'); statusDiv=document.getElementById('statusMsg'); categoryTitle=document.getElementById('currentCategoryTitle');
+        catBtns=document.querySelectorAll('.cat-btn'); historyBtn=document.getElementById('historyBtn'); modal=document.getElementById('historyModal'); closeModal=document.querySelector('.close');
+        exportExcelBtn=document.getElementById('exportExcelBtn'); clearAllOrdersBtn=document.getElementById('clearAllOrdersBtn'); resetCounterBtn=document.getElementById('resetCounterBtn');
+        historyTbody=document.getElementById('historyTbody'); lastOrderNumberSpan=document.getElementById('lastOrderNumberDisplay'); lastTableSpan=document.getElementById('lastTableDisplay');
+        document.getElementById('connectBluetoothBtn').addEventListener('click',connectBluetooth);
+        document.getElementById('testPrintBtn').addEventListener('click',testPrint);
+        document.getElementById('langSwitchBtn').addEventListener('click',()=>switchLanguage(currentLang==='zh-CN'?'en':'zh-CN'));
+        catBtns.forEach(btn=>btn.addEventListener('click',()=>switchCategory(btn.dataset.cat)));
+        renderMenuByCategory('main'); renderCart(); submitBtn.addEventListener('click',submitOrder); clearCartBtn.addEventListener('click',clearCart);
+        tableInput.addEventListener('keypress',e=>{ if(e.key==='Enter') submitOrder(); });
+        historyBtn.addEventListener('click',openModal); closeModal.addEventListener('click',closeModalFunc); exportExcelBtn.addEventListener('click',exportToExcel);
+        clearAllOrdersBtn.addEventListener('click',clearAllOrders); resetCounterBtn.addEventListener('click',resetOrderCounter);
+        window.addEventListener('click',e=>{ if(e.target===modal) closeModalFunc(); });
+        updateStaticTexts(); updateLastOrderDisplay(null,null);
+    }
+    
+    // 登录逻辑
+    const LOGIN_PASSWORD="123456";
+    const loginOverlay=document.getElementById('loginOverlay');
+    const mainContentDiv=document.getElementById('mainContent');
+    const passwordInputLogin=document.getElementById('passwordInput');
+    const loginBtnDom=document.getElementById('loginBtn');
+    const loginErrorDiv=document.getElementById('loginError');
+    function doLogin(){ if(passwordInputLogin.value.trim()===LOGIN_PASSWORD){ loginOverlay.style.display='none'; mainContentDiv.style.display='block'; initPOS(); } else { loginErrorDiv.innerText='密码错误'; passwordInputLogin.value=''; } }
+    loginBtnDom.addEventListener('click',doLogin);
+    passwordInputLogin.addEventListener('keypress',e=>{ if(e.key==='Enter') doLogin(); });
 </script>
 </body>
 </html>
