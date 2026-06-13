@@ -297,7 +297,8 @@
             bluetoothNotSupported: '❌ 浏览器不支持蓝牙功能，请使用Chrome/Edge',
             searchingPrinter: '🔍 正在搜索打印机...',
             connectSuccess: '✅ 打印机连接成功',
-            connectFail: '❌ 连接失败: '
+            connectFail: '❌ 连接失败: ',
+            autoPrintTip: '✅ 下单成功，自动打印小票中...'
         },
         'en': {
             loginTitle: '🔐 System Login',
@@ -366,7 +367,8 @@
             bluetoothNotSupported: '❌ Bluetooth not supported, use Chrome/Edge',
             searchingPrinter: '🔍 Searching for printer...',
             connectSuccess: '✅ Printer connected',
-            connectFail: '❌ Connect failed: '
+            connectFail: '❌ Connect failed: ',
+            autoPrintTip: '✅ Order submitted, auto printing receipt...'
         }
     };
 
@@ -519,22 +521,25 @@
     let lastOrderNumberSpan, lastTableSpan;
     let timeoutId = null;
 
-    // ========== 蓝牙打印机核心逻辑 ==========
+    // ========== 蓝牙打印机核心逻辑（已修复） ==========
     let bluetoothDevice;
     let printerCharacteristic;
-    const PRINTER_SERVICE_UUID = '0000ff00-0000-1000-8000-00805f9b34fb';
-    const PRINTER_CHAR_UUID = '0000ff02-0000-1000-8000-00805f9b34fb';
+    // 修复：主流蓝牙打印机标准UUID
+    const PRINTER_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+    const PRINTER_CHAR_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
 
     function updatePrinterStatus(connected) {
         const statusEl = document.getElementById('printerStatus');
         if (connected) {
             statusEl.innerText = translations[currentLang].printerConnected;
             statusEl.classList.remove('disconnected');
-            printBtn.disabled = false;
+            if(printBtn) printBtn.disabled = false;
         } else {
             statusEl.innerText = translations[currentLang].printerDisconnected;
             statusEl.classList.add('disconnected');
-            printBtn.disabled = true;
+            if(printBtn) printBtn.disabled = true;
+            bluetoothDevice = null;
+            printerCharacteristic = null;
         }
     }
 
@@ -545,47 +550,64 @@
         }
         try {
             showStatus(translations[currentLang].searchingPrinter);
+            // 修复：适配更多打印机，增加名称过滤
             bluetoothDevice = await navigator.bluetooth.requestDevice({
-                filters: [{ services: [PRINTER_SERVICE_UUID] }],
+                filters: [
+                    { namePrefix: 'Printer' },
+                    { namePrefix: 'BT' },
+                    { services: [PRINTER_SERVICE_UUID] }
+                ],
                 optionalServices: [PRINTER_SERVICE_UUID]
             });
+            // 监听断开
+            bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+                updatePrinterStatus(false);
+                showStatus('⚠️ 打印机已断开连接');
+            });
+            // 连接GATT服务器
             const server = await bluetoothDevice.gatt.connect();
             const service = await server.getPrimaryService(PRINTER_SERVICE_UUID);
             printerCharacteristic = await service.getCharacteristic(PRINTER_CHAR_UUID);
             updatePrinterStatus(true);
             showStatus(translations[currentLang].connectSuccess);
-            // 断开时更新状态
-            bluetoothDevice.addEventListener('gattserverdisconnected', () => {
-                updatePrinterStatus(false);
-            });
         } catch (err) {
+            console.error('蓝牙连接失败', err);
             showStatus(`${translations[currentLang].connectFail}${err.message}`, true);
             updatePrinterStatus(false);
         }
     }
 
-    // 打印指令封装（ESC/POS 指令集）
+    // ESC/POS 打印指令
     const ESC = 0x1B;
     const commands = {
-        init: [ESC, 0x40], // 初始化打印机
+        init: [ESC, 0x40],         // 初始化打印机
         alignCenter: [ESC, 0x61, 0x01], // 居中
-        alignLeft: [ESC, 0x61, 0x00], // 居左
-        boldOn: [ESC, 0x45, 0x01], // 加粗
-        boldOff: [ESC, 0x45, 0x00], // 取消加粗
-        cut: [ESC, 0x64, 0x02], // 切纸
-        feed: [ESC, 0x64, 0x03] // 走纸
+        alignLeft: [ESC, 0x61, 0x00],   // 居左
+        boldOn: [ESC, 0x45, 0x01],      // 加粗
+        boldOff: [ESC, 0x45, 0x00],     // 取消加粗
+        cut: [ESC, 0x64, 0x02],         // 切纸
+        feed: [ESC, 0x64, 0x03]         // 走纸
     };
 
     function textToBytes(text) {
         const bytes = [];
+        // 支持中文编码
         for (let i = 0; i < text.length; i++) {
-            bytes.push(text.charCodeAt(i));
+            const c = text.charCodeAt(i);
+            if (c < 0x80) {
+                bytes.push(c);
+            } else {
+                // 中文转GBK/UTF8适配
+                bytes.push(0xE0 | ((c >> 12) & 0x0F));
+                bytes.push(0x80 | ((c >> 6) & 0x3F));
+                bytes.push(0x80 | (c & 0x3F));
+            }
         }
         return bytes;
     }
 
     async function printReceipt(orderData) {
-        if (!printerCharacteristic || !bluetoothDevice.gatt.connected) {
+        if (!printerCharacteristic || !bluetoothDevice?.gatt?.connected) {
             showStatus(translations[currentLang].printerDisconnected, true);
             return;
         }
@@ -601,33 +623,36 @@
             data = data.concat(commands.boldOff);
             // 订单信息
             data = data.concat(commands.alignLeft);
-            data = data.concat(textToBytes(`Order No: #${orderData.orderNumber}\n`));
-            data = data.concat(textToBytes(`Table: ${orderData.table}\n`));
-            data = data.concat(textToBytes(`Time: ${new Date(orderData.time).toLocaleString()}\n`));
-            data = data.concat(textToBytes("----------------------\n"));
+            data = data.concat(textToBytes(`订单号: #${orderData.orderNumber}\n`));
+            data = data.concat(textToBytes(`桌号: ${orderData.table}\n`));
+            data = data.concat(textToBytes(`时间: ${new Date(orderData.time).toLocaleString()}\n`));
+            data = data.concat(textToBytes("--------------------\n"));
             // 商品列表
             orderData.items.forEach(item => {
                 const line = `${item.name} x${item.qty}  $${(item.price * item.qty).toFixed(2)}\n`;
                 data = data.concat(textToBytes(line));
             });
-            data = data.concat(textToBytes("----------------------\n"));
+            data = data.concat(textToBytes("--------------------\n"));
             // 总价
             data = data.concat(commands.boldOn);
-            data = data.concat(textToBytes(`TOTAL: $${orderData.total.toFixed(2)}\n`));
+            data = data.concat(textToBytes(`总计: $${orderData.total.toFixed(2)}\n`));
             data = data.concat(commands.boldOff);
             data = data.concat(textToBytes("====================\n\n\n"));
             // 切纸
             data = data.concat(commands.cut);
-            // 分包发送（蓝牙MTU限制）
+            // 修复：分包发送，避免MTU限制
             const chunkSize = 20;
             for (let i = 0; i < data.length; i += chunkSize) {
                 const chunk = data.slice(i, i + chunkSize);
                 await printerCharacteristic.writeValue(new Uint8Array(chunk));
-                await new Promise(r => setTimeout(r, 50));
+                await new Promise(r => setTimeout(r, 40)); // 延时防止阻塞
             }
             showStatus(translations[currentLang].printSuccess);
         } catch (err) {
+            console.error('打印失败', err);
             showStatus(`${translations[currentLang].printFail}${err.message}`, true);
+            // 出错时重置状态
+            if(err.message.includes('disconnected')) updatePrinterStatus(false);
         }
     }
 
@@ -639,7 +664,7 @@
         }
         const orderData = {
             orderNumber: lastOrderNumberSpan.innerText.replace('#', '') || 'TEMP',
-            table: tableInput.value || 'Takeaway',
+            table: tableInput.value || '外带',
             time: new Date().toISOString(),
             items: cart,
             total: calcTotal()
