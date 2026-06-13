@@ -335,11 +335,11 @@
         try{
             statusSpan.innerText=translations[currentLang].connecting;
             const device = await navigator.bluetooth.requestDevice({ 
-                filters:[{ services:['000018f0-0000-1000-8000-00805f9b34fb'] }],
-                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                filters:[{ services:['0000ffe0-0000-1000-8000-00805f9b34fb'] }],
+                optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
             });
             const server = await device.gatt.connect();
-            const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+            const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
             const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
             bluetoothCharacteristic = characteristic;
             statusSpan.innerText = translations[currentLang].bluetoothConnected;
@@ -455,7 +455,7 @@
     }
     function switchLanguage(lang){ if(lang===currentLang) return; currentLang=lang; updateStaticTexts(); renderMenuByCategory(currentCategory); renderCart(); if(modal.style.display==='block') renderHistoryTable(); document.getElementById('langSwitchBtn').innerText=currentLang==='zh-CN'?'English':'中文'; }
     
-    function initPOS(){
+    function initPOS(),{
         menuContainer=document.getElementById('menuList'); cartContainer=document.getElementById('cartItems'); totalSpan=document.getElementById('totalAmount'); tableInput=document.getElementById('tableNumber');
         submitBtn=document.getElementById('submitOrderBtn'); clearCartBtn=document.getElementById('clearCartBtn'); statusDiv=document.getElementById('statusMsg'); categoryTitle=document.getElementById('currentCategoryTitle');
         catBtns=document.querySelectorAll('.cat-btn'); historyBtn=document.getElementById('historyBtn'); modal=document.getElementById('historyModal'); closeModal=document.querySelector('.close');
