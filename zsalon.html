@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>智慧柜台POS · 蓝牙打印修复版</title>
-    <!-- 替换为可靠CDN，解决访问失败问题 -->
-    <script src="https://cdn.jsdelivr.net/npm/firebase@10.5.2/dist/firebase-app-compat.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/firebase@10.5.2/dist/firebase-database-compat.min.js"></script>
+    <!-- ✅ 替换为官方可靠CDN，解决访问失败 -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif; background: #f2ede8; margin: 0; padding: 20px; color: #1e2a2e; }
@@ -244,9 +244,11 @@
     async function getNextOrderNumber(){ let snapshot=await counterRef.transaction(c=>(c||0)+1); return snapshot.snapshot.val(); }
     function updateLastOrderDisplay(orderNumber,tableNo){ if(lastOrderNumberSpan) lastOrderNumberSpan.innerText=orderNumber?`#${orderNumber}`:'—'; if(lastTableSpan) lastTableSpan.innerText=tableNo||'—'; }
     
-    // ========== 修复后的蓝牙打印 - 使用纯英文+ESC/POS指令 ==========
+    // ========== ✅ 修复蓝牙UUID，现在能搜到并连接 ==========
     const ESC = '\x1B';
     const GS = '\x1D';
+    const PRINTER_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+    const PRINTER_CHAR_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
     
     // ESC/POS 命令
     function initPrinter() { return ESC + '@'; }
@@ -335,12 +337,17 @@
         try{
             statusSpan.innerText=translations[currentLang].connecting;
             const device = await navigator.bluetooth.requestDevice({ 
-                filters:[{ services:['0000ffe0-0000-1000-8000-00805f9b34fb'] }],
-                optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+                filters:[
+                    { namePrefix: 'Printer' },
+                    { namePrefix: 'BT' },
+                    { namePrefix: 'POS' },
+                    { services:[PRINTER_SERVICE_UUID] }
+                ],
+                optionalServices: [PRINTER_SERVICE_UUID]
             });
             const server = await device.gatt.connect();
-            const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
-            const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+            const service = await server.getPrimaryService(PRINTER_SERVICE_UUID);
+            const characteristic = await service.getCharacteristic(PRINTER_CHAR_UUID);
             bluetoothCharacteristic = characteristic;
             statusSpan.innerText = translations[currentLang].bluetoothConnected;
             showStatus('✅ 打印机已连接', false);
@@ -455,41 +462,6 @@
     }
     function switchLanguage(lang){ if(lang===currentLang) return; currentLang=lang; updateStaticTexts(); renderMenuByCategory(currentCategory); renderCart(); if(modal.style.display==='block') renderHistoryTable(); document.getElementById('langSwitchBtn').innerText=currentLang==='zh-CN'?'English':'中文'; }
     
-    function initPOS(),{
+    function initPOS(){
         menuContainer=document.getElementById('menuList'); cartContainer=document.getElementById('cartItems'); totalSpan=document.getElementById('totalAmount'); tableInput=document.getElementById('tableNumber');
-        submitBtn=document.getElementById('submitOrderBtn'); clearCartBtn=document.getElementById('clearCartBtn'); statusDiv=document.getElementById('statusMsg'); categoryTitle=document.getElementById('currentCategoryTitle');
-        catBtns=document.querySelectorAll('.cat-btn'); historyBtn=document.getElementById('historyBtn'); modal=document.getElementById('historyModal'); closeModal=document.querySelector('.close');
-        exportExcelBtn=document.getElementById('exportExcelBtn'); clearAllOrdersBtn=document.getElementById('clearAllOrdersBtn'); resetCounterBtn=document.getElementById('resetCounterBtn');
-        historyTbody=document.getElementById('historyTbody'); lastOrderNumberSpan=document.getElementById('lastOrderNumberDisplay'); lastTableSpan=document.getElementById('lastTableDisplay');
-        document.getElementById('connectBluetoothBtn').addEventListener('click',connectBluetooth);
-
-        const langBtn = document.getElementById('langSwitchBtn');
-        langBtn.addEventListener('click', () => {
-            switchLanguage(currentLang === 'zh-CN' ? 'en' : 'zh-CN');
-        });
-
-        catBtns.forEach(btn => btn.addEventListener('click', () => switchCategory(btn.dataset.cat)));
-        document.getElementById('categoryTabs')?.addEventListener('click', e => {
-            const btn = e.target.closest('.cat-btn');
-            if (btn && btn.dataset.cat && !btn.classList.contains('active')) switchCategory(btn.dataset.cat);
-        });
-        renderMenuByCategory('main');
-        renderCart();
-        submitBtn.addEventListener('click', submitOrder);
-        clearCartBtn.addEventListener('click', clearCart);
-        tableInput.addEventListener('keypress', e => { if (e.key === 'Enter') submitOrder(); });
-        historyBtn.addEventListener('click', openModal);
-        closeModal.addEventListener('click', closeModalFunc);
-        exportExcelBtn.addEventListener('click', exportToExcel);
-        clearAllOrdersBtn.addEventListener('click', clearAllOrders);
-        resetCounterBtn.addEventListener('click', resetOrderCounter);
-        window.addEventListener('click', e => { if (e.target === modal) closeModalFunc(); });
-        database.ref('.info/connected').on('value', snap => console.log(snap.val() ? '✅ Firebase已连接' : '⚠️ 未连接'));
-
-        updateStaticTexts();
-        renderMenuByCategory(currentCategory);
-        updateLastOrderDisplay(null, null);
-    }
-</script>
-</body>
-</html>
+        submitBtn=document.getElementById('submitOrderBtn'); clearCartBtn=
