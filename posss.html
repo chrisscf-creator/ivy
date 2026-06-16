@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 全屏版</title>
+    <title>智慧柜台POS · 全屏菜单版</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
     </script>
@@ -100,18 +100,19 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            max-width: 1500px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 0;
             box-shadow: none;
-            padding: 8px 16px 8px 16px;
+            padding: 6px 14px 6px 14px;
             overflow: hidden;
         }
 
-        /* ===== 顶部功能栏区域 — 固定不滚动 ===== */
+        /* ===== 顶部功能栏 — 极致压缩 ===== */
         .pos-header {
             flex-shrink: 0;
+            /* 不压缩 */
         }
 
         /* ---- 标题行 ---- */
@@ -120,25 +121,25 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: nowrap;
-            gap: 10px;
-            padding: 4px 0 2px 0;
-            min-height: 48px;
+            gap: 8px;
+            padding: 2px 0 1px 0;
+            min-height: 36px;
         }
         .header-row h1 {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             white-space: nowrap;
         }
         .header-row h1:before {
             content: "🧾";
-            font-size: 1.4rem;
+            font-size: 1.2rem;
         }
         .header-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-shrink: 0;
             align-items: center;
         }
@@ -148,11 +149,11 @@
             background: #4a6a8a;
             color: white;
             border: none;
-            padding: 6px 14px;
-            border-radius: 40px;
+            padding: 4px 12px;
+            border-radius: 30px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             white-space: nowrap;
             transition: 0.2s;
         }
@@ -165,49 +166,52 @@
         .btn-lang:hover,
         .btn-history:hover {
             background: #2c4a6a;
-            transform: scale(1.02);
         }
 
-        /* ---- 副标题 ---- */
+        /* ---- 副标题 & 蓝牙合并行 ---- */
+        .top-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+            margin: 1px 0 2px 0;
+            min-height: 30px;
+        }
         .sub {
             color: #5f6c70;
-            border-left: 4px solid #ffa500;
-            padding-left: 12px;
-            font-size: 0.75rem;
-            line-height: 1.4;
-            margin: 2px 0 4px 0;
+            border-left: 3px solid #ffa500;
+            padding-left: 10px;
+            font-size: 0.7rem;
+            line-height: 1.3;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            flex: 1;
         }
-
-        /* ---- 蓝牙栏 ---- */
         .bluetooth-bar {
             background: #eaeef2;
-            border-radius: 40px;
-            padding: 4px 14px;
+            border-radius: 30px;
+            padding: 2px 12px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: nowrap;
-            margin: 3px 0 4px 0;
-            min-height: 38px;
+            flex-shrink: 0;
         }
         .bluetooth-bar .bluetooth-print-btn {
             background: #1e5f8e;
             color: white;
             border: none;
-            padding: 4px 14px;
+            padding: 3px 10px;
             border-radius: 30px;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 600;
             white-space: nowrap;
             transition: 0.2s;
         }
         .bluetooth-bar .bluetooth-print-btn:hover {
             background: #0a4468;
-            transform: scale(1.02);
         }
         .bluetooth-bar .bluetooth-print-btn:last-child {
             background: #ff8c00;
@@ -216,57 +220,56 @@
             background: #e07c00;
         }
         .bluetooth-status {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             font-weight: 500;
             color: #2d5f7e;
             white-space: nowrap;
-            flex: 1;
-            min-width: 60px;
+            min-width: 50px;
         }
 
-        /* ---- 最后一单卡片 ---- */
+        /* ---- 最后一单卡片 (更紧凑) ---- */
         .last-order-card {
             background: linear-gradient(135deg, #2c6e2c 0%, #1f511f 100%);
             color: white;
-            border-radius: 20px;
-            padding: 6px 18px;
-            margin: 3px 0 4px 0;
+            border-radius: 16px;
+            padding: 3px 14px;
+            margin: 2px 0 3px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: nowrap;
-            gap: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            min-height: 40px;
+            gap: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            min-height: 32px;
         }
         .last-order-info {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             white-space: nowrap;
         }
         .last-order-label {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             opacity: 0.85;
         }
         .last-order-number,
         .last-order-table {
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             font-weight: bold;
             background: rgba(255, 255, 255, 0.18);
-            padding: 0 12px;
+            padding: 0 10px;
             border-radius: 30px;
             display: inline-block;
-            line-height: 1.8;
+            line-height: 1.6;
         }
 
-        /* ---- 分类标签 ---- */
+        /* ---- 分类标签 (更紧凑) ---- */
         .category-tabs {
             display: flex;
-            gap: 6px;
-            margin: 2px 0 6px 0;
-            padding-bottom: 4px;
+            gap: 4px;
+            margin: 1px 0 4px 0;
+            padding-bottom: 2px;
             border-bottom: 1px solid #e0d6cc;
             flex-wrap: nowrap;
             overflow-x: auto;
@@ -282,10 +285,10 @@
         .cat-btn {
             background: transparent;
             border: none;
-            padding: 4px 16px;
-            font-size: 0.85rem;
+            padding: 3px 14px;
+            font-size: 0.8rem;
             font-weight: 600;
-            border-radius: 40px;
+            border-radius: 30px;
             cursor: pointer;
             color: #5f6c70;
             white-space: nowrap;
@@ -294,25 +297,25 @@
         .cat-btn.active {
             background: #ffa500;
             color: #2c2c2c;
-            box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+            box-shadow: 0 2px 6px rgba(255, 165, 0, 0.3);
         }
         .cat-btn:not(.active):hover {
             background: #fff0e0;
         }
 
-        /* ===== 主体区域 — 剩余空间，内部滚动 ===== */
+        /* ===== 主体区域 — 剩余空间 ===== */
         .pos-body {
             flex: 1;
             min-height: 0;
             display: flex;
-            gap: 16px;
+            gap: 14px;
             overflow: hidden;
-            padding-top: 4px;
+            padding-top: 2px;
         }
 
-        /* ---- 菜单面板 ---- */
+        /* ---- 菜单面板 (最大化) ---- */
         .menu-panel {
-            flex: 2;
+            flex: 3;
             min-width: 0;
             display: flex;
             flex-direction: column;
@@ -320,11 +323,11 @@
         }
         .menu-header {
             font-weight: bold;
-            font-size: 1.0rem;
-            margin-bottom: 6px;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
             border-bottom: 2px solid #ffb347;
             display: inline-block;
-            padding-right: 12px;
+            padding-right: 10px;
             flex-shrink: 0;
         }
         .menu-scroll {
@@ -342,45 +345,49 @@
         }
         .menu-items {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 10px;
             padding-bottom: 8px;
         }
         .menu-card {
             background: #ffffff;
             border-radius: 18px;
-            padding: 10px 12px;
+            padding: 12px 10px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
             border: 1px solid #ffddb0;
             cursor: pointer;
             transition: 0.15s;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 80px;
         }
         .menu-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             border-color: #ffa500;
-            box-shadow: 0 4px 12px rgba(255, 165, 0, 0.2);
+            box-shadow: 0 6px 16px rgba(255, 165, 0, 0.2);
         }
         .menu-name {
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1.0rem;
             line-height: 1.3;
         }
         .menu-price {
             color: #e67e22;
             font-weight: bold;
             margin-top: 4px;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
 
-        /* ---- 购物车面板 ---- */
+        /* ---- 购物车面板 (保持合理宽度) ---- */
         .cart-panel {
-            flex: 1.1;
-            min-width: 220px;
-            max-width: 380px;
+            flex: 1.2;
+            min-width: 240px;
+            max-width: 400px;
             background: #fef9f0;
             border-radius: 24px;
-            padding: 14px 16px 16px 16px;
+            padding: 12px 14px 14px 14px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
@@ -389,17 +396,17 @@
         }
         .cart-header {
             font-weight: bold;
-            font-size: 1.0rem;
-            margin-bottom: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
             border-bottom: 2px solid #ffb347;
             display: inline-block;
-            padding-right: 12px;
+            padding-right: 10px;
             flex-shrink: 0;
         }
         .cart-scroll {
             flex: 1;
             overflow-y: auto;
-            margin: 4px 0 8px 0;
+            margin: 4px 0 6px 0;
             -webkit-overflow-scrolling: touch;
         }
         .cart-scroll::-webkit-scrollbar {
@@ -414,12 +421,12 @@
             justify-content: space-between;
             align-items: center;
             background: white;
-            margin-bottom: 6px;
-            padding: 6px 10px 6px 14px;
-            border-radius: 40px;
+            margin-bottom: 5px;
+            padding: 5px 8px 5px 12px;
+            border-radius: 30px;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-            font-size: 0.85rem;
-            gap: 6px;
+            font-size: 0.8rem;
+            gap: 4px;
         }
         .cart-item-info {
             flex: 1;
@@ -427,7 +434,7 @@
         }
         .cart-item-name {
             font-weight: 500;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -439,17 +446,17 @@
         .cart-item-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             flex-shrink: 0;
         }
         .btn-qty {
             background: #f0e2d0;
             border: none;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 30px;
             font-weight: bold;
-            font-size: 1.0rem;
+            font-size: 0.9rem;
             cursor: pointer;
             line-height: 1;
             display: flex;
@@ -467,9 +474,9 @@
             color: #b91c1c;
             background: none;
             border: none;
-            font-size: 1.0rem;
+            font-size: 0.9rem;
             cursor: pointer;
-            padding: 0 4px;
+            padding: 0 2px;
             line-height: 1;
         }
         .remove-item:hover {
@@ -480,45 +487,45 @@
             color: #aa9f93;
             text-align: center;
             padding: 20px 0;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         /* ---- 购物车底部 ---- */
         .cart-footer {
             flex-shrink: 0;
             margin-top: auto;
-            padding-top: 8px;
+            padding-top: 6px;
             border-top: 1px solid #ede3d8;
         }
         .table-input {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             background: #fff2e2;
-            padding: 6px 12px 6px 16px;
+            padding: 4px 10px 4px 14px;
             border-radius: 40px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .table-input label {
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             white-space: nowrap;
         }
         #tableNumber {
             flex: 1;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border-radius: 40px;
             border: 1px solid #ffcb8e;
             background: white;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             min-width: 40px;
-            width: 60px;
+            width: 50px;
         }
         .order-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0 8px 0;
-            font-size: 1.0rem;
+            margin: 2px 0 6px 0;
+            font-size: 0.95rem;
             font-weight: 600;
         }
         .order-row span:last-child {
@@ -528,8 +535,8 @@
             width: 100%;
             background: #2c6e2c;
             color: white;
-            font-size: 1.0rem;
-            padding: 10px 12px;
+            font-size: 0.95rem;
+            padding: 8px 12px;
             border: none;
             border-radius: 40px;
             font-weight: bold;
@@ -537,7 +544,7 @@
             transition: 0.2s;
             display: flex;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
         .btn-submit:hover {
@@ -554,27 +561,27 @@
             background: #cdd4d9;
             color: #2d3e45;
             border: none;
-            padding: 8px 12px;
+            padding: 6px 12px;
             border-radius: 40px;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             cursor: pointer;
-            margin-top: 6px;
+            margin-top: 4px;
             transition: 0.2s;
         }
         .clear-cart:hover {
             background: #bcc3c9;
         }
         .feedback {
-            margin-top: 6px;
-            font-size: 0.78rem;
+            margin-top: 4px;
+            font-size: 0.75rem;
             text-align: center;
-            padding: 4px 10px;
+            padding: 3px 10px;
             border-radius: 40px;
             background: #e9f5e9;
             color: #2e7d32;
             display: none;
-            min-height: 28px;
+            min-height: 24px;
         }
         .feedback.error-feedback {
             background: #ffe6e5;
@@ -597,7 +604,7 @@
         .modal-content {
             background-color: #fff;
             margin: 20px auto;
-            padding: 24px 28px 32px;
+            padding: 20px 24px 28px;
             border-radius: 32px;
             width: 95%;
             max-width: 1300px;
@@ -630,28 +637,28 @@
             color: black;
         }
         .modal h2 {
-            margin: 0 0 12px 0;
+            margin: 0 0 10px 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 12px;
-            font-size: 1.4rem;
+            gap: 10px;
+            font-size: 1.3rem;
         }
         .modal-actions {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
         .export-btn,
         .clear-all-btn,
         .reset-counter-btn {
             border: none;
-            padding: 6px 16px;
+            padding: 5px 14px;
             border-radius: 30px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             white-space: nowrap;
             transition: 0.2s;
             color: white;
@@ -679,22 +686,22 @@
         .sales-stats {
             background: #f8f4ef;
             border-radius: 24px;
-            padding: 8px 16px;
-            margin: 4px 0 12px 0;
+            padding: 6px 14px;
+            margin: 4px 0 10px 0;
             display: flex;
-            gap: 20px;
+            gap: 16px;
             flex-wrap: wrap;
             align-items: center;
             border: 1px solid #ffddb0;
         }
         .stats-item {
             background: white;
-            padding: 4px 16px;
+            padding: 3px 14px;
             border-radius: 40px;
             display: inline-flex;
             align-items: baseline;
-            gap: 6px;
-            font-size: 0.85rem;
+            gap: 4px;
+            font-size: 0.8rem;
         }
         .stats-label {
             color: #8b6b42;
@@ -702,23 +709,23 @@
         .stats-amount {
             font-weight: bold;
             color: #2c6e2c;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
         }
 
         /* ---- 订单表格 ---- */
         .order-table-wrap {
             overflow-x: auto;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         .order-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         .order-table th,
         .order-table td {
             border: 1px solid #ddd;
-            padding: 8px 10px;
+            padding: 6px 8px;
             text-align: left;
             vertical-align: top;
         }
@@ -734,95 +741,91 @@
         /* ===== 响应式 ===== */
         @media (max-width: 860px) {
             .pos-container {
-                padding: 6px 10px 6px 10px;
+                padding: 4px 8px 4px 8px;
             }
             .header-row h1 {
-                font-size: 1.0rem;
+                font-size: 0.95rem;
             }
             .header-row h1:before {
-                font-size: 1.1rem;
+                font-size: 1.0rem;
             }
             .btn-lang,
             .btn-history,
             .btn-fullscreen {
-                font-size: 0.7rem;
-                padding: 4px 10px;
+                font-size: 0.65rem;
+                padding: 3px 8px;
             }
             .sub {
-                font-size: 0.65rem;
-                padding-left: 8px;
-                white-space: nowrap;
+                font-size: 0.6rem;
+                padding-left: 6px;
             }
             .bluetooth-bar {
-                padding: 3px 10px;
-                gap: 6px;
-                min-height: 32px;
-                flex-wrap: wrap;
+                padding: 2px 8px;
+                gap: 4px;
             }
             .bluetooth-bar .bluetooth-print-btn {
-                font-size: 0.65rem;
-                padding: 3px 10px;
+                font-size: 0.6rem;
+                padding: 2px 8px;
             }
             .bluetooth-status {
-                font-size: 0.65rem;
-                min-width: 40px;
+                font-size: 0.6rem;
+                min-width: 30px;
             }
             .last-order-card {
-                padding: 4px 12px;
-                min-height: 34px;
-                gap: 6px;
+                padding: 2px 10px;
+                min-height: 28px;
             }
             .last-order-info {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             .last-order-number,
             .last-order-table {
-                font-size: 0.9rem;
-                padding: 0 8px;
-                line-height: 1.6;
+                font-size: 0.8rem;
+                padding: 0 6px;
+                line-height: 1.5;
             }
             .cat-btn {
-                font-size: 0.75rem;
-                padding: 3px 12px;
+                font-size: 0.7rem;
+                padding: 2px 10px;
             }
             .pos-body {
-                gap: 10px;
+                gap: 8px;
                 flex-direction: column;
             }
             .cart-panel {
                 max-width: none;
-                min-height: 200px;
-                max-height: 45vh;
+                min-height: 180px;
+                max-height: 40vh;
             }
             .menu-items {
                 grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
                 gap: 6px;
             }
             .menu-card {
-                padding: 6px 8px;
+                padding: 8px 6px;
+                min-height: 60px;
             }
             .menu-name {
-                font-size: 0.78rem;
+                font-size: 0.85rem;
             }
             .menu-price {
-                font-size: 0.78rem;
+                font-size: 0.8rem;
             }
             .cart-item {
-                padding: 4px 8px 4px 12px;
-                font-size: 0.78rem;
+                padding: 4px 6px 4px 10px;
+                font-size: 0.75rem;
             }
             .btn-qty {
                 width: 20px;
                 height: 20px;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             .modal-content {
-                padding: 16px 14px 20px;
+                padding: 14px 12px 18px;
                 width: 98%;
-                max-height: 95vh;
             }
             .modal h2 {
-                font-size: 1.1rem;
+                font-size: 1.0rem;
             }
             .order-table {
                 font-size: 0.7rem;
@@ -832,53 +835,62 @@
                 padding: 4px 6px;
             }
             .sales-stats {
-                gap: 10px;
-                padding: 6px 12px;
+                gap: 8px;
+                padding: 4px 10px;
             }
             .stats-item {
-                font-size: 0.75rem;
-                padding: 2px 12px;
+                font-size: 0.7rem;
+                padding: 2px 10px;
             }
             .stats-amount {
-                font-size: 0.95rem;
+                font-size: 0.9rem;
+            }
+            .top-info-row {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .bluetooth-bar {
+                flex: 1;
+                min-width: 200px;
             }
         }
 
         @media (max-width: 480px) {
             .pos-container {
-                padding: 4px 6px 4px 6px;
+                padding: 2px 4px 2px 4px;
             }
             .header-row h1 {
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }
             .header-row h1:before {
-                font-size: 0.95rem;
+                font-size: 0.85rem;
             }
             .btn-lang,
             .btn-history,
             .btn-fullscreen {
-                font-size: 0.6rem;
-                padding: 3px 8px;
+                font-size: 0.55rem;
+                padding: 2px 6px;
             }
             .last-order-info {
-                font-size: 0.65rem;
+                font-size: 0.6rem;
             }
             .last-order-number,
             .last-order-table {
-                font-size: 0.75rem;
-                padding: 0 6px;
+                font-size: 0.7rem;
+                padding: 0 4px;
                 line-height: 1.4;
             }
             .cat-btn {
-                font-size: 0.65rem;
-                padding: 2px 10px;
+                font-size: 0.6rem;
+                padding: 2px 8px;
             }
             .menu-items {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
                 gap: 4px;
             }
             .menu-card {
-                padding: 4px 6px;
+                padding: 4px 4px;
+                min-height: 50px;
                 border-radius: 12px;
             }
             .menu-name {
@@ -888,64 +900,71 @@
                 font-size: 0.7rem;
             }
             .cart-panel {
-                padding: 10px 10px 12px;
-                min-height: 150px;
-                max-height: 40vh;
+                padding: 8px 8px 10px;
+                min-height: 120px;
+                max-height: 35vh;
             }
             .cart-item {
-                font-size: 0.7rem;
-                padding: 3px 6px 3px 10px;
+                font-size: 0.65rem;
+                padding: 3px 4px 3px 8px;
             }
             .btn-qty {
                 width: 18px;
                 height: 18px;
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             .table-input {
-                padding: 4px 8px 4px 12px;
-                font-size: 0.75rem;
+                padding: 2px 6px 2px 10px;
+                font-size: 0.7rem;
             }
             #tableNumber {
-                padding: 4px 8px;
-                font-size: 0.75rem;
-                width: 44px;
+                padding: 2px 6px;
+                font-size: 0.7rem;
+                width: 36px;
             }
             .btn-submit {
-                font-size: 0.85rem;
-                padding: 8px 10px;
-            }
-            .clear-cart {
-                font-size: 0.75rem;
+                font-size: 0.8rem;
                 padding: 6px 10px;
             }
-            .feedback {
+            .clear-cart {
                 font-size: 0.7rem;
-                min-height: 24px;
+                padding: 4px 10px;
+            }
+            .feedback {
+                font-size: 0.65rem;
+                min-height: 20px;
+            }
+            .modal-content {
+                padding: 10px 8px 14px;
+            }
+            .modal h2 {
+                font-size: 0.9rem;
+            }
+            .export-btn,
+            .clear-all-btn,
+            .reset-counter-btn {
+                font-size: 0.65rem;
+                padding: 3px 10px;
             }
         }
 
         /* ===== 工具 ===== */
         .footer-credit {
             text-align: center;
-            margin-top: 4px;
-            font-size: 0.6rem;
+            margin-top: 2px;
+            font-size: 0.55rem;
             color: #988f82;
             flex-shrink: 0;
             padding: 2px 0;
         }
-        .hidden {
-            display: none !important;
-        }
-
-        /* ===== 全屏提示（可选） ===== */
         .fullscreen-hint {
             background: #fff3cd;
             color: #856404;
             border-radius: 20px;
-            padding: 2px 14px;
-            font-size: 0.7rem;
+            padding: 0 10px;
+            font-size: 0.6rem;
             display: inline-block;
-            margin-left: 8px;
+            margin-left: 6px;
             white-space: nowrap;
         }
     </style>
@@ -975,18 +994,18 @@
                     <div class="header-actions">
                         <button id="fullscreenBtn" class="btn-fullscreen">⛶ 全屏</button>
                         <button id="langSwitchBtn" class="btn-lang">English</button>
-                        <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
+                        <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 历史</span></button>
                     </div>
                 </div>
 
-                <!-- 副标题 -->
-                <div class="sub" data-lang="subText">实时同步厨房 · 蓝牙打印 (英文数字无乱码)  <span class="fullscreen-hint">点击「全屏」隐藏浏览器工具栏</span></div>
-
-                <!-- 蓝牙栏 -->
-                <div class="bluetooth-bar">
-                    <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机</button>
-                    <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
-                    <button id="testPrintBtn" class="bluetooth-print-btn">🖨️ 测试打印</button>
+                <!-- 副标题 + 蓝牙合并 -->
+                <div class="top-info-row">
+                    <div class="sub" data-lang="subText">实时同步 · 蓝牙打印 (英文数字无乱码) <span class="fullscreen-hint">全屏体验</span></div>
+                    <div class="bluetooth-bar">
+                        <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接</button>
+                        <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
+                        <button id="testPrintBtn" class="bluetooth-print-btn">🖨️ 测试</button>
+                    </div>
                 </div>
 
                 <!-- 最后一单 -->
@@ -1012,7 +1031,7 @@
             <!-- ===== 主体区域 (剩余空间, 内部滚动) ===== -->
             <div class="pos-body">
 
-                <!-- 菜单 -->
+                <!-- 菜单 (最大化) -->
                 <div class="menu-panel">
                     <div class="menu-header" id="currentCategoryTitle">📋 铜锅</div>
                     <div class="menu-scroll">
@@ -1036,7 +1055,7 @@
                             <span id="totalAmount">$0.00</span>
                         </div>
                         <button id="submitOrderBtn" class="btn-submit"><span data-lang="submitBtn">📨 下单 + 打印</span></button>
-                        <button id="clearCartBtn" class="clear-cart"><span data-lang="clearCartBtn">🗑️ 清空购物车</span></button>
+                        <button id="clearCartBtn" class="clear-cart"><span data-lang="clearCartBtn">🗑️ 清空</span></button>
                         <div id="statusMsg" class="feedback"></div>
                     </div>
                 </div>
@@ -1077,8 +1096,8 @@
                 loginTitle: '🔐 系统登录',
                 loginBtn: '登 录',
                 posTitle: '柜台·点餐终端',
-                historyBtn: '📊 订单历史',
-                subText: '实时同步厨房 · 蓝牙打印 (英文数字无乱码)',
+                historyBtn: '📊 历史',
+                subText: '实时同步 · 蓝牙打印 (英文数字无乱码)',
                 catMain: '🍜 主菜',
                 catSide: '🥗 小菜',
                 catExtra: '➕ 额外添加',
@@ -1133,7 +1152,7 @@
                 yesterdayTotalLabel: '⏪ 昨日销售',
                 printSuccess: '🖨️ 小票已打印',
                 printFail: '❌ 打印失败',
-                bluetoothConnected: '✅ 打印机已连接',
+                bluetoothConnected: '✅ 已连接',
                 bluetoothDisconnected: '⚠️ 未连接',
                 connecting: '🔄 连接中...'
             },
@@ -1142,7 +1161,7 @@
                 loginBtn: 'Login',
                 posTitle: 'Counter POS',
                 historyBtn: '📊 History',
-                subText: 'Sync + Bluetooth Print (No garbled)',
+                subText: 'Sync · Bluetooth Print (No garbled)',
                 catMain: '🍜 Main',
                 catSide: '🥗 Side',
                 catExtra: '➕ Extra',
@@ -1320,18 +1339,15 @@
 
         function updateFullscreenButton() {
             if (document.fullscreenElement) {
-                fullscreenBtn.textContent = '⛶ 退出全屏';
+                fullscreenBtn.textContent = '⛶ 退出';
             } else {
                 fullscreenBtn.textContent = '⛶ 全屏';
             }
         }
 
-        // 监听全屏变化
         document.addEventListener('fullscreenchange', updateFullscreenButton);
-        // 也监听webkit前缀（兼容）
         document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 
-        // 绑定全屏按钮
         if (fullscreenBtn) {
             fullscreenBtn.addEventListener('click', toggleFullscreen);
         }
@@ -1853,7 +1869,6 @@
 
             updateStaticTexts();
             updateLastOrderDisplay(null, null);
-            // 初始化全屏按钮文字
             updateFullscreenButton();
         }
 
