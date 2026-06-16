@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>智慧柜台POS · 完整布局版</title>
+    <title>智慧柜台POS · 全屏版</title>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
     </script>
@@ -23,7 +23,7 @@
             background: #f2ede8;
             color: #1e2a2e;
             overflow: hidden;
-            /* 防止页面整体滚动，所有滚动在内部容器 */;
+            /* 防止页面整体滚动 */;
         }
 
         /* ===== 登录遮罩 ===== */
@@ -107,13 +107,11 @@
             box-shadow: none;
             padding: 8px 16px 8px 16px;
             overflow: hidden;
-            /* 内部滚动 */;
         }
 
         /* ===== 顶部功能栏区域 — 固定不滚动 ===== */
         .pos-header {
             flex-shrink: 0;
-            /* 不压缩 */;
         }
 
         /* ---- 标题行 ---- */
@@ -145,7 +143,8 @@
             align-items: center;
         }
         .btn-lang,
-        .btn-history {
+        .btn-history,
+        .btn-fullscreen {
             background: #4a6a8a;
             color: white;
             border: none;
@@ -156,6 +155,12 @@
             font-size: 0.8rem;
             white-space: nowrap;
             transition: 0.2s;
+        }
+        .btn-fullscreen {
+            background: #2c6e2c;
+        }
+        .btn-fullscreen:hover {
+            background: #1f511f;
         }
         .btn-lang:hover,
         .btn-history:hover {
@@ -738,7 +743,8 @@
                 font-size: 1.1rem;
             }
             .btn-lang,
-            .btn-history {
+            .btn-history,
+            .btn-fullscreen {
                 font-size: 0.7rem;
                 padding: 4px 10px;
             }
@@ -849,7 +855,8 @@
                 font-size: 0.95rem;
             }
             .btn-lang,
-            .btn-history {
+            .btn-history,
+            .btn-fullscreen {
                 font-size: 0.6rem;
                 padding: 3px 8px;
             }
@@ -929,6 +936,18 @@
         .hidden {
             display: none !important;
         }
+
+        /* ===== 全屏提示（可选） ===== */
+        .fullscreen-hint {
+            background: #fff3cd;
+            color: #856404;
+            border-radius: 20px;
+            padding: 2px 14px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -954,13 +973,14 @@
                 <div class="header-row">
                     <h1><span data-lang="posTitle">柜台·点餐终端</span></h1>
                     <div class="header-actions">
+                        <button id="fullscreenBtn" class="btn-fullscreen">⛶ 全屏</button>
                         <button id="langSwitchBtn" class="btn-lang">English</button>
                         <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
                     </div>
                 </div>
 
                 <!-- 副标题 -->
-                <div class="sub" data-lang="subText">实时同步厨房 · 蓝牙打印 (英文数字无乱码)</div>
+                <div class="sub" data-lang="subText">实时同步厨房 · 蓝牙打印 (英文数字无乱码)  <span class="fullscreen-hint">点击「全屏」隐藏浏览器工具栏</span></div>
 
                 <!-- 蓝牙栏 -->
                 <div class="bluetooth-bar">
@@ -1259,6 +1279,7 @@
         let historyBtn, modal, closeModal, exportExcelBtn, clearAllOrdersBtn, resetCounterBtn, historyTbody;
         let lastOrderNumberSpan, lastTableSpan;
         let timeoutId = null;
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
 
         // Firebase
         const firebaseConfig = {
@@ -1284,6 +1305,38 @@
             { id: 18, price: 1.90 }, { id: 19, price: 1.00 }]
         };
 
+        // ========== 全屏功能 ==========
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert('无法进入全屏模式: ' + err.message);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function updateFullscreenButton() {
+            if (document.fullscreenElement) {
+                fullscreenBtn.textContent = '⛶ 退出全屏';
+            } else {
+                fullscreenBtn.textContent = '⛶ 全屏';
+            }
+        }
+
+        // 监听全屏变化
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        // 也监听webkit前缀（兼容）
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+
+        // 绑定全屏按钮
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+        }
+
+        // ========== 工具函数 ==========
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ?
                 '&lt;' : '&gt;'); }
 
@@ -1800,6 +1853,8 @@
 
             updateStaticTexts();
             updateLastOrderDisplay(null, null);
+            // 初始化全屏按钮文字
+            updateFullscreenButton();
         }
 
         // ===== 登录 =====
