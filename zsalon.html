@@ -17,6 +17,20 @@
         .btn-lang { background: #4a6a8a; color: white; border: none; padding: 8px 18px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
         .btn-history { background: #4a6a8a; color: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
         .btn-history:hover, .btn-lang:hover { background: #2c4a6a; transform: scale(1.02); }
+
+        /* 全屏按钮样式 */
+        .btn-fullscreen {
+            background: #2c6e2c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-fullscreen:hover { background: #1f511f; transform: scale(1.02); }
+
         .sub { color: #5f6c70; border-left: 4px solid #ffa500; padding-left: 14px; margin-bottom: 20px; font-size: 0.9rem; }
         .last-order-card { background: linear-gradient(135deg, #2c6e2c 0%, #1f511f 100%); color: white; border-radius: 28px; padding: 16px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .last-order-info { font-size: 1.2rem; }
@@ -100,12 +114,14 @@
     <div class="header-row">
         <h1><span data-lang="posTitle">柜台·点餐终端</span></h1>
         <div style="display: flex; gap: 12px;">
+            <button id="fullscreenBtn" class="btn-fullscreen">⛶ 全屏</button>
             <button id="langSwitchBtn" class="btn-lang">English</button>
             <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
         </div>
     </div>
     <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码 - 英文数字版)</div>
 
+    <!-- ===== 蓝牙栏（已恢复） ===== -->
     <div class="bluetooth-bar">
         <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机 (58mm)</button>
         <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
@@ -434,6 +450,33 @@
     function openModal(){ modal.style.display='block'; renderHistoryTable(); }
     function closeModalFunc(){ modal.style.display='none'; }
     
+    // ========== 全屏功能 ==========
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                alert('无法进入全屏模式: ' + err.message);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
+    function updateFullscreenButton() {
+        const btn = document.getElementById('fullscreenBtn');
+        if (!btn) return;
+        if (document.fullscreenElement) {
+            btn.textContent = '⛶ 退出全屏';
+        } else {
+            btn.textContent = '⛶ 全屏';
+        }
+    }
+
+    // 监听全屏变化事件
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+
     function updateStaticTexts(){
         document.querySelectorAll('[data-lang]').forEach(el=>{ let key=el.getAttribute('data-lang'); if(translations[currentLang][key]){ if(el.tagName==='INPUT') el.placeholder=translations[currentLang][key]; else el.innerText=translations[currentLang][key]; } });
         if(currentCategory==='main') categoryTitle.innerText=translations[currentLang].mainTitle;
@@ -449,8 +492,18 @@
         catBtns=document.querySelectorAll('.cat-btn'); historyBtn=document.getElementById('historyBtn'); modal=document.getElementById('historyModal'); closeModal=document.querySelector('.close');
         exportExcelBtn=document.getElementById('exportExcelBtn'); clearAllOrdersBtn=document.getElementById('clearAllOrdersBtn'); resetCounterBtn=document.getElementById('resetCounterBtn');
         historyTbody=document.getElementById('historyTbody'); lastOrderNumberSpan=document.getElementById('lastOrderNumberDisplay'); lastTableSpan=document.getElementById('lastTableDisplay');
-        document.getElementById('connectBluetoothBtn').addEventListener('click',connectBluetooth);
-        document.getElementById('testPrintBtn').addEventListener('click',testPrint);
+
+        // 全屏按钮事件绑定
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            updateFullscreenButton(); // 初始更新按钮文字
+        }
+
+        // ===== 蓝牙事件绑定（已恢复） =====
+        document.getElementById('connectBluetoothBtn').addEventListener('click', connectBluetooth);
+        document.getElementById('testPrintBtn').addEventListener('click', testPrint);
+        
         document.getElementById('langSwitchBtn').addEventListener('click',()=>switchLanguage(currentLang==='zh-CN'?'en':'zh-CN'));
         catBtns.forEach(btn=>btn.addEventListener('click',()=>switchCategory(btn.dataset.cat)));
         renderMenuByCategory('main'); renderCart(); submitBtn.addEventListener('click',submitOrder); clearCartBtn.addEventListener('click',clearCart);
