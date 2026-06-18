@@ -4,35 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
     <title>万字票出票系统</title>
-    <!-- 引入Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
-        body{background:#111827;color:#fff;padding:15px;transition:all 0.3s;}
+        body{background:#111827;color:#fff;padding:15px;}
         .container{max-width:1000px;margin:0 auto;}
         .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
         .title{font-size:26px;font-weight:bold;color:#fbbf24;}
-        .btn{padding:10px 18px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:bold;transition:0.2s;}
+        .btn{padding:10px 18px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:bold;}
         .btn-blue{background:#2563eb;color:#fff;}
         .btn-orange{background:#f97316;color:#fff;}
         .btn-green{background:#16a34a;color:#fff;}
-        .btn:hover{opacity:0.9;transform:scale(1.02);}
-
         .main-box{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
         @media(max-width:750px){.main-box{grid-template-columns:1fr;}}
-
         .input-card,.print-card{background:#1f2937;padding:20px;border-radius:16px;}
         .item{margin-bottom:16px;}
         label{display:block;margin-bottom:6px;color:#d1d5db;font-size:15px;}
         input{width:100%;padding:12px;border-radius:8px;border:none;font-size:16px;background:#374151;color:#fff;outline:none;}
         .num-buttons{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:15px 0;}
         .num-btn{padding:12px;border-radius:6px;border:none;background:#334155;color:#fff;font-size:17px;cursor:pointer;}
-        .num-btn:hover{background:#475569;}
-
         .preview{background:#fff;color:#000;padding:15px;border-radius:8px;min-height:250px;white-space:pre-wrap;font-size:13px;line-height:1.5;}
-        .action-row{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;}
-
+        .action-row{display:flex;gap:10px;margin-top:15px;}
         .status-tip{margin-top:15px;padding:10px;border-radius:6px;text-align:center;display:none;}
         .success{background:#064e3b;color:#4ade80;display:block;}
         .error{background:#7f1d1d;color:#fca5a5;display:block;}
@@ -48,12 +41,11 @@
             <button class="btn btn-orange" id="langBtn">English</button>
         </div>
     </div>
-
     <div class="main-box">
         <div class="input-card">
             <div class="item">
                 <label data-lang="ticketNo">票号</label>
-                <input type="text" id="ticketNo" placeholder="自动生成">
+                <input type="text" id="ticketNo">
             </div>
             <div class="item">
                 <label data-lang="orderDate">出票日期</label>
@@ -61,7 +53,7 @@
             </div>
             <div class="item">
                 <label data-lang="playNum">下注号码</label>
-                <input type="text" id="playNum" readonly placeholder="点击下方数字选号">
+                <input type="text" id="playNum" readonly>
             </div>
             <div class="num-buttons" id="numPad">
                 <button class="num-btn">0</button>
@@ -85,7 +77,7 @@
             </div>
             <div class="item">
                 <label data-lang="period">期号</label>
-                <input type="text" id="period" placeholder="填写当期期号">
+                <input type="text" id="period">
             </div>
             <div class="action-row">
                 <button class="btn btn-orange" id="clearBtn" style="width:48%;">清空</button>
@@ -93,7 +85,6 @@
             </div>
             <div class="status-tip" id="statusTip"></div>
         </div>
-
         <div class="print-card">
             <label data-lang="printPreview">票据打印预览</label>
             <div class="preview" id="printPreview"></div>
@@ -102,7 +93,6 @@
 </div>
 
 <script>
-// ========== Firebase 配置 ==========
 const firebaseConfig = {
     apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
     authDomain: "create-for-payment.firebaseapp.com",
@@ -118,232 +108,71 @@ const db = firebase.database();
 const ticketRef = db.ref("wanzi_ticket_records");
 
 const langData = {
-    zh:{
-        ticketNo:"票号",orderDate:"出票日期",playNum:"下注号码",betMoney:"下注金额",
-        playType:"玩法类型",period:"期号",printPreview:"票据打印预览",
-        fullScreen:"全屏模式",exitFull:"退出全屏",
-        btConnecting:"正在连接蓝牙打印机...",btSuccess:"打印机连接成功",
-        btFail:"蓝牙连接失败，请检查设备/重启打印机",noBt:"当前浏览器不支持蓝牙",
-        printSuccess:"出票打印成功",printFail:"打印失败，请重连打印机",
-        emptyNum:"请选择下注号码"
-    },
-    en:{
-        ticketNo:"Ticket No",orderDate:"Order Date",playNum:"Play Number",betMoney:"Bet Amount",
-        playType:"Play Type",period:"Period No",printPreview:"Print Preview",
-        fullScreen:"Full Screen",exitFull:"Exit Full",
-        btConnecting:"Connecting Bluetooth Printer...",btSuccess:"Printer Connected",
-        btFail:"Bluetooth connect failed",noBt:"Browser not support Bluetooth",
-        printSuccess:"Print Success",printFail:"Print Failed",
-        emptyNum:"Please choose number"
-    }
+    zh:{ticketNo:"票号",orderDate:"出票日期",playNum:"下注号码",betMoney:"下注金额",playType:"玩法类型",period:"期号",printPreview:"票据打印预览",fullScreen:"全屏模式",exitFull:"退出全屏",btConnecting:"正在连接蓝牙打印机...",btSuccess:"打印机连接成功",btFail:"蓝牙连接失败",noBt:"浏览器不支持蓝牙",printSuccess:"出票成功 已同步云端",printFail:"打印失败",emptyNum:"请选择号码"},
+    en:{ticketNo:"Ticket No",orderDate:"Order Date",playNum:"Play Number",betMoney:"Bet Amount",playType:"Play Type",period:"Period No",printPreview:"Print Preview",fullScreen:"Full Screen",exitFull:"Exit Full",btConnecting:"Connecting...",btSuccess:"Connected",btFail:"Connect Failed",noBt:"No Bluetooth",printSuccess:"Print & Sync Success",printFail:"Print Failed",emptyNum:"Input number"}
 };
-let nowLang = "zh";
-let fullScreenState = false;
+let nowLang = "zh",fullScreenState = false;
 const HISTORY_KEY = "wanzi_ticket_history";
-
-function getLocalHistory(){
-    let data = localStorage.getItem(HISTORY_KEY);
-    return data ? JSON.parse(data) : [];
-}
-function saveLocalHistory(list){
-    localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
-}
-
-function getNowDate(){
-    let d = new Date();
-    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
-}
-document.getElementById("orderDate").value = getNowDate();
-
-// ========== 蓝牙打印机（POS-5810DD 适配）==========
-let btDevice = null;
-let btChar = null;
-const BT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-const BT_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
-
-function makeTicketNo(){
-    let d = new Date();
-    return "WZ"+d.getFullYear().toString().slice(2)+
-    String(d.getMonth()+1).padStart(2,'0')+
-    String(d.getDate()).padStart(2,'0')+
-    String(Math.floor(Math.random()*9999)).padStart(4,'0');
-}
-document.getElementById("ticketNo").value = makeTicketNo();
-
-document.querySelectorAll("#numPad .num-btn").forEach(btn=>{
-    btn.onclick=()=>{
-        let val = document.getElementById("playNum").value;
-        if(val.length<8){
-            document.getElementById("playNum").value = val+btn.innerText;
-        }
-        refreshPreview();
-    }
-});
-
-["orderDate","betMoney","playType","period"].forEach(id=>{
-    document.getElementById(id).addEventListener("input",refreshPreview);
-});
-
+function getLocalHistory(){let d=localStorage.getItem(HISTORY_KEY);return d?JSON.parse(d):[];}
+function saveLocalHistory(l){localStorage.setItem(HISTORY_KEY,JSON.stringify(l));}
+function getNowDate(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+document.getElementById("orderDate").value=getNowDate();
+let btDevice=null,btChar=null;
+const BT_SRV="0000ffe0-0000-1000-8000-00805f9b34fb";
+const BT_CHR="0000ffe1-0000-1000-8000-00805f9b34fb";
+function makeTicketNo(){let d=new Date();return "WZ"+String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(Math.floor(Math.random()*9999)).padStart(4,'0');}
+document.getElementById("ticketNo").value=makeTicketNo();
+document.querySelectorAll("#numPad .num-btn").forEach(b=>b.onclick=()=>{let v=playNum.value;if(v.length<8)playNum.value+=b.innerText;refreshPreview()});
+["orderDate","betMoney","playType","period"].forEach(id=>document.getElementById(id).addEventListener("input",refreshPreview));
 function refreshPreview(){
-    let tNo = document.getElementById("ticketNo").value;
-    let orderDate = document.getElementById("orderDate").value;
-    let pNum = document.getElementById("playNum").value;
-    let money = document.getElementById("betMoney").value;
-    let type = document.getElementById("playType").value;
-    let pNo = document.getElementById("period").value;
-    let time = new Date().toLocaleString();
-
-    let text = `
-==========万字票==========
-票号:${tNo}
-日期:${orderDate}
-期号:${pNo}
-玩法:${type}
-号码:${pNum}
-金额:$${money}
-出票时间:${time}
-==========================
-    `;
-    document.getElementById("printPreview").innerText = text.trim();
+    let t=document.getElementById("ticketNo").value,d=orderDate.value,n=playNum.value,m=betMoney.value,ty=playType.value,p=period.value,time=new Date().toLocaleString();
+    printPreview.innerText=`==========万字票==========\n票号:${t}\n日期:${d}\n期号:${p}\n玩法:${ty}\n号码:${n}\n金额:$${m}\n出票时间:${time}\n==========================`;
 }
+clearBtn.onclick=()=>{playNum.value="";refreshPreview()};
+fullScreenBtn.onclick=()=>{if(!fullScreenState){document.documentElement.requestFullscreen();fullScreenState=1;fullScreenBtn.innerText=nowLang=="zh"?"⛶ 退出全屏":"Exit Full"}else{document.exitFullscreen();fullScreenState=0;fullScreenBtn.innerText=nowLang=="zh"?"⛶ 全屏模式":"Full Screen"}};
+langBtn.onclick=()=>{nowLang=nowLang=="zh"?"en":"zh";langBtn.innerText=nowLang=="zh"?"English":"中文";document.querySelectorAll("[data-lang]").forEach(e=>{let k=e.dataset.lang;if(langData[nowLang][k])e.innerText=langData[nowLang][k]});refreshPreview()};
 
-document.getElementById("clearBtn").onclick=()=>{
-    document.getElementById("playNum").value="";
-    refreshPreview();
-};
-
-document.getElementById("fullScreenBtn").onclick=()=>{
-    if(!fullScreenState){
-        document.documentElement.requestFullscreen();
-        fullScreenState=true;
-        this.innerText = nowLang=="zh"?"⛶ 退出全屏":"⛶ Exit Full";
-    }else{
-        document.exitFullscreen();
-        fullScreenState=false;
-        this.innerText = nowLang=="zh"?"⛶ 全屏模式":"⛶ Full Screen";
-    }
-};
-
-document.getElementById("langBtn").onclick=()=>{
-    nowLang = nowLang=="zh"?"en":"zh";
-    let txt = nowLang=="zh"?"English":"中文";
-    this.innerText=txt;
-    document.querySelectorAll("[data-lang]").forEach(el=>{
-        let key = el.getAttribute("data-lang");
-        if(langData[nowLang][key]) el.innerText=langData[nowLang][key];
-    });
-    refreshPreview();
-};
-
-// ========== 适配 POS-5810DD 的蓝牙连接逻辑 ==========
 async function connectBluetooth(){
-    let tip = document.getElementById("statusTip");
-    if(!navigator.bluetooth){
-        tip.innerText = langData[nowLang].noBt;
-        tip.className="status-tip error";
-        return;
-    }
-    tip.innerText = langData[nowLang].btConnecting;
-    tip.className="status-tip success";
+    let tip=statusTip;
+    if(!navigator.bluetooth){tip.innerText=langData[nowLang].noBt;tip.className="status-tip error";return;}
+    tip.innerText=langData[nowLang].btConnecting;tip.className="status-tip success";
     try{
-        // 优先按服务UUID过滤，同时支持按名称前缀匹配
-        btDevice = await navigator.bluetooth.requestDevice({
-            filters: [
-                { services: [BT_SERVICE_UUID] },
-                { namePrefix: "POS" },
-                { namePrefix: "Printer" },
-                { namePrefix: "BT" }
-            ],
-            optionalServices: [BT_SERVICE_UUID]
-        });
-
-        // 连接GATT服务器
-        const server = await btDevice.gatt.connect();
-        const service = await server.getPrimaryService(BT_SERVICE_UUID);
-        btChar = await service.getCharacteristic(BT_CHAR_UUID);
-
-        tip.innerText = langData[nowLang].btSuccess;
-        tip.className="status-tip success";
-
-        // 监听断开连接
-        btDevice.addEventListener("gattserverdisconnected", () => {
-            btDevice = null;
-            btChar = null;
-            tip.innerText = langData[nowLang].btFail;
-            tip.className="status-tip error";
-        });
-    } catch (e) {
-        console.error("蓝牙连接错误:", e);
-        tip.innerText = langData[nowLang].btFail;
-        tip.className="status-tip error";
-    }
+        btDevice=await navigator.bluetooth.requestDevice({filters:[{services:[BT_SRV]},{namePrefix:"POS"},{namePrefix:"Printer"}],optionalServices:[BT_SRV]});
+        let srv=await btDevice.gatt.connect().then(g=>g.getPrimaryService(BT_SRV));
+        btChar=await srv.getCharacteristic(BT_CHR);
+        tip.innerText=langData[nowLang].btSuccess;tip.className="status-tip success";
+        btDevice.addEventListener("gattserverdisconnected",()=>{btDevice=btChar=null;tip.innerText=langData[nowLang].btFail;tip.className="status-tip error"});
+    }catch(e){tip.innerText=langData[nowLang].btFail;tip.className="status-tip error"}
 }
-
-// ========== POS-5810DD 打印指令封装 ==========
 function getPrintData(){
-    let pre = document.getElementById("printPreview").innerText;
-    // 打印机初始化指令
-    const initCmd = new Uint8Array([0x1B, 0x40]);
-    // 换行切纸指令（适配58mm热敏机）
-    const feedCmd = new Uint8Array([0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x00]);
-    // 编码转换（使用UTF-8，多数新款58机已支持）
-    const encoder = new TextEncoder();
-    const textData = encoder.encode(pre + "\n");
-    // 拼接完整数据：初始化指令 + 打印内容 + 换行切纸
-    const fullData = new Uint8Array(initCmd.length + textData.length + feedCmd.length);
-    fullData.set(initCmd, 0);
-    fullData.set(textData, initCmd.length);
-    fullData.set(feedCmd, initCmd.length + textData.length);
-    return fullData;
+    let txt=printPreview.innerText;
+    let init=new Uint8Array([0x1B,0x40]);
+    let cut=new Uint8Array([0x0A,0x0A,0x1D,0x56,0x00]);
+    let buf=new TextEncoder().encode(txt+"\n");
+    let all=new Uint8Array(init.length+buf.length+cut.length);
+    all.set(init);all.set(buf,init.length);all.set(cut,init.length+buf.length);
+    return all;
 }
 
-document.getElementById("printBtn").onclick=async()=>{
-    let num = document.getElementById("playNum").value;
-    let tip = document.getElementById("statusTip");
-    if(!num){
-        tip.innerText=langData[nowLang].emptyNum;
-        tip.className="status-tip error";
-        return;
-    }
-    if(!btChar){
-        tip.innerText=langData[nowLang].btFail;
-        tip.className="status-tip error";
-        return;
-    }
+printBtn.onclick=async()=>{
+    let num=playNum.value,tip=statusTip;
+    if(!num){tip.innerText=langData[nowLang].emptyNum;tip.className="status-tip error";return;}
+    if(!btChar){tip.innerText=langData[nowLang].btFail;tip.className="status-tip error";return;}
     try{
         await btChar.writeValue(getPrintData());
-        tip.innerText=langData[nowLang].printSuccess;
-        tip.className="status-tip success";
-
-        // 组装单据数据
-        let historyItem = {
-            ticketNo:document.getElementById("ticketNo").value,
-            orderDate:document.getElementById("orderDate").value,
-            period:document.getElementById("period").value,
-            playNum:document.getElementById("playNum").value,
-            betMoney:document.getElementById("betMoney").value,
-            playType:document.getElementById("playType").value,
-            createTime:new Date().toLocaleString(),
-            timestamp:Date.now()
+        tip.innerText=langData[nowLang].printSuccess;tip.className="status-tip success";
+        let item={
+            ticketNo:ticketNo.value,orderDate:orderDate.value,period:period.value,
+            playNum:playNum.value,betMoney:betMoney.value,playType:playType.value,
+            createTime:new Date().toLocaleString(),timestamp:Date.now()
         };
-        // 1.存入本地
-        let hisList = getLocalHistory();
-        hisList.push(historyItem);
-        saveLocalHistory(hisList);
-        // 2.上传云端Firebase
-        ticketRef.push(historyItem);
-
-        document.getElementById("ticketNo").value=makeTicketNo();
-        document.getElementById("playNum").value="";
-        refreshPreview();
-    }catch(e){
-        console.error("打印错误:", e);
-        tip.innerText=langData[nowLang].printFail;
-        tip.className="status-tip error";
-    }
-};
-
-document.getElementById("connectBtBtn").onclick=connectBluetooth;
+        getLocalHistory().push(item);saveLocalHistory(getLocalHistory());
+        // 强制写入云端
+        await ticketRef.push(item);
+        ticketNo.value=makeTicketNo();playNum.value="";refreshPreview();
+    }catch(e){tip.innerText=langData[nowLang].printFail;tip.className="status-tip error"}
+}
+connectBtBtn.onclick=connectBluetooth;
 refreshPreview();
 </script>
 </body>
