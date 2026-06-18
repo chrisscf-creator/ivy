@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+    <title>万字票出票系统</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
+        body{background:#111827;color:#fff;padding:15px;transition:all 0.3s;}
+        .container{max-width:1000px;margin:0 auto;}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+        .title{font-size:26px;font-weight:bold;color:#fbbf24;}
+        .btn{padding:10px 18px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:bold;transition:0.2s;}
+        .btn-blue{background:#2563eb;color:#fff;}
+        .btn-orange{background:#f97316;color:#fff;}
+        .btn-green{background:#16a34a;color:#fff;}
+        .btn:hover{opacity:0.9;transform:scale(1.02);}
+
+        .main-box{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+        @media(max-width:750px){.main-box{grid-template-columns:1fr;}}
+
+        .input-card,.print-card{background:#1f2937;padding:25px;border-radius:16px;}
+        .item{margin-bottom:18px;}
+        label{display:block;margin-bottom:6px;color:#d1d5db;font-size:15px;}
+        input{width:100%;padding:12px;border-radius:8px;border:none;font-size:16px;background:#374151;color:#fff;outline:none;}
+        .num-buttons{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:15px 0;}
+        .num-btn{padding:12px;border-radius:6px;border:none;background:#334155;color:#fff;font-size:17px;cursor:pointer;}
+        .num-btn:hover{background:#475569;}
+
+        .preview{background:#fff;color:#000;padding:20px;border-radius:8px;min-height:280px;white-space:pre-wrap;font-size:14px;line-height:1.6;}
+        .action-row{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;}
+
+        .status-tip{margin-top:15px;padding:10px;border-radius:6px;text-align:center;display:none;}
+        .success{background:#064e3b;color:#4ade80;display:block;}
+        .error{background:#7f1d1d;color:#fca5a5;display:block;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <h1 class="title">🎫 万字票出票系统</h1>
+        <div>
+            <button class="btn btn-blue" id="fullScreenBtn">⛶ 全屏模式</button>
+            <button class="btn btn-green" id="connectBtBtn">🔌 连接蓝牙打印机</button>
+            <button class="btn btn-orange" id="langBtn">English</button>
+        </div>
+    </div>
+
+    <div class="main-box">
+        <!-- 出票填写区 -->
+        <div class="input-card">
+            <div class="item">
+                <label data-lang="ticketNo">票号</label>
+                <input type="text" id="ticketNo" placeholder="自动生成">
+            </div>
+            <div class="item">
+                <label data-lang="orderDate">出票日期</label>
+                <input type="date" id="orderDate">
+            </div>
+            <div class="item">
+                <label data-lang="playNum">下注号码</label>
+                <input type="text" id="playNum" readonly placeholder="点击下方数字选号">
+            </div>
+            <div class="num-buttons" id="numPad">
+                <button class="num-btn">0</button>
+                <button class="num-btn">1</button>
+                <button class="num-btn">2</button>
+                <button class="num-btn">3</button>
+                <button class="num-btn">4</button>
+                <button class="num-btn">5</button>
+                <button class="num-btn">6</button>
+                <button class="num-btn">7</button>
+                <button class="num-btn">8</button>
+                <button class="num-btn">9</button>
+            </div>
+            <div class="item">
+                <label data-lang="betMoney">下注金额</label>
+                <input type="number" id="betMoney" value="10">
+            </div>
+            <div class="item">
+                <label data-lang="playType">玩法类型</label>
+                <input type="text" id="playType" value="万字直选">
+            </div>
+            <div class="item">
+                <label data-lang="period">期号</label>
+                <input type="text" id="period" placeholder="填写当期期号">
+            </div>
+            <div class="action-row">
+                <button class="btn btn-orange" id="clearBtn" style="width:48%;">清空</button>
+                <button class="btn btn-green" id="printBtn" style="width:48%;">出票打印</button>
+            </div>
+            <div class="status-tip" id="statusTip"></div>
+        </div>
+
+        <!-- 打印预览区 -->
+        <div class="print-card">
+            <label data-lang="printPreview">票据打印预览</label>
+            <div class="preview" id="printPreview"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// 双语翻译
+const langData = {
+    zh:{
+        ticketNo:"票号",orderDate:"出票日期",playNum:"下注号码",betMoney:"下注金额",
+        playType:"玩法类型",period:"期号",printPreview:"票据打印预览",
+        fullScreen:"全屏模式",exitFull:"退出全屏",
+        btConnecting:"正在连接蓝牙打印机...",btSuccess:"打印机连接成功",
+        btFail:"蓝牙连接失败，请检查设备",noBt:"当前浏览器不支持蓝牙",
+        printSuccess:"出票打印成功",printFail:"打印失败，请重连打印机",
+        emptyNum:"请选择下注号码"
+    },
+    en:{
+        ticketNo:"Ticket No",orderDate:"Order Date",playNum:"Play Number",betMoney:"Bet Amount",
+        playType:"Play Type",period:"Period No",printPreview:"Print Preview",
+        fullScreen:"Full Screen",exitFull:"Exit Full",
+        btConnecting:"Connecting Bluetooth Printer...",btSuccess:"Printer Connected",
+        btFail:"Bluetooth connect failed",noBt:"Browser not support Bluetooth",
+        printSuccess:"Print Success",printFail:"Print Failed",
+        emptyNum:"Please choose number"
+    }
+};
+let nowLang = "zh";
+let fullScreenState = false;
+
+// 本地存储KEY（和历史端共用同一个KEY）
+const HISTORY_KEY = "wanzi_ticket_history";
+
+// 读取/保存历史（和历史端互通）
+function getLocalHistory(){
+    let data = localStorage.getItem(HISTORY_KEY);
+    return data ? JSON.parse(data) : [];
+}
+function saveLocalHistory(list){
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
+}
+
+// 初始化默认选中当天日期
+function getNowDate(){
+    let d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+}
+document.getElementById("orderDate").value = getNowDate();
+
+// 蓝牙打印机全局变量（同款不变）
+let btDevice = null;
+let btChar = null;
+
+// 自动生成票号
+function makeTicketNo(){
+    let d = new Date();
+    return "WZ"+d.getFullYear().toString().slice(2)+
+    String(d.getMonth()+1).padStart(2,'0')+
+    String(d.getDate()).padStart(2,'0')+
+    String(Math.floor(Math.random()*9999)).padStart(4,'0');
+}
+document.getElementById("ticketNo").value = makeTicketNo();
+
+// 数字键盘选号
+document.querySelectorAll("#numPad .num-btn").forEach(btn=>{
+    btn.onclick=()=>{
+        let val = document.getElementById("playNum").value;
+        if(val.length<8){
+            document.getElementById("playNum").value = val+btn.innerText;
+        }
+        refreshPreview();
+    }
+});
+
+// 日期/金额/期号/玩法变动刷新
+["orderDate","betMoney","playType","period"].forEach(id=>{
+    document.getElementById(id).addEventListener("input",refreshPreview);
+});
+
+// 刷新打印预览
+function refreshPreview(){
+    let tNo = document.getElementById("ticketNo").value;
+    let orderDate = document.getElementById("orderDate").value;
+    let pNum = document.getElementById("playNum").value;
+    let money = document.getElementById("betMoney").value;
+    let type = document.getElementById("playType").value;
+    let pNo = document.getElementById("period").value;
+    let time = new Date().toLocaleString();
+
+    let text = `
+==========万字票==========
+票号:${tNo}
+日期:${orderDate}
+期号:${pNo}
+玩法:${type}
+号码:${pNum}
+金额:$${money}
+出票时间:${time}
+==========================
+    `;
+    document.getElementById("printPreview").innerText = text.trim();
+}
+
+// 清空
+document.getElementById("clearBtn").onclick=()=>{
+    document.getElementById("playNum").value="";
+    refreshPreview();
+};
+
+// 全屏切换
+document.getElementById("fullScreenBtn").onclick=()=>{
+    if(!fullScreenState){
+        document.documentElement.requestFullscreen();
+        fullScreenState=true;
+        this.innerText = nowLang=="zh"?"⛶ 退出全屏":"⛶ Exit Full";
+    }else{
+        document.exitFullscreen();
+        fullScreenState=false;
+        this.innerText = nowLang=="zh"?"⛶ 全屏模式":"⛶ Full Screen";
+    }
+};
+
+// 双语切换
+document.getElementById("langBtn").onclick=()=>{
+    nowLang = nowLang=="zh"?"en":"zh";
+    let txt = nowLang=="zh"?"English":"中文";
+    this.innerText=txt;
+    document.querySelectorAll("[data-lang]").forEach(el=>{
+        let key = el.getAttribute("data-lang");
+        if(langData[nowLang][key]) el.innerText=langData[nowLang][key];
+    });
+    refreshPreview();
+};
+
+// ========== 蓝牙打印核心（完全不变）==========
+async function connectBluetooth(){
+    let tip = document.getElementById("statusTip");
+    if(!navigator.bluetooth){
+        tip.innerText = langData[nowLang].noBt;
+        tip.className="status-tip error";
+        return;
+    }
+    tip.innerText = langData[nowLang].btConnecting;
+    tip.className="status-tip success";
+    try{
+        btDevice = await navigator.bluetooth.requestDevice({
+            filters:[
+                {services:["0000ffe0-0000-1000-8000-00805f9b34fb"]},
+                {namePrefix:"POS"},{namePrefix:"Thermal"}
+            ],
+            optionalServices:["0000ffe0-0000-1000-8000-00805f9b34fb"]
+        });
+        let server = await btDevice.gatt.connect();
+        let service = await server.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb");
+        btChar = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb");
+        tip.innerText = langData[nowLang].btSuccess;
+        tip.className="status-tip success";
+        btDevice.addEventListener("gattserverdisconnected",()=>{
+            btDevice=null;btChar=null;
+            tip.innerText=langData[nowLang].btFail;
+            tip.className="status-tip error";
+        });
+    }catch(e){
+        tip.innerText=langData[nowLang].btFail;
+        tip.className="status-tip error";
+    }
+}
+
+// 打印小票内容封装
+function getPrintData(){
+    let pre = document.getElementById("printPreview").innerText;
+    let encoder = new TextEncoder("gbk");
+    let data = encoder.encode(pre+"\n\n\n");
+    let cut = new Uint8Array([0x1D,0x56,0x00]);
+    let res = new Uint8Array(data.length+cut.length);
+    res.set(data,0);res.set(cut,data.length);
+    return res;
+}
+
+// 点击出票打印
+document.getElementById("printBtn").onclick=async()=>{
+    let num = document.getElementById("playNum").value;
+    let tip = document.getElementById("statusTip");
+    if(!num){
+        tip.innerText=langData[nowLang].emptyNum;
+        tip.className="status-tip error";
+        return;
+    }
+    if(!btChar){
+        tip.innerText=langData[nowLang].btFail;
+        tip.className="status-tip error";
+        return;
+    }
+    try{
+        await btChar.writeValue(getPrintData());
+        tip.innerText=langData[nowLang].printSuccess;
+        tip.className="status-tip success";
+
+        // ==== 出票成功自动存入永久历史记录（和历史端互通） ====
+        let historyItem = {
+            ticketNo:document.getElementById("ticketNo").value,
+            orderDate:document.getElementById("orderDate").value,
+            period:document.getElementById("period").value,
+            playNum:document.getElementById("playNum").value,
+            betMoney:document.getElementById("betMoney").value,
+            playType:document.getElementById("playType").value,
+            createTime:new Date().toLocaleString()
+        };
+        let hisList = getLocalHistory();
+        hisList.push(historyItem);
+        saveLocalHistory(hisList);
+
+        // 重置单号号码
+        document.getElementById("ticketNo").value=makeTicketNo();
+        document.getElementById("playNum").value="";
+        refreshPreview();
+    }catch(e){
+        tip.innerText=langData[nowLang].printFail;
+        tip.className="status-tip error";
+    }
+};
+
+document.getElementById("connectBtBtn").onclick=connectBluetooth;
+
+// 初始化
+refreshPreview();
+</script>
+</body>
+</html>
