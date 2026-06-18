@@ -279,7 +279,7 @@
         }
         .number-item .amount-input {
             flex: 1;
-            min-width: 80px;
+            min-width: 70px;
             padding: 6px 10px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -287,7 +287,13 @@
             font-weight: 600;
             text-align: center;
             transition: border-color 0.3s;
-            width: 100px;
+            width: 90px;
+            -moz-appearance: textfield;
+        }
+        .number-item .amount-input::-webkit-outer-spin-button,
+        .number-item .amount-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
         .number-item .amount-input:focus {
             outline: none;
@@ -475,7 +481,41 @@
             background: #5a6fd6;
         }
 
-        /* ===== 日期 ===== */
+        /* ===== 注码快捷按钮 ===== */
+        .amount-shortcuts {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .amount-shortcuts .btn-amount {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: #333;
+            flex: 1;
+            min-width: 40px;
+        }
+        .amount-shortcuts .btn-amount:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .amount-shortcuts .btn-amount:active {
+            transform: scale(0.95);
+        }
+        .amount-shortcuts .btn-amount.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* ===== 表单 ===== */
         .form-group {
             margin-bottom: 15px;
         }
@@ -500,6 +540,14 @@
         .form-group select:focus {
             outline: none;
             border-color: #4CAF50;
+        }
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
 
         /* ===== 投注汇总 ===== */
@@ -715,11 +763,16 @@
             }
             .number-item .amount-input {
                 min-width: 60px;
-                width: 80px;
+                width: 70px;
             }
             .bet-summary {
                 flex-direction: column;
                 text-align: center;
+            }
+            .amount-shortcuts .btn-amount {
+                font-size: 12px;
+                padding: 6px 10px;
+                min-width: 30px;
             }
         }
 
@@ -772,7 +825,7 @@
         <div class="toolbar">
             <div class="title-area">
                 <h1>🎯 万字票</h1>
-                <div class="subtitle">每组独立注码 · 4D系统</div>
+                <div class="subtitle">每组独立注码 · 整数投注</div>
             </div>
             <div class="toolbar-buttons">
                 <button class="btn-icon" onclick="toggleFullscreen()" title="全屏切换">
@@ -832,10 +885,21 @@
             <button class="btn btn-clear-all" onclick="clearAllNumbers()">🗑️ 清空</button>
         </div>
 
+        <!-- 注码快捷按钮 -->
+        <div class="amount-shortcuts">
+            <button class="btn-amount" onclick="setDefaultAmount(1)">RM 1</button>
+            <button class="btn-amount" onclick="setDefaultAmount(2)">RM 2</button>
+            <button class="btn-amount" onclick="setDefaultAmount(5)">RM 5</button>
+            <button class="btn-amount" onclick="setDefaultAmount(10)">RM 10</button>
+            <button class="btn-amount" onclick="setDefaultAmount(20)">RM 20</button>
+            <button class="btn-amount" onclick="setDefaultAmount(50)">RM 50</button>
+            <button class="btn-amount" onclick="setDefaultAmount(100)">RM 100</button>
+        </div>
+
         <!-- 默认注码 -->
         <div class="form-group">
             <label>💰 默认注码 (RM) <span style="font-weight:normal;color:#888;font-size:12px;">- 添加时自动填入</span></label>
-            <input type="number" id="defaultAmount" placeholder="输入默认注码" step="0.01" min="0" value="1.00">
+            <input type="number" id="defaultAmount" placeholder="输入默认注码" step="1" min="0" value="1">
         </div>
 
         <!-- 日期 -->
@@ -849,7 +913,7 @@
             <div class="info">
                 📊 <strong id="totalGroups">0</strong> 组投注
             </div>
-            <div class="total" id="totalAmount">RM 0.00</div>
+            <div class="total" id="totalAmount">RM 0</div>
         </div>
 
         <!-- 提交按钮 -->
@@ -872,7 +936,7 @@
         // ============================================
         // 1. FIREBASE 配置
         // ============================================
-          const firebaseConfig = {
+            const firebaseConfig = {
         apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
         authDomain: "create-for-payment.firebaseapp.com",
         databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -882,7 +946,7 @@
         appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
         measurementId: "G-SHP91WNP0H"
     };
-        
+
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
@@ -896,7 +960,6 @@
         // 3. 全局变量
         // ============================================
         let currentInput = '';
-        // 投注列表: [{number: '1234', amount: 1.00}]
         let betList = [];
         let bluetoothDevice = null;
         let bluetoothServer = null;
@@ -981,11 +1044,12 @@
         // ============================================
         function initApp() {
             document.getElementById('drawDate').value = today;
-            document.getElementById('defaultAmount').value = '1.00';
+            document.getElementById('defaultAmount').value = '1';
             setupNumberPad();
             updateDisplay();
             updateSummary();
             checkBluetoothSupport();
+            highlightActiveAmount();
         }
 
         function checkBluetoothSupport() {
@@ -997,7 +1061,32 @@
         }
 
         // ============================================
-        // 7. 数字键盘
+        // 7. 注码快捷按钮
+        // ============================================
+        function setDefaultAmount(value) {
+            document.getElementById('defaultAmount').value = value;
+            highlightActiveAmount();
+            showStatus(`默认注码已设为 RM ${value}`, 'info');
+        }
+
+        function highlightActiveAmount() {
+            const current = parseInt(document.getElementById('defaultAmount').value) || 0;
+            document.querySelectorAll('.btn-amount').forEach(btn => {
+                btn.classList.remove('active');
+                const btnValue = parseInt(btn.textContent.replace('RM ', ''));
+                if (btnValue === current) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // 监听默认注码变化
+        document.getElementById('defaultAmount').addEventListener('input', function() {
+            highlightActiveAmount();
+        });
+
+        // ============================================
+        // 8. 数字键盘
         // ============================================
         function setupNumberPad() {
             const buttons = document.querySelectorAll('.num-btn:not(.add-btn)');
@@ -1083,7 +1172,7 @@
         }
 
         // ============================================
-        // 8. 投注列表管理 (独立注码)
+        // 9. 投注列表管理 (整数注码)
         // ============================================
         function addNumberToList() {
             if (currentInput.length !== MAX_DIGITS) {
@@ -1091,16 +1180,14 @@
                 return;
             }
 
-            // 检查是否已存在
             if (betList.some(item => item.number === currentInput)) {
                 showStatus(`号码 ${currentInput} 已存在!`, 'error');
                 return;
             }
 
-            // 获取默认注码
-            const defaultAmount = parseFloat(document.getElementById('defaultAmount').value) || 0;
+            const defaultAmount = parseInt(document.getElementById('defaultAmount').value) || 0;
             if (defaultAmount <= 0) {
-                showStatus('请输入有效的默认注码!', 'error');
+                showStatus('请输入有效的整数注码!', 'error');
                 return;
             }
 
@@ -1114,7 +1201,7 @@
             updateDisplay();
             updateAddButton();
             updateSummary();
-            showStatus(`✅ 已添加: ${betList[betList.length - 1].number} (RM ${defaultAmount.toFixed(2)})`, 'success');
+            showStatus(`✅ 已添加: ${betList[betList.length - 1].number} (RM ${defaultAmount})`, 'success');
         }
 
         function removeBet(index) {
@@ -1126,7 +1213,7 @@
         }
 
         function updateBetAmount(index, newAmount) {
-            const amount = parseFloat(newAmount);
+            const amount = parseInt(newAmount);
             if (!isNaN(amount) && amount >= 0) {
                 betList[index].amount = amount;
                 updateSummary();
@@ -1151,8 +1238,8 @@
                         <span class="num-display">${item.number}</span>
                         <span class="amount-label">RM</span>
                         <input class="amount-input" type="number" 
-                               value="${item.amount.toFixed(2)}" 
-                               step="0.01" min="0"
+                               value="${item.amount}" 
+                               step="1" min="0"
                                onchange="updateBetAmount(${index}, this.value)"
                                onfocus="this.select()">
                         <button class="remove-btn" onclick="removeBet(${index})">✕</button>
@@ -1161,7 +1248,6 @@
             });
             container.innerHTML = html;
             
-            // 滚动到底部
             container.scrollTop = container.scrollHeight;
         }
 
@@ -1176,7 +1262,7 @@
         }
 
         // ============================================
-        // 9. 统一设置注码
+        // 10. 统一设置注码 (整数)
         // ============================================
         function setAllAmounts() {
             if (betList.length === 0) {
@@ -1184,12 +1270,12 @@
                 return;
             }
             
-            const newAmount = prompt('请输入统一注码金额 (RM):', '1.00');
+            const newAmount = prompt('请输入统一注码金额 (RM):', '1');
             if (newAmount === null) return;
             
-            const amount = parseFloat(newAmount);
+            const amount = parseInt(newAmount);
             if (isNaN(amount) || amount <= 0) {
-                showStatus('请输入有效的金额!', 'error');
+                showStatus('请输入有效的整数金额!', 'error');
                 return;
             }
             
@@ -1199,11 +1285,11 @@
             
             renderBetList();
             updateSummary();
-            showStatus(`✅ 所有注码已统一为 RM ${amount.toFixed(2)}`, 'success');
+            showStatus(`✅ 所有注码已统一为 RM ${amount}`, 'success');
         }
 
         // ============================================
-        // 10. 随机生成功能
+        // 11. 随机生成功能
         // ============================================
         function generateRandomNumber() {
             let num = '';
@@ -1213,12 +1299,11 @@
             currentInput = num;
             updateDisplay();
             updateAddButton();
-            // 自动添加
             addNumberToList();
         }
 
         function quickAddRandom() {
-            const defaultAmount = parseFloat(document.getElementById('defaultAmount').value) || 1.00;
+            const defaultAmount = parseInt(document.getElementById('defaultAmount').value) || 1;
             if (defaultAmount <= 0) {
                 showStatus('请先设置有效的默认注码!', 'error');
                 return;
@@ -1246,20 +1331,20 @@
             
             renderBetList();
             updateSummary();
-            showStatus(`✅ 已添加 ${added} 组随机投注 (RM ${defaultAmount.toFixed(2)})`, 'success');
+            showStatus(`✅ 已添加 ${added} 组随机投注 (RM ${defaultAmount})`, 'success');
         }
 
         // ============================================
-        // 11. 投注汇总
+        // 12. 投注汇总 (整数)
         // ============================================
         function updateSummary() {
             const total = betList.reduce((sum, item) => sum + (item.amount || 0), 0);
             document.getElementById('totalGroups').textContent = betList.length;
-            document.getElementById('totalAmount').textContent = `RM ${total.toFixed(2)}`;
+            document.getElementById('totalAmount').textContent = `RM ${total}`;
         }
 
         // ============================================
-        // 12. 蓝牙打印机 (修复版)
+        // 13. 蓝牙打印机
         // ============================================
         async function connectBluetooth() {
             const btn = document.getElementById('bluetoothBtn');
@@ -1397,7 +1482,7 @@
         }
 
         // ============================================
-        // 13. 打印功能
+        // 14. 打印功能
         // ============================================
         async function printTickets(ticketsData) {
             if (!isConnected || !bluetoothCharacteristic) {
@@ -1417,13 +1502,13 @@
                 lines.push('');
 
                 ticketsData.forEach((ticket, index) => {
-                    lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount.toFixed(2)}`);
+                    lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount}`);
                 });
 
                 const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
                 lines.push('');
                 lines.push('------------------------');
-                lines.push(`合计: RM ${totalAmount.toFixed(2)}`);
+                lines.push(`合计: RM ${totalAmount}`);
                 lines.push('========================');
                 lines.push('  祝您 幸运中奖! 🍀');
                 lines.push('\n\n\n\n');
@@ -1487,7 +1572,7 @@
         }
 
         // ============================================
-        // 14. 提交投注 (独立注码)
+        // 15. 提交投注 (整数注码)
         // ============================================
         async function submitTickets() {
             const date = document.getElementById('drawDate').value;
@@ -1501,7 +1586,6 @@
                 return;
             }
 
-            // 验证所有注码有效
             for (let item of betList) {
                 if (!item.amount || item.amount <= 0) {
                     showStatus(`号码 ${item.number} 的注码无效!`, 'error');
@@ -1531,7 +1615,6 @@
                     ticketsData.push(ticketData);
                 }
 
-                // 批量写入
                 const updates = {};
                 ticketsData.forEach((ticket) => {
                     const ref = database.ref('tickets').push();
@@ -1541,19 +1624,16 @@
                 await database.ref('tickets').update(updates);
 
                 const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
-                showStatus(`✅ 成功提交 ${betList.length} 组投注，总额 RM ${totalAmount.toFixed(2)}`, 'success');
+                showStatus(`✅ 成功提交 ${betList.length} 组投注，总额 RM ${totalAmount}`, 'success');
 
-                // 显示打印预览
                 showPrintPreview(ticketsData);
 
-                // 打印
                 if (isConnected) {
                     await printTickets(ticketsData);
                 } else {
                     showStatus(`✅ 投注已保存 (未连接打印机)`, 'success');
                 }
 
-                // 清空
                 betList = [];
                 renderBetList();
                 updateSummary();
@@ -1571,13 +1651,13 @@
         }
 
         // ============================================
-        // 15. 打印预览
+        // 16. 打印预览
         // ============================================
         function showPrintPreview(ticketsData) {
             const preview = document.getElementById('printPreview');
             const lines = [];
             lines.push('========================');
-            lines.push('    4D Number   ');
+            lines.push('    4D Number');
             lines.push('========================');
             lines.push(`Date: ${ticketsData[0].date}`);
             lines.push(`Time: ${new Date().toLocaleTimeString()}`);
@@ -1586,15 +1666,15 @@
             lines.push('');
 
             ticketsData.forEach((ticket, index) => {
-                lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount.toFixed(2)}`);
+                lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount}`);
             });
 
             const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
             lines.push('');
             lines.push('------------------------');
-            lines.push(`Total: RM ${totalAmount.toFixed(2)}`);
+            lines.push(`Total: S ${totalAmount}`);
             lines.push('========================');
-            lines.push('  Goodluck! ');
+            lines.push('  Goodluck');
 
             preview.textContent = lines.join('\n');
             preview.classList.add('show');
@@ -1606,7 +1686,7 @@
         }
 
         // ============================================
-        // 16. 状态显示
+        // 17. 状态显示
         // ============================================
         function showStatus(message, type = 'info') {
             const statusDiv = document.getElementById('statusMessage');
