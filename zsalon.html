@@ -207,12 +207,12 @@
         5: "5.Scalp", 6: "6.Keratin", 7: "7.Short", 8: "8.Medium Shoulder",
         9: "9.Above", 10: "10.Perm(Cold)", 11: "11.Perm(Hot)", 12: "12.Perm(Root)",
         13: "13.Colour (Touch Up)", 14: "14.Basic Colour", 15: "15.Colour(Highlight)", 16: "16.Colour (Bleach)",
-        17: "17.Add", 18: "18.Add", 19: "19.Add"
+        17: "17.Add", 18: "18.Add", 19: "19.Add",20: "20.Add",21: "21.Add",22: "22.Add"
     };
     
     const MENU_NAMES = {
-        'zh-CN':{1:" 1.剪头发（男)",2:" 2.剪头发(女)",3:" 3.剪头发(小孩)",4:" 4.头发护理",5:" 5.头皮护理",6:" 6.胶原蛋白护发",7:" 7.短发",8:" 8.中长发",9:" 9.胸部以上长度",10:" 10.冷烫",11:" 11.热烫",12:" 12.补染发根",13:" 13.小补染",14:" 14.染发",15:" 15.挑染",16:"漂白",17:" 17.加",18:" 18.加",19:" 19.加"},
-        'en':{1:" 1.Hair Cut(M)",2:" 2.Hair Cut (F)",3:" 3.Hair Cut (Child)",4:" 4.Treatment Hair",5:" 5.Scalp",6:" 6.Keratin",7:" 7.Short",8:" 8.Medium Shoulder",9:" 9.Above",10:" 10.Cold",11:" 11.Hot",12:" 12.Root",13:" 13.Touch up",14:" 14.Basic Colour",15:" 15.Highlight",16:" 16.Bleach",17:" 17.Add",18:" 18.Add",19:" 19.Add"}
+        'zh-CN':{1:" 1.剪头发（男)",2:" 2.剪头发(女)",3:" 3.剪头发(小孩)",4:" 4.头发护理",5:" 5.头皮护理",6:" 6.胶原蛋白护发",7:" 7.短发",8:" 8.中长发",9:" 9.胸部以上长度",10:" 10.冷烫",11:" 11.热烫",12:" 12.补染发根",13:" 13.小补染",14:" 14.染发",15:" 15.挑染",16:"漂白",17:" 17.加",18:" 18.加",19:" 19.加"},20:" 20.加"},21:" 21.加"},22:" 22.加"},
+        'en':{1:" 1.Hair Cut(M)",2:" 2.Hair Cut (F)",3:" 3.Hair Cut (Child)",4:" 4.Treatment Hair",5:" 5.Scalp",6:" 6.Keratin",7:" 7.Short",8:" 8.Medium Shoulder",9:" 9.Above",10:" 10.Cold",11:" 11.Hot",12:" 12.Root",13:" 13.Touch up",14:" 14.Basic Colour",15:" 15.Highlight",16:" 16.Bleach",17:" 17.Add",18:" 18.Add",19:" 19.Add"},20:" 20.Add"},21:" 21.Add"},22:" 22.Add"}
     };
     
     let currentLang = 'zh-CN';
@@ -231,7 +231,7 @@
     const ordersRef = database.ref('orders');
     const counterRef = database.ref('orderCounter');
     
-    const MENU_BASE = { main: [{ id:1,price:30.00},{id:2,price:33.00},{id:3,price:20.00},{id:4,price:60.00},{id:5,price:100.00},{id:6,price:150.00},{id:7,price:120.00},{id:8,price:250.00}, { id:9,price:350.00}],side: [{id:10,price:120.00},{id:11,price:250.00},{id:12,price:100.00},{id:13,price:90.00},  { id:14,price:80.00},{id:15,price:80.00},{id:16,price:80.00}],extra:[{id:17,price:5.00},{id:18,price:10.00},{id:19,price:50.00}] };
+    const MENU_BASE = { main: [{ id:1,price:30.00},{id:2,price:33.00},{id:3,price:20.00},{id:4,price:60.00},{id:5,price:100.00},{id:6,price:150.00},{id:7,price:120.00},{id:8,price:250.00}, { id:9,price:350.00}],side: [{id:10,price:120.00},{id:11,price:250.00},{id:12,price:100.00},{id:13,price:90.00},  { id:14,price:80.00},{id:15,price:80.00},{id:16,price:80.00}],extra:[{id:17,price:1.00},{id:18,price:2.00},{id:19,price:3.00},{id:20,price:5.00},{id:21,price:10.00},{id:22,price:50.00}] };
     
     function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
     function showStatus(msg, isError){ if(!statusDiv) return; statusDiv.innerText=msg; statusDiv.style.display='block'; statusDiv.classList.toggle('error-feedback',isError); if(timeoutId) clearTimeout(timeoutId); timeoutId=setTimeout(()=>statusDiv.style.display='none',3000); }
