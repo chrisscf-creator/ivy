@@ -19,19 +19,19 @@
         .btn-green{background:#16a34a;color:#fff;}
         .btn:hover{opacity:0.9;transform:scale(1.02);}
 
-        .main-box{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+        .main-box{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
         @media(max-width:750px){.main-box{grid-template-columns:1fr;}}
 
-        .input-card,.print-card{background:#1f2937;padding:25px;border-radius:16px;}
-        .item{margin-bottom:18px;}
+        .input-card,.print-card{background:#1f2937;padding:20px;border-radius:16px;}
+        .item{margin-bottom:16px;}
         label{display:block;margin-bottom:6px;color:#d1d5db;font-size:15px;}
         input{width:100%;padding:12px;border-radius:8px;border:none;font-size:16px;background:#374151;color:#fff;outline:none;}
         .num-buttons{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:15px 0;}
         .num-btn{padding:12px;border-radius:6px;border:none;background:#334155;color:#fff;font-size:17px;cursor:pointer;}
         .num-btn:hover{background:#475569;}
 
-        .preview{background:#fff;color:#000;padding:20px;border-radius:8px;min-height:280px;white-space:pre-wrap;font-size:14px;line-height:1.6;}
-        .action-row{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;}
+        .preview{background:#fff;color:#000;padding:15px;border-radius:8px;min-height:250px;white-space:pre-wrap;font-size:13px;line-height:1.5;}
+        .action-row{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;}
 
         .status-tip{margin-top:15px;padding:10px;border-radius:6px;text-align:center;display:none;}
         .success{background:#064e3b;color:#4ade80;display:block;}
@@ -102,7 +102,7 @@
 </div>
 
 <script>
-// ========== Firebase 配置（已填入你提供的全部信息）==========
+// ========== Firebase 配置 ==========
 const firebaseConfig = {
     apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
     authDomain: "create-for-payment.firebaseapp.com",
@@ -113,7 +113,6 @@ const firebaseConfig = {
     appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
     measurementId: "G-SHP91WNP0H"
 };
-// 初始化Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ticketRef = db.ref("wanzi_ticket_records");
@@ -124,7 +123,7 @@ const langData = {
         playType:"玩法类型",period:"期号",printPreview:"票据打印预览",
         fullScreen:"全屏模式",exitFull:"退出全屏",
         btConnecting:"正在连接蓝牙打印机...",btSuccess:"打印机连接成功",
-        btFail:"蓝牙连接失败，请检查设备",noBt:"当前浏览器不支持蓝牙",
+        btFail:"蓝牙连接失败，请检查设备/重启打印机",noBt:"当前浏览器不支持蓝牙",
         printSuccess:"出票打印成功",printFail:"打印失败，请重连打印机",
         emptyNum:"请选择下注号码"
     },
@@ -156,8 +155,11 @@ function getNowDate(){
 }
 document.getElementById("orderDate").value = getNowDate();
 
+// ========== 蓝牙打印机（POS-5810DD 适配）==========
 let btDevice = null;
 let btChar = null;
+const BT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
+const BT_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
 function makeTicketNo(){
     let d = new Date();
@@ -233,6 +235,7 @@ document.getElementById("langBtn").onclick=()=>{
     refreshPreview();
 };
 
+// ========== 适配 POS-5810DD 的蓝牙连接逻辑 ==========
 async function connectBluetooth(){
     let tip = document.getElementById("statusTip");
     if(!navigator.bluetooth){
@@ -243,36 +246,55 @@ async function connectBluetooth(){
     tip.innerText = langData[nowLang].btConnecting;
     tip.className="status-tip success";
     try{
+        // 优先按服务UUID过滤，同时支持按名称前缀匹配
         btDevice = await navigator.bluetooth.requestDevice({
-            filters:[
-                {services:["0000ffe0-0000-1000-8000-00805f9b34fb"]}
+            filters: [
+                { services: [BT_SERVICE_UUID] },
+                { namePrefix: "POS" },
+                { namePrefix: "Printer" },
+                { namePrefix: "BT" }
             ],
-            optionalServices:["0000ffe0-0000-1000-8000-00805f9b34fb"]
+            optionalServices: [BT_SERVICE_UUID]
         });
-        let server = await btDevice.gatt.connect();
-        let service = await server.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb");
-        btChar = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb");
+
+        // 连接GATT服务器
+        const server = await btDevice.gatt.connect();
+        const service = await server.getPrimaryService(BT_SERVICE_UUID);
+        btChar = await service.getCharacteristic(BT_CHAR_UUID);
+
         tip.innerText = langData[nowLang].btSuccess;
         tip.className="status-tip success";
-        btDevice.addEventListener("gattserverdisconnected",()=>{
-            btDevice=null;btChar=null;
-            tip.innerText=langData[nowLang].btFail;
+
+        // 监听断开连接
+        btDevice.addEventListener("gattserverdisconnected", () => {
+            btDevice = null;
+            btChar = null;
+            tip.innerText = langData[nowLang].btFail;
             tip.className="status-tip error";
         });
-    }catch(e){
-        tip.innerText=langData[nowLang].btFail;
+    } catch (e) {
+        console.error("蓝牙连接错误:", e);
+        tip.innerText = langData[nowLang].btFail;
         tip.className="status-tip error";
     }
 }
 
+// ========== POS-5810DD 打印指令封装 ==========
 function getPrintData(){
     let pre = document.getElementById("printPreview").innerText;
-    let encoder = new TextEncoder();
-    let data = encoder.encode(pre+"\n\n\n");
-    let cut = new Uint8Array([0x1D,0x56,0x00]);
-    let res = new Uint8Array(data.length+cut.length);
-    res.set(data,0);res.set(cut,data.length);
-    return res;
+    // 打印机初始化指令
+    const initCmd = new Uint8Array([0x1B, 0x40]);
+    // 换行切纸指令（适配58mm热敏机）
+    const feedCmd = new Uint8Array([0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x00]);
+    // 编码转换（使用UTF-8，多数新款58机已支持）
+    const encoder = new TextEncoder();
+    const textData = encoder.encode(pre + "\n");
+    // 拼接完整数据：初始化指令 + 打印内容 + 换行切纸
+    const fullData = new Uint8Array(initCmd.length + textData.length + feedCmd.length);
+    fullData.set(initCmd, 0);
+    fullData.set(textData, initCmd.length);
+    fullData.set(feedCmd, initCmd.length + textData.length);
+    return fullData;
 }
 
 document.getElementById("printBtn").onclick=async()=>{
@@ -315,6 +337,7 @@ document.getElementById("printBtn").onclick=async()=>{
         document.getElementById("playNum").value="";
         refreshPreview();
     }catch(e){
+        console.error("打印错误:", e);
         tip.innerText=langData[nowLang].printFail;
         tip.className="status-tip error";
     }
