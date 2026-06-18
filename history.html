@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>万字票历史记录</title>
+    <title>万字票云端历史记录</title>
+    <!-- 引入Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
         body{background:#111827;color:#fff;padding:15px;}
@@ -25,10 +28,11 @@
 <body>
 <div class="container">
     <div class="top-bar">
-        <h1 class="title">📜 万字票永久历史记录（与出票端互通）</h1>
+        <h1 class="title">📜 万字票云端历史记录（Firebase同步）</h1>
         <div>
+            <button class="btn btn-green" id="refreshBtn">🔄 刷新记录</button>
             <button class="btn btn-green" id="exportCsvBtn">📥 导出CSV</button>
-            <button class="btn btn-red" id="clearAllBtn">🗑️ 清空全部</button>
+            <button class="btn btn-red" id="clearAllBtn">🗑️ 清空云端全部</button>
         </div>
     </div>
 
@@ -40,31 +44,52 @@
 </div>
 
 <script>
-// 和出票端共用同一个KEY
-const HISTORY_KEY = "wanzi_ticket_history";
+// 同配置连接同一个数据库
+const firebaseConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "create-for-payment",
+    storageBucket: "create-for-payment.firebasestorage.app",
+    messagingSenderId: "505063429802",
+    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+    measurementId: "G-SHP91WNP0H"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ticketRef = db.ref("wanzi_ticket_records");
 
-// 读取/保存
-function getLocalHistory(){
-    let data = localStorage.getItem(HISTORY_KEY);
-    return data ? JSON.parse(data) : [];
-}
-function saveLocalHistory(list){
-    localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
+let allCloudData = [];
+
+// 读取云端全部数据
+function loadCloudData(){
+    ticketRef.orderByChild("timestamp").once("value",snap=>{
+        let data = snap.val();
+        allCloudData = [];
+        if(data){
+            for(let key in data){
+                allCloudData.push({
+                    ...data[key],
+                    firebaseKey:key
+                });
+            }
+        }
+        renderHistory();
+    });
 }
 
-// 渲染列表
 function renderHistory(filteredList=null){
-    let list = filteredList || getLocalHistory();
+    let list = filteredList || [...allCloudData].reverse();
     let box = document.getElementById("historyList");
     if(list.length===0){
-        box.innerHTML = '<div class="empty-his">暂无出票记录（出票端出票后自动同步）</div>';
+        box.innerHTML = '<div class="empty-his">暂无云端出票记录</div>';
         return;
     }
     let html = "";
-    list.reverse().forEach((item,idx)=>{
+    list.forEach(item=>{
         html += `
-        <div class="history-item" data-index="${list.length-1-idx}">
-            <button class="del-his" onclick="delSingleHistory(${list.length-1-idx})">删除</button>
+        <div class="history-item" data-key="${item.firebaseKey}">
+            <button class="del-his" onclick="delSingleCloud('${item.firebaseKey}')">删除</button>
             <p><strong>票号：</strong>${item.ticketNo}</p>
             <p><strong>日期：</strong>${item.orderDate}</p>
             <p><strong>期号：</strong>${item.period}</p>
@@ -78,60 +103,64 @@ function renderHistory(filteredList=null){
     box.innerHTML = html;
 }
 
-// 单条删除
-window.delSingleHistory = function(index){
-    let arr = getLocalHistory();
-    arr.splice(index,1);
-    saveLocalHistory(arr);
-    renderHistory();
+// 删除单条云端数据
+window.delSingleCloud = function(key){
+    if(confirm("确定删除该条云端记录？")){
+        ticketRef.child(key).remove();
+        loadCloudData();
+    }
 };
 
-// 清空全部
+// 清空全部云端记录
 document.getElementById("clearAllBtn").onclick=()=>{
-    if(confirm("确定清空所有历史记录？不可恢复！")){
-        localStorage.removeItem(HISTORY_KEY);
-        renderHistory();
+    if(confirm("警告：确定清空Firebase云端所有记录，无法恢复！")){
+        ticketRef.remove();
+        loadCloudData();
     }
 };
 
 // 搜索
 document.getElementById("searchInput").addEventListener("input",e=>{
     let keyword = e.target.value.toLowerCase();
-    let all = getLocalHistory();
-    let filtered = all.filter(item=>
+    let filtered = allCloudData.filter(item=>
         item.ticketNo.toLowerCase().includes(keyword) ||
-        item.period.toLowerCase().includes(keyword) ||
-        item.playNum.toLowerCase().includes(keyword) ||
-        item.orderDate.includes(keyword)
+        (item.period||"").toLowerCase().includes(keyword) ||
+        (item.playNum||"").toLowerCase().includes(keyword) ||
+        (item.orderDate||"").includes(keyword)
     );
     renderHistory(filtered);
 });
 
 // 导出CSV
 document.getElementById("exportCsvBtn").onclick=()=>{
-    let list = getLocalHistory();
-    if(list.length===0){alert("无记录可导出");return;}
+    if(allCloudData.length===0){alert("无记录可导出");return;}
     let headers = ["票号","日期","期号","号码","金额","玩法","出票时间"];
-    let rows = list.map(item=>[
-        item.ticketNo,item.orderDate,item.period,item.playNum,
-        "$"+item.betMoney,item.playType,item.createTime
+    let rows = allCloudData.map(item=>[
+        item.ticketNo,item.orderDate,item.period||"",item.playNum||"",
+        "$"+item.betMoney,item.playType||"",item.createTime||""
     ]);
     let csv = "\uFEFF" + [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
     let blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
     let a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `万字票历史记录_${new Date().toLocaleDateString()}.csv`;
+    a.download = `万字票云端记录_${new Date().toLocaleDateString()}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
 };
 
-// 关键：监听storage事件，出票端新增记录，历史端自动刷新
-window.addEventListener("storage",e=>{
-    if(e.key === HISTORY_KEY) renderHistory();
+// 手动刷新
+document.getElementById("refreshBtn").onclick=()=>{
+    loadCloudData();
+    alert("已同步最新云端数据");
+};
+
+// 实时监听云端新增数据自动刷新
+ticketRef.on("child_added",()=>{
+    loadCloudData();
 });
 
-// 初始化
-renderHistory();
+// 初始化加载
+loadCloudData();
 </script>
 </body>
 </html>
