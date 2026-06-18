@@ -2,178 +2,358 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-    <title>万字票出票系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>万字票 - 写票系统</title>
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
-        body{background:#111827;color:#fff;padding:15px;}
-        .container{max-width:1000px;margin:0 auto;}
-        .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
-        .title{font-size:26px;font-weight:bold;color:#fbbf24;}
-        .btn{padding:10px 18px;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:bold;}
-        .btn-blue{background:#2563eb;color:#fff;}
-        .btn-orange{background:#f97316;color:#fff;}
-        .btn-green{background:#16a34a;color:#fff;}
-        .main-box{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
-        @media(max-width:750px){.main-box{grid-template-columns:1fr;}}
-        .input-card,.print-card{background:#1f2937;padding:20px;border-radius:16px;}
-        .item{margin-bottom:16px;}
-        label{display:block;margin-bottom:6px;color:#d1d5db;font-size:15px;}
-        input{width:100%;padding:12px;border-radius:8px;border:none;font-size:16px;background:#374151;color:#fff;outline:none;}
-        .num-buttons{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:15px 0;}
-        .num-btn{padding:12px;border-radius:6px;border:none;background:#334155;color:#fff;font-size:17px;cursor:pointer;}
-        .preview{background:#fff;color:#000;padding:15px;border-radius:8px;min-height:250px;white-space:pre-wrap;font-size:13px;line-height:1.5;}
-        .action-row{display:flex;gap:10px;margin-top:15px;}
-        .status-tip{margin-top:15px;padding:10px;border-radius:6px;text-align:center;display:none;}
-        .success{background:#064e3b;color:#4ade80;display:block;}
-        .error{background:#7f1d1d;color:#fca5a5;display:block;}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .num-btn {
+            padding: 15px 0;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .num-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+        .num-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .num-btn:active {
+            transform: scale(0.95);
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .status.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .selected-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="top-bar">
-        <h1 class="title">🎫 万字票出票系统</h1>
-        <div>
-            <button class="btn btn-blue" id="fullScreenBtn">⛶ 全屏模式</button>
-            <button class="btn btn-green" id="connectBtBtn">🔌 连接蓝牙打印机</button>
-            <button class="btn btn-orange" id="langBtn">English</button>
+    <div class="container">
+        <h1>🎯 万字票写票系统</h1>
+        
+        <div class="form-group">
+            <label>📅 选择日期</label>
+            <input type="date" id="drawDate">
+        </div>
+
+        <div class="form-group">
+            <label>🔢 选择万字号码 (0000-9999)</label>
+            <div class="selected-number" id="selectedDisplay">请选择号码</div>
+            <div class="number-grid" id="numberGrid"></div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <input type="text" id="manualInput" placeholder="手动输入4位数字" maxlength="4" style="flex: 1;">
+                <button onclick="setManualNumber()" class="btn-primary" style="width: auto; padding: 12px 20px;">设置</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>💰 投注金额 (RM)</label>
+            <input type="number" id="betAmount" placeholder="输入投注金额" step="0.01" min="0">
+        </div>
+
+        <button onclick="submitTicket()" class="btn-primary" id="submitBtn">
+            📝 提交票券
+        </button>
+
+        <div id="statusMessage" class="status">
+            <span id="statusText"></span>
+        </div>
+
+        <div class="footer">
+            <small>数据将保存到 Firebase 实时数据库</small>
         </div>
     </div>
-    <div class="main-box">
-        <div class="input-card">
-            <div class="item">
-                <label data-lang="ticketNo">票号</label>
-                <input type="text" id="ticketNo">
-            </div>
-            <div class="item">
-                <label data-lang="orderDate">出票日期</label>
-                <input type="date" id="orderDate">
-            </div>
-            <div class="item">
-                <label data-lang="playNum">下注号码</label>
-                <input type="text" id="playNum" readonly>
-            </div>
-            <div class="num-buttons" id="numPad">
-                <button class="num-btn">0</button>
-                <button class="num-btn">1</button>
-                <button class="num-btn">2</button>
-                <button class="num-btn">3</button>
-                <button class="num-btn">4</button>
-                <button class="num-btn">5</button>
-                <button class="num-btn">6</button>
-                <button class="num-btn">7</button>
-                <button class="num-btn">8</button>
-                <button class="num-btn">9</button>
-            </div>
-            <div class="item">
-                <label data-lang="betMoney">下注金额</label>
-                <input type="number" id="betMoney" value="10">
-            </div>
-            <div class="item">
-                <label data-lang="playType">玩法类型</label>
-                <input type="text" id="playType" value="万字直选">
-            </div>
-            <div class="item">
-                <label data-lang="period">期号</label>
-                <input type="text" id="period">
-            </div>
-            <div class="action-row">
-                <button class="btn btn-orange" id="clearBtn" style="width:48%;">清空</button>
-                <button class="btn btn-green" id="printBtn" style="width:48%;">出票打印</button>
-            </div>
-            <div class="status-tip" id="statusTip"></div>
-        </div>
-        <div class="print-card">
-            <label data-lang="printPreview">票据打印预览</label>
-            <div class="preview" id="printPreview"></div>
-        </div>
-    </div>
-</div>
 
-<script>
-const firebaseConfig = {
-    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-    authDomain: "create-for-payment.firebaseapp.com",
-    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "create-for-payment",
-    storageBucket: "create-for-payment.firebasestorage.app",
-    messagingSenderId: "505063429802",
-    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
-    measurementId: "G-SHP91WNP0H"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const ticketRef = db.ref("wanzi_ticket_records");
-
-const langData = {
-    zh:{ticketNo:"票号",orderDate:"出票日期",playNum:"下注号码",betMoney:"下注金额",playType:"玩法类型",period:"期号",printPreview:"票据打印预览",fullScreen:"全屏模式",exitFull:"退出全屏",btConnecting:"正在连接蓝牙打印机...",btSuccess:"打印机连接成功",btFail:"蓝牙连接失败",noBt:"浏览器不支持蓝牙",printSuccess:"出票成功 已同步云端",printFail:"打印失败",emptyNum:"请选择号码"},
-    en:{ticketNo:"Ticket No",orderDate:"Order Date",playNum:"Play Number",betMoney:"Bet Amount",playType:"Play Type",period:"Period No",printPreview:"Print Preview",fullScreen:"Full Screen",exitFull:"Exit Full",btConnecting:"Connecting...",btSuccess:"Connected",btFail:"Connect Failed",noBt:"No Bluetooth",printSuccess:"Print & Sync Success",printFail:"Print Failed",emptyNum:"Input number"}
-};
-let nowLang = "zh",fullScreenState = false;
-const HISTORY_KEY = "wanzi_ticket_history";
-function getLocalHistory(){let d=localStorage.getItem(HISTORY_KEY);return d?JSON.parse(d):[];}
-function saveLocalHistory(l){localStorage.setItem(HISTORY_KEY,JSON.stringify(l));}
-function getNowDate(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-document.getElementById("orderDate").value=getNowDate();
-let btDevice=null,btChar=null;
-const BT_SRV="0000ffe0-0000-1000-8000-00805f9b34fb";
-const BT_CHR="0000ffe1-0000-1000-8000-00805f9b34fb";
-function makeTicketNo(){let d=new Date();return "WZ"+String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(Math.floor(Math.random()*9999)).padStart(4,'0');}
-document.getElementById("ticketNo").value=makeTicketNo();
-document.querySelectorAll("#numPad .num-btn").forEach(b=>b.onclick=()=>{let v=playNum.value;if(v.length<8)playNum.value+=b.innerText;refreshPreview()});
-["orderDate","betMoney","playType","period"].forEach(id=>document.getElementById(id).addEventListener("input",refreshPreview));
-function refreshPreview(){
-    let t=document.getElementById("ticketNo").value,d=orderDate.value,n=playNum.value,m=betMoney.value,ty=playType.value,p=period.value,time=new Date().toLocaleString();
-    printPreview.innerText=`==========万字票==========\n票号:${t}\n日期:${d}\n期号:${p}\n玩法:${ty}\n号码:${n}\n金额:$${m}\n出票时间:${time}\n==========================`;
-}
-clearBtn.onclick=()=>{playNum.value="";refreshPreview()};
-fullScreenBtn.onclick=()=>{if(!fullScreenState){document.documentElement.requestFullscreen();fullScreenState=1;fullScreenBtn.innerText=nowLang=="zh"?"⛶ 退出全屏":"Exit Full"}else{document.exitFullscreen();fullScreenState=0;fullScreenBtn.innerText=nowLang=="zh"?"⛶ 全屏模式":"Full Screen"}};
-langBtn.onclick=()=>{nowLang=nowLang=="zh"?"en":"zh";langBtn.innerText=nowLang=="zh"?"English":"中文";document.querySelectorAll("[data-lang]").forEach(e=>{let k=e.dataset.lang;if(langData[nowLang][k])e.innerText=langData[nowLang][k]});refreshPreview()};
-
-async function connectBluetooth(){
-    let tip=statusTip;
-    if(!navigator.bluetooth){tip.innerText=langData[nowLang].noBt;tip.className="status-tip error";return;}
-    tip.innerText=langData[nowLang].btConnecting;tip.className="status-tip success";
-    try{
-        btDevice=await navigator.bluetooth.requestDevice({filters:[{services:[BT_SRV]},{namePrefix:"POS"},{namePrefix:"Printer"}],optionalServices:[BT_SRV]});
-        let srv=await btDevice.gatt.connect().then(g=>g.getPrimaryService(BT_SRV));
-        btChar=await srv.getCharacteristic(BT_CHR);
-        tip.innerText=langData[nowLang].btSuccess;tip.className="status-tip success";
-        btDevice.addEventListener("gattserverdisconnected",()=>{btDevice=btChar=null;tip.innerText=langData[nowLang].btFail;tip.className="status-tip error"});
-    }catch(e){tip.innerText=langData[nowLang].btFail;tip.className="status-tip error"}
-}
-function getPrintData(){
-    let txt=printPreview.innerText;
-    let init=new Uint8Array([0x1B,0x40]);
-    let cut=new Uint8Array([0x0A,0x0A,0x1D,0x56,0x00]);
-    let buf=new TextEncoder().encode(txt+"\n");
-    let all=new Uint8Array(init.length+buf.length+cut.length);
-    all.set(init);all.set(buf,init.length);all.set(cut,init.length+buf.length);
-    return all;
-}
-
-printBtn.onclick=async()=>{
-    let num=playNum.value,tip=statusTip;
-    if(!num){tip.innerText=langData[nowLang].emptyNum;tip.className="status-tip error";return;}
-    if(!btChar){tip.innerText=langData[nowLang].btFail;tip.className="status-tip error";return;}
-    try{
-        await btChar.writeValue(getPrintData());
-        tip.innerText=langData[nowLang].printSuccess;tip.className="status-tip success";
-        let item={
-            ticketNo:ticketNo.value,orderDate:orderDate.value,period:period.value,
-            playNum:playNum.value,betMoney:betMoney.value,playType:playType.value,
-            createTime:new Date().toLocaleString(),timestamp:Date.now()
+    <script>
+        // ===== Firebase 配置 =====
+        // 请替换为您的 Firebase 配置
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-        getLocalHistory().push(item);saveLocalHistory(getLocalHistory());
-        // 强制写入云端
-        await ticketRef.push(item);
-        ticketNo.value=makeTicketNo();playNum.value="";refreshPreview();
-    }catch(e){tip.innerText=langData[nowLang].printFail;tip.className="status-tip error"}
-}
-connectBtBtn.onclick=connectBluetooth;
-refreshPreview();
-</script>
+
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ===== 全局变量 =====
+        let selectedNumber = null;
+        const today = new Date().toISOString().split('T')[0];
+
+        // ===== 初始化 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期为今天
+            document.getElementById('drawDate').value = today;
+            generateNumberGrid();
+        });
+
+        // ===== 生成数字网格 (简化版，显示0000-9999的部分) =====
+        function generateNumberGrid() {
+            const grid = document.getElementById('numberGrid');
+            grid.innerHTML = '';
+            
+            // 显示从 0000 到 9999 的简化版本 - 每个按钮代表一个千位区段
+            // 为了演示，只显示部分号码，实际应用中可以优化
+            const prefixes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            prefixes.forEach(prefix => {
+                const btn = document.createElement('div');
+                btn.className = 'num-btn';
+                btn.textContent = prefix + 'xxx';
+                btn.dataset.prefix = prefix;
+                btn.onclick = function() {
+                    // 弹窗让用户选择完整号码
+                    const fullNumber = prompt(`请输入以 ${prefix} 开头的4位号码 (0000-9999):`, prefix + '000');
+                    if (fullNumber && /^\d{4}$/.test(fullNumber)) {
+                        selectNumber(fullNumber);
+                    } else if (fullNumber !== null) {
+                        alert('请输入有效的4位数字!');
+                    }
+                };
+                grid.appendChild(btn);
+            });
+
+            // 添加一个"随机"按钮
+            const randomBtn = document.createElement('div');
+            randomBtn.className = 'num-btn';
+            randomBtn.textContent = '🎲 随机';
+            randomBtn.style.gridColumn = 'span 2';
+            randomBtn.onclick = function() {
+                const num = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+                selectNumber(num);
+            };
+            grid.appendChild(randomBtn);
+        }
+
+        // ===== 选择号码 =====
+        function selectNumber(number) {
+            selectedNumber = number;
+            document.getElementById('selectedDisplay').textContent = number;
+            document.getElementById('selectedDisplay').style.color = '#28a745';
+            
+            // 更新按钮高亮
+            document.querySelectorAll('.num-btn').forEach(btn => {
+                btn.classList.remove('selected');
+                if (btn.dataset.prefix === number[0]) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        // ===== 手动输入 =====
+        function setManualNumber() {
+            const input = document.getElementById('manualInput');
+            const value = input.value.trim();
+            if (/^\d{4}$/.test(value)) {
+                selectNumber(value);
+                input.value = '';
+            } else {
+                alert('请输入有效的4位数字 (0000-9999)');
+            }
+        }
+
+        // ===== 提交票券 =====
+        function submitTicket() {
+            const date = document.getElementById('drawDate').value;
+            const amount = document.getElementById('betAmount').value;
+            
+            // 验证
+            if (!date) {
+                showStatus('请选择日期!', 'error');
+                return;
+            }
+            if (!selectedNumber) {
+                showStatus('请选择一个号码!', 'error');
+                return;
+            }
+            if (!amount || parseFloat(amount) <= 0) {
+                showStatus('请输入有效的投注金额!', 'error');
+                return;
+            }
+
+            // 准备数据
+            const ticketData = {
+                number: selectedNumber,
+                amount: parseFloat(amount),
+                date: date,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                status: 'active'
+            };
+
+            // UI 反馈
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 提交中...';
+            showStatus('正在保存数据到 Firebase...', '');
+
+            // 保存到 Firebase
+            const ticketRef = database.ref('tickets').push();
+            ticketRef.set(ticketData)
+                .then(() => {
+                    showStatus(`✅ 票券已成功保存! 号码: ${selectedNumber}, 金额: RM ${amount}`, 'success');
+                    // 重置
+                    selectedNumber = null;
+                    document.getElementById('selectedDisplay').textContent = '请选择号码';
+                    document.getElementById('selectedDisplay').style.color = '#667eea';
+                    document.getElementById('betAmount').value = '';
+                    document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
+                    // 生成新的随机号码示例
+                })
+                .catch((error) => {
+                    console.error('Error saving ticket:', error);
+                    showStatus(`❌ 保存失败: ${error.message}`, 'error');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '📝 提交票券';
+                });
+        }
+
+        // ===== 状态显示 =====
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = message;
+            statusDiv.className = 'status show ' + type;
+        }
+
+        // ===== 键盘快捷键 =====
+        document.getElementById('manualInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                setManualNumber();
+            }
+        });
+    </script>
 </body>
 </html>
