@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>万字票云端历史记录</title>
-    <!-- 引入Firebase SDK -->
+    <title>云端历史记录</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -28,23 +27,20 @@
 <body>
 <div class="container">
     <div class="top-bar">
-        <h1 class="title">📜 万字票云端历史记录（Firebase同步）</h1>
+        <h1 class="title">📜 云端同步历史记录</h1>
         <div>
-            <button class="btn btn-green" id="refreshBtn">🔄 刷新记录</button>
+            <button class="btn btn-green" id="refreshBtn">🔄 手动刷新</button>
             <button class="btn btn-green" id="exportCsvBtn">📥 导出CSV</button>
-            <button class="btn btn-red" id="clearAllBtn">🗑️ 清空云端全部</button>
+            <button class="btn btn-red" id="clearAllBtn">🗑️ 清空云端</button>
         </div>
     </div>
-
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="搜索：票号/期号/号码/日期...">
+        <input type="text" id="searchInput" placeholder="搜索票号/号码/日期/期号">
     </div>
-
     <div class="history-list" id="historyList"></div>
 </div>
 
 <script>
-// 同配置连接同一个数据库
 const firebaseConfig = {
     apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
     authDomain: "create-for-payment.firebaseapp.com",
@@ -56,111 +52,57 @@ const firebaseConfig = {
     measurementId: "G-SHP91WNP0H"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const ticketRef = db.ref("wanzi_ticket_records");
+const db=firebase.database();
+const ticketRef=db.ref("wanzi_ticket_records");
+let cloudData=[];
 
-let allCloudData = [];
-
-// 读取云端全部数据
-function loadCloudData(){
+function loadData(){
     ticketRef.orderByChild("timestamp").once("value",snap=>{
-        let data = snap.val();
-        allCloudData = [];
-        if(data){
-            for(let key in data){
-                allCloudData.push({
-                    ...data[key],
-                    firebaseKey:key
-                });
-            }
+        cloudData=[];
+        if(snap.val()){
+            for(let k in snap.val()) cloudData.push({...snap.val()[k],key:k});
         }
-        renderHistory();
-    });
+        render();
+    })
 }
-
-function renderHistory(filteredList=null){
-    let list = filteredList || [...allCloudData].reverse();
-    let box = document.getElementById("historyList");
-    if(list.length===0){
-        box.innerHTML = '<div class="empty-his">暂无云端出票记录</div>';
-        return;
-    }
-    let html = "";
-    list.forEach(item=>{
-        html += `
-        <div class="history-item" data-key="${item.firebaseKey}">
-            <button class="del-his" onclick="delSingleCloud('${item.firebaseKey}')">删除</button>
-            <p><strong>票号：</strong>${item.ticketNo}</p>
-            <p><strong>日期：</strong>${item.orderDate}</p>
-            <p><strong>期号：</strong>${item.period}</p>
-            <p><strong>号码：</strong>${item.playNum}</p>
-            <p><strong>金额：</strong>$${item.betMoney}</p>
-            <p><strong>玩法：</strong>${item.playType}</p>
-            <p><strong>出票时间：</strong>${item.createTime}</p>
-        </div>
-        `;
+function render(list=null){
+    let arr=list||[...cloudData].reverse();
+    let box=historyList;
+    if(arr.length===0){box.innerHTML='<div class="empty-his">暂无云端同步记录</div>';return;}
+    let html="";
+    arr.forEach(v=>{
+        html+=`<div class="history-item"><button class="del-his" onclick="delOne('${v.key}')">删除</button>
+        <p>票号：${v.ticketNo}</p><p>日期：${v.orderDate}</p><p>期号：${v.period||""}</p>
+        <p>号码：${v.playNum||""}</p><p>金额：$${v.betMoney}</p><p>玩法：${v.playType||""}</p>
+        <p>时间：${v.createTime}</p></div>`
     });
-    box.innerHTML = html;
+    box.innerHTML=html;
 }
-
-// 删除单条云端数据
-window.delSingleCloud = function(key){
-    if(confirm("确定删除该条云端记录？")){
-        ticketRef.child(key).remove();
-        loadCloudData();
-    }
-};
-
-// 清空全部云端记录
-document.getElementById("clearAllBtn").onclick=()=>{
-    if(confirm("警告：确定清空Firebase云端所有记录，无法恢复！")){
-        ticketRef.remove();
-        loadCloudData();
-    }
-};
-
-// 搜索
-document.getElementById("searchInput").addEventListener("input",e=>{
-    let keyword = e.target.value.toLowerCase();
-    let filtered = allCloudData.filter(item=>
-        item.ticketNo.toLowerCase().includes(keyword) ||
-        (item.period||"").toLowerCase().includes(keyword) ||
-        (item.playNum||"").toLowerCase().includes(keyword) ||
-        (item.orderDate||"").includes(keyword)
+window.delOne=k=>{if(confirm("删除本条云端记录？")){ticketRef.child(k).remove();loadData()}};
+clearAllBtn.onclick=()=>{if(confirm("清空全部云端记录？不可恢复！")){ticketRef.remove();loadData()}};
+searchInput.oninput=e=>{
+    let kw=e.target.value.toLowerCase();
+    let f=cloudData.filter(x=>
+        x.ticketNo.toLowerCase().includes(kw)||
+        (x.playNum||"").includes(kw)||
+        (x.orderDate||"").includes(kw)||
+        (x.period||"").includes(kw)
     );
-    renderHistory(filtered);
-});
-
-// 导出CSV
-document.getElementById("exportCsvBtn").onclick=()=>{
-    if(allCloudData.length===0){alert("无记录可导出");return;}
-    let headers = ["票号","日期","期号","号码","金额","玩法","出票时间"];
-    let rows = allCloudData.map(item=>[
-        item.ticketNo,item.orderDate,item.period||"",item.playNum||"",
-        "$"+item.betMoney,item.playType||"",item.createTime||""
-    ]);
-    let csv = "\uFEFF" + [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
-    let blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
-    let a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `万字票云端记录_${new Date().toLocaleDateString()}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    render(f);
 };
-
-// 手动刷新
-document.getElementById("refreshBtn").onclick=()=>{
-    loadCloudData();
-    alert("已同步最新云端数据");
+exportCsvBtn.onclick=()=>{
+    if(cloudData.length===0)return alert("无数据");
+    let h=["票号","日期","期号","号码","金额","玩法","时间"];
+    let r=cloudData.map(x=>[x.ticketNo,x.orderDate,x.period||"",x.playNum||"","$"+x.betMoney,x.playType||"",x.createTime]);
+    let csv="\uFEFF"+[h,...r].map(i=>i.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    let b=new Blob([csv],{type:"text/csv"});
+    let a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="万字票云端记录.csv";a.click();
 };
-
-// 实时监听云端新增数据自动刷新
-ticketRef.on("child_added",()=>{
-    loadCloudData();
-});
-
-// 初始化加载
-loadCloudData();
+refreshBtn.onclick=loadData;
+// 实时监听新增记录 自动刷新
+ticketRef.on("child_added",loadData);
+ticketRef.on("child_removed",loadData);
+loadData();
 </script>
 </body>
 </html>
