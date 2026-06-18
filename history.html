@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>万字票历史记录</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
+        body{background:#111827;color:#fff;padding:15px;}
+        .container{max-width:1200px;margin:0 auto;}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;}
+        .title{font-size:24px;color:#fbbf24;}
+        .btn{padding:8px 14px;border:none;border-radius:8px;font-weight:bold;cursor:pointer;}
+        .btn-red{background:#dc2626;color:#fff;}
+        .btn-green{background:#16a34a;color:#fff;}
+        .search-box{margin-bottom:15px;}
+        #searchInput{width:100%;padding:12px;border-radius:8px;border:none;background:#273444;color:#fff;}
+        .history-list{background:#1f2937;border-radius:12px;padding:15px;max-height:75vh;overflow-y:auto;}
+        .history-item{padding:12px;border-bottom:1px solid #374151;margin-bottom:10px;position:relative;}
+        .history-item p{font-size:14px;color:#e5e7eb;line-height:1.6;}
+        .del-his{position:absolute;right:10px;top:10px;background:#ef4444;border:none;color:#fff;border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;}
+        .empty-his{text-align:center;padding:40px;color:#9ca3af;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <h1 class="title">📜 万字票永久历史记录（与出票端互通）</h1>
+        <div>
+            <button class="btn btn-green" id="exportCsvBtn">📥 导出CSV</button>
+            <button class="btn btn-red" id="clearAllBtn">🗑️ 清空全部</button>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索：票号/期号/号码/日期...">
+    </div>
+
+    <div class="history-list" id="historyList"></div>
+</div>
+
+<script>
+// 和出票端共用同一个KEY
+const HISTORY_KEY = "wanzi_ticket_history";
+
+// 读取/保存
+function getLocalHistory(){
+    let data = localStorage.getItem(HISTORY_KEY);
+    return data ? JSON.parse(data) : [];
+}
+function saveLocalHistory(list){
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
+}
+
+// 渲染列表
+function renderHistory(filteredList=null){
+    let list = filteredList || getLocalHistory();
+    let box = document.getElementById("historyList");
+    if(list.length===0){
+        box.innerHTML = '<div class="empty-his">暂无出票记录（出票端出票后自动同步）</div>';
+        return;
+    }
+    let html = "";
+    list.reverse().forEach((item,idx)=>{
+        html += `
+        <div class="history-item" data-index="${list.length-1-idx}">
+            <button class="del-his" onclick="delSingleHistory(${list.length-1-idx})">删除</button>
+            <p><strong>票号：</strong>${item.ticketNo}</p>
+            <p><strong>日期：</strong>${item.orderDate}</p>
+            <p><strong>期号：</strong>${item.period}</p>
+            <p><strong>号码：</strong>${item.playNum}</p>
+            <p><strong>金额：</strong>$${item.betMoney}</p>
+            <p><strong>玩法：</strong>${item.playType}</p>
+            <p><strong>出票时间：</strong>${item.createTime}</p>
+        </div>
+        `;
+    });
+    box.innerHTML = html;
+}
+
+// 单条删除
+window.delSingleHistory = function(index){
+    let arr = getLocalHistory();
+    arr.splice(index,1);
+    saveLocalHistory(arr);
+    renderHistory();
+};
+
+// 清空全部
+document.getElementById("clearAllBtn").onclick=()=>{
+    if(confirm("确定清空所有历史记录？不可恢复！")){
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory();
+    }
+};
+
+// 搜索
+document.getElementById("searchInput").addEventListener("input",e=>{
+    let keyword = e.target.value.toLowerCase();
+    let all = getLocalHistory();
+    let filtered = all.filter(item=>
+        item.ticketNo.toLowerCase().includes(keyword) ||
+        item.period.toLowerCase().includes(keyword) ||
+        item.playNum.toLowerCase().includes(keyword) ||
+        item.orderDate.includes(keyword)
+    );
+    renderHistory(filtered);
+});
+
+// 导出CSV
+document.getElementById("exportCsvBtn").onclick=()=>{
+    let list = getLocalHistory();
+    if(list.length===0){alert("无记录可导出");return;}
+    let headers = ["票号","日期","期号","号码","金额","玩法","出票时间"];
+    let rows = list.map(item=>[
+        item.ticketNo,item.orderDate,item.period,item.playNum,
+        "$"+item.betMoney,item.playType,item.createTime
+    ]);
+    let csv = "\uFEFF" + [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    let blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `万字票历史记录_${new Date().toLocaleDateString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+};
+
+// 关键：监听storage事件，出票端新增记录，历史端自动刷新
+window.addEventListener("storage",e=>{
+    if(e.key === HISTORY_KEY) renderHistory();
+});
+
+// 初始化
+renderHistory();
+</script>
+</body>
+</html>
