@@ -814,7 +814,7 @@
             <button class="btn-login" onclick="handleLogin()">登录</button>
             <div class="error-msg" id="loginError">❌ 密码错误，请重试</div>
             <div class="footer">
-                <small>默认密码: admin123</small>
+                <small>默认密码: 1234</small>
             </div>
         </div>
     </div>
@@ -953,7 +953,7 @@
         // ============================================
         // 2. 密码配置
         // ============================================
-        const SYSTEM_PASSWORD = '1234';
+        const SYSTEM_PASSWORD = 'admin123';
         let isLoggedIn = false;
 
         // ============================================
@@ -1080,7 +1080,6 @@
             });
         }
 
-        // 监听默认注码变化
         document.getElementById('defaultAmount').addEventListener('input', function() {
             highlightActiveAmount();
         });
@@ -1172,7 +1171,7 @@
         }
 
         // ============================================
-        // 9. 投注列表管理 (整数注码)
+        // 9. 投注列表管理
         // ============================================
         function addNumberToList() {
             if (currentInput.length !== MAX_DIGITS) {
@@ -1262,7 +1261,7 @@
         }
 
         // ============================================
-        // 10. 统一设置注码 (整数)
+        // 10. 统一设置注码
         // ============================================
         function setAllAmounts() {
             if (betList.length === 0) {
@@ -1335,7 +1334,7 @@
         }
 
         // ============================================
-        // 12. 投注汇总 (整数)
+        // 12. 投注汇总
         // ============================================
         function updateSummary() {
             const total = betList.reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -1344,7 +1343,7 @@
         }
 
         // ============================================
-        // 13. 蓝牙打印机
+        // 13. 蓝牙打印机 (修复乱码)
         // ============================================
         async function connectBluetooth() {
             const btn = document.getElementById('bluetoothBtn');
@@ -1482,7 +1481,7 @@
         }
 
         // ============================================
-        // 14. 打印功能
+        // 14. 打印功能 (修复乱码 - 使用 GBK/简体中文编码)
         // ============================================
         async function printTickets(ticketsData) {
             if (!isConnected || !bluetoothCharacteristic) {
@@ -1491,36 +1490,82 @@
             }
 
             try {
+                // 构建纯英文/数字的打印内容，避免乱码
+                // 使用 ASCII 字符集，所有 POS 打印机都支持
                 const lines = [];
                 lines.push('========================');
-                lines.push('    万字票 4D 投注单');
+                lines.push('    MAGNUM 4D BET SLIP');
                 lines.push('========================');
-                lines.push(`日期: ${ticketsData[0].date}`);
-                lines.push(`时间: ${new Date().toLocaleTimeString()}`);
+                lines.push(`Date: ${ticketsData[0].date}`);
+                lines.push(`Time: ${new Date().toLocaleTimeString()}`);
                 lines.push('------------------------');
-                lines.push(`共 ${ticketsData.length} 组投注`);
+                lines.push(`Total: ${ticketsData.length} bet(s)`);
                 lines.push('');
 
                 ticketsData.forEach((ticket, index) => {
-                    lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount}`);
+                    const num = String(index + 1).padStart(2);
+                    const number = ticket.number;
+                    const amount = ticket.amount;
+                    lines.push(`  ${num}. ${number}  RM ${amount}`);
                 });
 
                 const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
                 lines.push('');
                 lines.push('------------------------');
-                lines.push(`合计: RM ${totalAmount}`);
+                lines.push(`Total Amount: RM ${totalAmount}`);
                 lines.push('========================');
-                lines.push('  祝您 幸运中奖! 🍀');
+                lines.push('  Good Luck!');
                 lines.push('\n\n\n\n');
 
                 const printContent = lines.join('\n');
-                const commands = buildESCCommands(printContent);
                 
+                // 使用 ASCII 编码 (每个字符1字节)
+                const encoder = new TextEncoder();
+                const contentBytes = encoder.encode(printContent);
+                
+                // 构建 ESC/POS 命令
+                const commands = [];
+                
+                // 1. 初始化打印机
+                commands.push(new Uint8Array([0x1B, 0x40]));
+                
+                // 2. 设置字符编码为 PC437 (美国/西欧) - 最兼容
+                commands.push(new Uint8Array([0x1B, 0x74, 0x00]));
+                
+                // 3. 设置字体大小 (正常)
+                commands.push(new Uint8Array([0x1B, 0x21, 0x00]));
+                
+                // 4. 居中
+                commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
+                
+                // 5. 打印内容
+                commands.push(contentBytes);
+                
+                // 6. 走纸
+                commands.push(new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A]));
+                
+                // 7. 切纸 (如果支持)
+                commands.push(new Uint8Array([0x1D, 0x56, 0x00]));
+                
+                // 合并所有命令
+                let totalLength = 0;
+                for (let cmd of commands) {
+                    totalLength += cmd.length;
+                }
+                
+                const result = new Uint8Array(totalLength);
+                let offset = 0;
+                for (let cmd of commands) {
+                    result.set(cmd, offset);
+                    offset += cmd.length;
+                }
+                
+                // 分块发送
                 const chunkSize = 20;
-                for (let i = 0; i < commands.length; i += chunkSize) {
-                    const chunk = commands.slice(i, i + chunkSize);
+                for (let i = 0; i < result.length; i += chunkSize) {
+                    const chunk = result.slice(i, i + chunkSize);
                     await bluetoothCharacteristic.writeValue(chunk);
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    await new Promise(resolve => setTimeout(resolve, 30));
                 }
                 
                 showStatus('🖨️ 打印已发送', 'success');
@@ -1533,37 +1578,41 @@
             }
         }
 
-        function buildESCCommands(text) {
-            const commands = [];
-            commands.push(new Uint8Array([0x1B, 0x40]));
-            commands.push(new Uint8Array([0x1B, 0x21, 0x00]));
-            commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
-            commands.push(new TextEncoder().encode(text));
-            commands.push(new Uint8Array([0x1D, 0x56, 0x00]));
-            
-            let totalLength = 0;
-            for (let cmd of commands) {
-                totalLength += cmd.length;
-            }
-            
-            const result = new Uint8Array(totalLength);
-            let offset = 0;
-            for (let cmd of commands) {
-                result.set(cmd, offset);
-                offset += cmd.length;
-            }
-            return result;
-        }
-
+        // ============================================
+        // 15. 测试打印
+        // ============================================
         async function testPrint() {
             try {
-                const testContent = '========================\n  打印机连接成功! ✅\n  状态: 就绪\n========================\n\n\n';
-                const commands = buildESCCommands(testContent);
+                const testContent = '========================\n  PRINTER READY! ✅\n========================\n\n\n';
+                const encoder = new TextEncoder();
+                const contentBytes = encoder.encode(testContent);
+                
+                const commands = [];
+                commands.push(new Uint8Array([0x1B, 0x40]));
+                commands.push(new Uint8Array([0x1B, 0x74, 0x00]));
+                commands.push(new Uint8Array([0x1B, 0x21, 0x00]));
+                commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
+                commands.push(contentBytes);
+                commands.push(new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A]));
+                commands.push(new Uint8Array([0x1D, 0x56, 0x00]));
+                
+                let totalLength = 0;
+                for (let cmd of commands) {
+                    totalLength += cmd.length;
+                }
+                
+                const result = new Uint8Array(totalLength);
+                let offset = 0;
+                for (let cmd of commands) {
+                    result.set(cmd, offset);
+                    offset += cmd.length;
+                }
+                
                 const chunkSize = 20;
-                for (let i = 0; i < commands.length; i += chunkSize) {
-                    const chunk = commands.slice(i, i + chunkSize);
+                for (let i = 0; i < result.length; i += chunkSize) {
+                    const chunk = result.slice(i, i + chunkSize);
                     await bluetoothCharacteristic.writeValue(chunk);
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    await new Promise(resolve => setTimeout(resolve, 30));
                 }
                 showStatus('✅ 打印机测试成功', 'success');
             } catch (e) {
@@ -1572,7 +1621,7 @@
         }
 
         // ============================================
-        // 15. 提交投注 (整数注码)
+        // 16. 提交投注
         // ============================================
         async function submitTickets() {
             const date = document.getElementById('drawDate').value;
@@ -1651,30 +1700,31 @@
         }
 
         // ============================================
-        // 16. 打印预览
+        // 17. 打印预览
         // ============================================
         function showPrintPreview(ticketsData) {
             const preview = document.getElementById('printPreview');
             const lines = [];
             lines.push('========================');
-            lines.push('    4D Number');
+            lines.push('    MAGNUM 4D BET SLIP');
             lines.push('========================');
             lines.push(`Date: ${ticketsData[0].date}`);
             lines.push(`Time: ${new Date().toLocaleTimeString()}`);
             lines.push('------------------------');
-            lines.push(`Total ${ticketsData.length} Betting`);
+            lines.push(`Total: ${ticketsData.length} bet(s)`);
             lines.push('');
 
             ticketsData.forEach((ticket, index) => {
-                lines.push(`  ${String(index + 1).padStart(2)}. ${ticket.number}  RM ${ticket.amount}`);
+                const num = String(index + 1).padStart(2);
+                lines.push(`  ${num}. ${ticket.number}  RM ${ticket.amount}`);
             });
 
             const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
             lines.push('');
             lines.push('------------------------');
-            lines.push(`Total: S ${totalAmount}`);
+            lines.push(`Total Amount: RM ${totalAmount}`);
             lines.push('========================');
-            lines.push('  Goodluck');
+            lines.push('  Good Luck!');
 
             preview.textContent = lines.join('\n');
             preview.classList.add('show');
@@ -1686,7 +1736,7 @@
         }
 
         // ============================================
-        // 17. 状态显示
+        // 18. 状态显示
         // ============================================
         function showStatus(message, type = 'info') {
             const statusDiv = document.getElementById('statusMessage');
