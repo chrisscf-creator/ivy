@@ -1577,12 +1577,12 @@
             const preview = document.getElementById('printPreview');
             const lines = [];
             lines.push('========================');
-            lines.push('    万字票 4D 投注单');
+            lines.push('    4D Number   ');
             lines.push('========================');
-            lines.push(`日期: ${ticketsData[0].date}`);
-            lines.push(`时间: ${new Date().toLocaleTimeString()}`);
+            lines.push(`Date: ${ticketsData[0].date}`);
+            lines.push(`Time: ${new Date().toLocaleTimeString()}`);
             lines.push('------------------------');
-            lines.push(`共 ${ticketsData.length} 组投注`);
+            lines.push(`Total ${ticketsData.length} Betting`);
             lines.push('');
 
             ticketsData.forEach((ticket, index) => {
@@ -1592,9 +1592,9 @@
             const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
             lines.push('');
             lines.push('------------------------');
-            lines.push(`合计: RM ${totalAmount.toFixed(2)}`);
+            lines.push(`Total: RM ${totalAmount.toFixed(2)}`);
             lines.push('========================');
-            lines.push('  祝您 幸运中奖! 🍀');
+            lines.push('  Goodluck! ');
 
             preview.textContent = lines.join('\n');
             preview.classList.add('show');
