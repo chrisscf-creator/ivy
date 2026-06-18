@@ -2,198 +2,400 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>万字票 - 写票系统</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Bluetooth Printer Library -->
+    <script src="https://cdn.jsdelivr.net/npm/esc-pos-encoder@1.1.5/dist/esc-pos-encoder.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
         }
         .container {
             background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
+            border-radius: 25px;
+            padding: 30px 25px;
+            max-width: 480px;
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
         h1 {
-            color: #333;
+            color: #1a1a2e;
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 28px;
+            font-size: 26px;
+            margin-bottom: 5px;
         }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
+        .subtitle {
+            text-align: center;
+            color: #888;
             font-size: 14px;
+            margin-bottom: 25px;
         }
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+        
+        /* 号码显示 */
+        .number-display {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 3px dashed #e0e0e0;
+            transition: all 0.3s;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
+        .number-display.has-number {
+            border-color: #4CAF50;
+            background: #e8f5e9;
         }
-        .number-grid {
+        .number-display .number-text {
+            font-size: 48px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #1a1a2e;
+            letter-spacing: 8px;
+        }
+        .number-display .placeholder {
+            color: #aaa;
+            font-size: 18px;
+        }
+
+        /* 数字键盘 - 您提供的模式 */
+        .number-pad {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 10px;
-            margin: 15px 0;
+            margin: 15px 0 20px 0;
         }
         .num-btn {
-            padding: 15px 0;
+            padding: 18px 0;
             background: #f0f0f0;
             border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 20px;
+            border-radius: 12px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+            color: #1a1a2e;
+            user-select: none;
+        }
+        .num-btn:hover {
+            background: #e0e0e0;
+            transform: scale(1.02);
+        }
+        .num-btn:active {
+            transform: scale(0.92);
+            background: #d0d0d0;
+        }
+        .num-btn.selected {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        .num-btn.clear-btn {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+        }
+        .num-btn.clear-btn:hover {
+            background: #ee5a24;
+        }
+        .num-btn.clear-btn:active {
+            background: #c0392b;
+        }
+
+        /* 控制按钮行 */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin: 15px 0 20px 0;
+        }
+        .action-row .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            text-align: center;
         }
-        .num-btn:hover {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-            transform: scale(1.05);
-        }
-        .num-btn.selected {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        .num-btn:active {
+        .action-row .btn:active {
             transform: scale(0.95);
         }
-        .btn-primary {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .btn-random {
+            background: #ffd93d;
+            color: #1a1a2e;
+        }
+        .btn-random:hover {
+            background: #f5c800;
+        }
+        .btn-clear {
+            background: #ff6b6b;
             color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        .btn-clear:hover {
+            background: #ee5a24;
         }
-        .btn-primary:active {
-            transform: translateY(0);
+
+        /* 投注金额 */
+        .form-group {
+            margin-bottom: 18px;
         }
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            background: #f8f9fa;
-            border-left: 5px solid #667eea;
-            display: none;
-        }
-        .status.show {
+        .form-group label {
             display: block;
-        }
-        .status.success {
-            border-left-color: #28a745;
-            background: #d4edda;
-        }
-        .status.error {
-            border-left-color: #dc3545;
-            background: #f8d7da;
-        }
-        .selected-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-            text-align: center;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
             font-size: 14px;
         }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        /* 提交按钮 */
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #4CAF50 0%, #2e7d32 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(76, 175, 80, 0.4);
+        }
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 蓝牙按钮 */
+        .btn-bluetooth {
+            width: 100%;
+            padding: 12px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-bluetooth:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+        }
+        .btn-bluetooth:active {
+            transform: scale(0.97);
+        }
+        .btn-bluetooth.connected {
+            background: #4CAF50;
+        }
+        .btn-bluetooth .bluetooth-icon {
+            font-size: 22px;
+        }
+        .btn-bluetooth .status-text {
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        /* 状态消息 */
+        #statusMessage {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+            font-size: 14px;
+        }
+        #statusMessage.show {
+            display: block;
+        }
+        #statusMessage.success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            color: #155724;
+        }
+        #statusMessage.error {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            color: #721c24;
+        }
+        #statusMessage.info {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            color: #0c5460;
+        }
+
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
             margin-right: 10px;
+            vertical-align: middle;
         }
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 18px;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        /* 打印预览 */
+        .print-preview {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre;
+            overflow-x: auto;
+            display: none;
+            border: 1px solid #ddd;
+        }
+        .print-preview.show {
+            display: block;
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                padding: 20px 15px;
+            }
+            .number-display .number-text {
+                font-size: 38px;
+                letter-spacing: 6px;
+            }
+            .num-btn {
+                padding: 14px 0;
+                font-size: 18px;
+            }
+            .action-row .btn {
+                font-size: 14px;
+                padding: 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 万字票写票系统</h1>
-        
-        <div class="form-group">
-            <label>📅 选择日期</label>
-            <input type="date" id="drawDate">
+        <h1>🎯 万字票</h1>
+        <p class="subtitle">4D 投注系统</p>
+
+        <!-- 蓝牙连接按钮 -->
+        <button id="bluetoothBtn" class="btn-bluetooth" onclick="connectBluetooth()">
+            <span class="bluetooth-icon">🔵</span>
+            <span>连接蓝牙打印机</span>
+            <span class="status-text" id="btStatus">未连接</span>
+        </button>
+
+        <!-- 号码显示 -->
+        <div class="number-display" id="numberDisplay">
+            <span class="placeholder">点击数字选择号码</span>
         </div>
 
-        <div class="form-group">
-            <label>🔢 选择万字号码 (0000-9999)</label>
-            <div class="selected-number" id="selectedDisplay">请选择号码</div>
-            <div class="number-grid" id="numberGrid"></div>
-            <div style="margin-top: 10px; display: flex; gap: 10px;">
-                <input type="text" id="manualInput" placeholder="手动输入4位数字" maxlength="4" style="flex: 1;">
-                <button onclick="setManualNumber()" class="btn-primary" style="width: auto; padding: 12px 20px;">设置</button>
-            </div>
+        <!-- 数字键盘 (0-9 模式) -->
+        <div class="number-pad" id="numberPad">
+            <div class="num-btn" data-num="0">0</div>
+            <div class="num-btn" data-num="1">1</div>
+            <div class="num-btn" data-num="2">2</div>
+            <div class="num-btn" data-num="3">3</div>
+            <div class="num-btn" data-num="4">4</div>
+            <div class="num-btn" data-num="5">5</div>
+            <div class="num-btn" data-num="6">6</div>
+            <div class="num-btn" data-num="7">7</div>
+            <div class="num-btn" data-num="8">8</div>
+            <div class="num-btn" data-num="9">9</div>
+            <div class="num-btn clear-btn" data-num="clear" style="grid-column: span 2;">⌫ 清除</div>
+            <div class="num-btn" data-num="random" style="grid-column: span 3; background: #ffd93d; border-color: #ffd93d;">🎲 随机</div>
         </div>
 
+        <!-- 投注金额 -->
         <div class="form-group">
             <label>💰 投注金额 (RM)</label>
             <input type="number" id="betAmount" placeholder="输入投注金额" step="0.01" min="0">
         </div>
 
-        <button onclick="submitTicket()" class="btn-primary" id="submitBtn">
-            📝 提交票券
-        </button>
-
-        <div id="statusMessage" class="status">
-            <span id="statusText"></span>
+        <!-- 日期 -->
+        <div class="form-group">
+            <label>📅 开奖日期</label>
+            <input type="date" id="drawDate">
         </div>
 
+        <!-- 提交按钮 -->
+        <button id="submitBtn" class="btn-submit" onclick="submitTicket()">
+            📝 提交票券 & 打印
+        </button>
+
+        <!-- 状态消息 -->
+        <div id="statusMessage"></div>
+
+        <!-- 打印预览 -->
+        <div id="printPreview" class="print-preview"></div>
+
         <div class="footer">
-            <small>数据将保存到 Firebase 实时数据库</small>
+            <small>数据保存到 Firebase · 支持蓝牙打印</small>
         </div>
     </div>
 
     <script>
-        // ===== Firebase 配置 =====
-        // 请替换为您的 Firebase 配置
+        // ============================================
+        // 1. FIREBASE 配置
+        // ============================================
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -204,100 +406,329 @@
             appId: "YOUR_APP_ID"
         };
 
-        // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // ===== 全局变量 =====
-        let selectedNumber = null;
+        // ============================================
+        // 2. 全局变量
+        // ============================================
+        let selectedNumber = '';
+        let currentTicketData = null;
+        let bluetoothDevice = null;
+        let bluetoothServer = null;
+        let bluetoothService = null;
+        let bluetoothCharacteristic = null;
+        let isConnected = false;
+
+        const MAX_DIGITS = 4;
         const today = new Date().toISOString().split('T')[0];
 
-        // ===== 初始化 =====
+        // ============================================
+        // 3. 初始化
+        // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            // 设置默认日期为今天
             document.getElementById('drawDate').value = today;
-            generateNumberGrid();
+            setupNumberPad();
+            updateDisplay();
         });
 
-        // ===== 生成数字网格 (简化版，显示0000-9999的部分) =====
-        function generateNumberGrid() {
-            const grid = document.getElementById('numberGrid');
-            grid.innerHTML = '';
-            
-            // 显示从 0000 到 9999 的简化版本 - 每个按钮代表一个千位区段
-            // 为了演示，只显示部分号码，实际应用中可以优化
-            const prefixes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-            prefixes.forEach(prefix => {
-                const btn = document.createElement('div');
-                btn.className = 'num-btn';
-                btn.textContent = prefix + 'xxx';
-                btn.dataset.prefix = prefix;
-                btn.onclick = function() {
-                    // 弹窗让用户选择完整号码
-                    const fullNumber = prompt(`请输入以 ${prefix} 开头的4位号码 (0000-9999):`, prefix + '000');
-                    if (fullNumber && /^\d{4}$/.test(fullNumber)) {
-                        selectNumber(fullNumber);
-                    } else if (fullNumber !== null) {
-                        alert('请输入有效的4位数字!');
-                    }
-                };
-                grid.appendChild(btn);
+        // ============================================
+        // 4. 数字键盘设置 (您提供的 0-9 模式)
+        // ============================================
+        function setupNumberPad() {
+            const buttons = document.querySelectorAll('.num-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const value = this.dataset.num;
+                    handleNumberInput(value);
+                });
             });
 
-            // 添加一个"随机"按钮
-            const randomBtn = document.createElement('div');
-            randomBtn.className = 'num-btn';
-            randomBtn.textContent = '🎲 随机';
-            randomBtn.style.gridColumn = 'span 2';
-            randomBtn.onclick = function() {
-                const num = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-                selectNumber(num);
-            };
-            grid.appendChild(randomBtn);
+            // 键盘支持
+            document.addEventListener('keydown', function(e) {
+                if (e.key >= '0' && e.key <= '9') {
+                    handleNumberInput(e.key);
+                } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                    handleNumberInput('clear');
+                } else if (e.key === 'Enter') {
+                    document.getElementById('submitBtn').click();
+                }
+            });
         }
 
-        // ===== 选择号码 =====
-        function selectNumber(number) {
-            selectedNumber = number;
-            document.getElementById('selectedDisplay').textContent = number;
-            document.getElementById('selectedDisplay').style.color = '#28a745';
-            
-            // 更新按钮高亮
+        function handleNumberInput(value) {
+            if (value === 'clear') {
+                selectedNumber = selectedNumber.slice(0, -1);
+            } else if (value === 'random') {
+                generateRandomNumber();
+                return;
+            } else {
+                // 只允许输入数字
+                if (selectedNumber.length < MAX_DIGITS) {
+                    selectedNumber += value;
+                }
+            }
+            updateDisplay();
+        }
+
+        function generateRandomNumber() {
+            let num = '';
+            for (let i = 0; i < MAX_DIGITS; i++) {
+                num += Math.floor(Math.random() * 10);
+            }
+            selectedNumber = num;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('numberDisplay');
+            const displaySpan = display.querySelector('.number-text') || document.createElement('span');
+
+            if (selectedNumber.length === 0) {
+                display.innerHTML = '<span class="placeholder">点击数字选择号码</span>';
+                display.classList.remove('has-number');
+                return;
+            }
+
+            // 显示号码，用空格分隔以便阅读
+            let formatted = selectedNumber.split('').join(' ');
+            display.innerHTML = `<span class="number-text">${formatted}</span>`;
+            display.classList.add('has-number');
+
+            // 高亮对应数字按钮
             document.querySelectorAll('.num-btn').forEach(btn => {
                 btn.classList.remove('selected');
-                if (btn.dataset.prefix === number[0]) {
+                if (btn.dataset.num === 'clear' || btn.dataset.num === 'random') return;
+                // 高亮最后一个输入的数字
+                if (selectedNumber.length > 0 && btn.dataset.num === selectedNumber[selectedNumber.length - 1]) {
                     btn.classList.add('selected');
                 }
             });
         }
 
-        // ===== 手动输入 =====
-        function setManualNumber() {
-            const input = document.getElementById('manualInput');
-            const value = input.value.trim();
-            if (/^\d{4}$/.test(value)) {
-                selectNumber(value);
-                input.value = '';
-            } else {
-                alert('请输入有效的4位数字 (0000-9999)');
+        // ============================================
+        // 5. 蓝牙打印机连接 (POS-5810DD)
+        // ============================================
+        async function connectBluetooth() {
+            const btn = document.getElementById('bluetoothBtn');
+            const statusText = document.getElementById('btStatus');
+
+            // 如果已连接，断开
+            if (isConnected) {
+                try {
+                    if (bluetoothDevice && bluetoothDevice.gatt) {
+                        await bluetoothDevice.gatt.disconnect();
+                    }
+                } catch (e) {
+                    console.log('Disconnect error:', e);
+                }
+                isConnected = false;
+                bluetoothDevice = null;
+                bluetoothServer = null;
+                bluetoothService = null;
+                bluetoothCharacteristic = null;
+                btn.classList.remove('connected');
+                btn.querySelector('.bluetooth-icon').textContent = '🔵';
+                statusText.textContent = '未连接';
+                showStatus('蓝牙已断开', 'info');
+                return;
+            }
+
+            try {
+                showStatus('正在搜索蓝牙设备...', 'info');
+
+                // 请求蓝牙设备 - 大多数POS打印机使用SPP或BLE
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    // 通常POS打印机支持SPP，但BLE也可能
+                    filters: [
+                        { namePrefix: 'POS' },
+                        { namePrefix: 'Printer' },
+                        { namePrefix: '58mm' },
+                        { namePrefix: 'Mini' }
+                    ],
+                    // 或者不指定名称，让用户选择
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '000018f0-0000-1000-8000-00805f9b34fb', // 标准设备信息服务
+                        '0000180a-0000-1000-8000-00805f9b34fb', // 设备信息服务
+                        '0000180f-0000-1000-8000-00805f9b34fb', // 电池服务
+                        '00001801-0000-1000-8000-00805f9b34fb' // GATT服务
+                    ]
+                });
+
+                showStatus(`正在连接 ${bluetoothDevice.name || '设备'}...`, 'info');
+
+                // 连接GATT服务器
+                bluetoothServer = await bluetoothDevice.gatt.connect();
+                
+                // 获取主要服务 - 尝试找到打印机服务
+                // 常见的打印机UUID
+                const printerServiceUUIDs = [
+                    '000018f0-0000-1000-8000-00805f9b34fb',
+                    '0000180a-0000-1000-8000-00805f9b34fb',
+                    '00001801-0000-1000-8000-00805f9b34fb'
+                ];
+
+                let services = await bluetoothServer.getPrimaryServices();
+                
+                // 如果获取不到服务，尝试特定UUID
+                if (services.length === 0) {
+                    for (let uuid of printerServiceUUIDs) {
+                        try {
+                            let service = await bluetoothServer.getPrimaryService(uuid);
+                            if (service) {
+                                services = [service];
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                if (services.length === 0) {
+                    throw new Error('无法找到打印机服务');
+                }
+
+                bluetoothService = services[0];
+                
+                // 查找可写特征 - 通常有写权限的特征
+                let characteristics = await bluetoothService.getCharacteristics();
+                let writeChar = null;
+                
+                for (let char of characteristics) {
+                    let properties = char.properties;
+                    if (properties.write || properties.writeWithoutResponse) {
+                        writeChar = char;
+                        break;
+                    }
+                }
+
+                if (!writeChar) {
+                    // 尝试通过UUID查找
+                    const writeUUIDs = [
+                        '00002a19-0000-1000-8000-00805f9b34fb',
+                        '00002a00-0000-1000-8000-00805f9b34fb',
+                        '00002a01-0000-1000-8000-00805f9b34fb'
+                    ];
+                    for (let uuid of writeUUIDs) {
+                        try {
+                            let char = await bluetoothService.getCharacteristic(uuid);
+                            if (char) {
+                                writeChar = char;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                if (!writeChar) {
+                    throw new Error('找不到可写的打印机特征');
+                }
+
+                bluetoothCharacteristic = writeChar;
+                isConnected = true;
+
+                // 更新UI
+                btn.classList.add('connected');
+                btn.querySelector('.bluetooth-icon').textContent = '🟢';
+                statusText.textContent = '已连接';
+                showStatus(`✅ 已连接到 ${bluetoothDevice.name || '打印机'}`, 'success');
+
+                // 发送测试打印指令
+                await testPrint();
+
+            } catch (error) {
+                console.error('蓝牙连接错误:', error);
+                showStatus('❌ 蓝牙连接失败: ' + error.message, 'error');
+                isConnected = false;
+                btn.classList.remove('connected');
+                btn.querySelector('.bluetooth-icon').textContent = '🔵';
+                statusText.textContent = '未连接';
             }
         }
 
-        // ===== 提交票券 =====
-        function submitTicket() {
+        // ============================================
+        // 6. 打印功能
+        // ============================================
+        async function printTicket(ticketData) {
+            if (!isConnected || !bluetoothCharacteristic) {
+                showStatus('⚠️ 请先连接蓝牙打印机', 'error');
+                return false;
+            }
+
+            try {
+                // 使用 ESC/POS 编码
+                const encoder = new EscPosEncoder();
+                
+                const receipt = encoder
+                    .initialize()
+                    .text('========================\n')
+                    .text('    万字票 4D 投注单\n')
+                    .text('========================\n')
+                    .text(`日期: ${ticketData.date || new Date().toLocaleDateString()}\n`)
+                    .text(`时间: ${new Date().toLocaleTimeString()}\n`)
+                    .text('------------------------\n')
+                    .text(`号码: ${ticketData.number}\n`)
+                    .text(`金额: RM ${ticketData.amount.toFixed(2)}\n`)
+                    .text('------------------------\n')
+                    .text('  祝您 幸运中奖! 🍀\n')
+                    .text('========================\n')
+                    .text('\n\n\n\n')
+                    .cut()
+                    .encode();
+
+                // 发送打印数据
+                await bluetoothCharacteristic.writeValue(receipt);
+                
+                showStatus('🖨️ 打印已发送', 'success');
+                return true;
+
+            } catch (error) {
+                console.error('打印错误:', error);
+                showStatus('❌ 打印失败: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // 测试打印
+        async function testPrint() {
+            try {
+                const encoder = new EscPosEncoder();
+                const test = encoder
+                    .initialize()
+                    .text('========================\n')
+                    .text('  打印机连接成功! ✅\n')
+                    .text('  型号: POS-5810DD\n')
+                    .text('  状态: 就绪\n')
+                    .text('========================\n')
+                    .text('\n\n')
+                    .cut()
+                    .encode();
+
+                await bluetoothCharacteristic.writeValue(test);
+                showStatus('✅ 打印机测试成功', 'success');
+            } catch (e) {
+                console.log('测试打印失败:', e);
+            }
+        }
+
+        // ============================================
+        // 7. 提交票券
+        // ============================================
+        async function submitTicket() {
             const date = document.getElementById('drawDate').value;
-            const amount = document.getElementById('betAmount').value;
-            
+            const amountInput = document.getElementById('betAmount');
+            const amount = parseFloat(amountInput.value);
+
             // 验证
             if (!date) {
-                showStatus('请选择日期!', 'error');
+                showStatus('请选择开奖日期!', 'error');
                 return;
             }
-            if (!selectedNumber) {
-                showStatus('请选择一个号码!', 'error');
+            if (selectedNumber.length !== MAX_DIGITS) {
+                showStatus(`请输入完整的 ${MAX_DIGITS} 位号码!`, 'error');
                 return;
             }
-            if (!amount || parseFloat(amount) <= 0) {
+            if (!amount || amount <= 0) {
                 showStatus('请输入有效的投注金额!', 'error');
                 return;
             }
@@ -305,55 +736,106 @@
             // 准备数据
             const ticketData = {
                 number: selectedNumber,
-                amount: parseFloat(amount),
+                amount: amount,
                 date: date,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 status: 'active'
             };
 
+            currentTicketData = ticketData;
+
             // UI 反馈
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 提交中...';
-            showStatus('正在保存数据到 Firebase...', '');
+            btn.innerHTML = '<span class="loading"></span> 保存中...';
+            showStatus('正在保存数据到 Firebase...', 'info');
 
-            // 保存到 Firebase
-            const ticketRef = database.ref('tickets').push();
-            ticketRef.set(ticketData)
-                .then(() => {
-                    showStatus(`✅ 票券已成功保存! 号码: ${selectedNumber}, 金额: RM ${amount}`, 'success');
-                    // 重置
-                    selectedNumber = null;
-                    document.getElementById('selectedDisplay').textContent = '请选择号码';
-                    document.getElementById('selectedDisplay').style.color = '#667eea';
-                    document.getElementById('betAmount').value = '';
-                    document.querySelectorAll('.num-btn').forEach(btn => btn.classList.remove('selected'));
-                    // 生成新的随机号码示例
-                })
-                .catch((error) => {
-                    console.error('Error saving ticket:', error);
-                    showStatus(`❌ 保存失败: ${error.message}`, 'error');
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '📝 提交票券';
-                });
-        }
+            // 显示打印预览
+            showPrintPreview(ticketData);
 
-        // ===== 状态显示 =====
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('statusMessage');
-            const statusText = document.getElementById('statusText');
-            statusText.textContent = message;
-            statusDiv.className = 'status show ' + type;
-        }
+            try {
+                // 保存到 Firebase
+                const ticketRef = database.ref('tickets').push();
+                await ticketRef.set(ticketData);
 
-        // ===== 键盘快捷键 =====
-        document.getElementById('manualInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                setManualNumber();
+                showStatus(`✅ 票券已保存! 号码: ${selectedNumber}, 金额: RM ${amount.toFixed(2)}`, 'success');
+
+                // 打印
+                if (isConnected) {
+                    const printed = await printTicket(ticketData);
+                    if (printed) {
+                        showStatus(`✅ 票券已保存并打印!`, 'success');
+                    }
+                } else {
+                    showStatus(`✅ 票券已保存 (未连接打印机)`, 'success');
+                }
+
+                // 重置
+                selectedNumber = '';
+                document.getElementById('betAmount').value = '';
+                updateDisplay();
+
+            } catch (error) {
+                console.error('保存失败:', error);
+                showStatus(`❌ 保存失败: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📝 提交票券 & 打印';
             }
-        });
+        }
+
+        // ============================================
+        // 8. 打印预览
+        // ============================================
+        function showPrintPreview(ticketData) {
+            const preview = document.getElementById('printPreview');
+            const content = `
+========================
+    万字票 4D 投注单
+========================
+日期: ${ticketData.date}
+时间: ${new Date().toLocaleTimeString()}
+------------------------
+号码: ${ticketData.number}
+金额: RM ${ticketData.amount.toFixed(2)}
+------------------------
+  祝您 幸运中奖! 🍀
+========================
+            `;
+            preview.textContent = content;
+            preview.classList.add('show');
+
+            // 5秒后自动隐藏
+            clearTimeout(preview._hideTimer);
+            preview._hideTimer = setTimeout(() => {
+                preview.classList.remove('show');
+            }, 8000);
+        }
+
+        // ============================================
+        // 9. 状态显示
+        // ============================================
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = 'show ' + type;
+            
+            // 自动隐藏
+            clearTimeout(statusDiv._hideTimer);
+            if (type !== 'error') {
+                statusDiv._hideTimer = setTimeout(() => {
+                    statusDiv.className = '';
+                }, 5000);
+            }
+        }
+
+        // ============================================
+        // 10. 浏览器兼容性检查
+        // ============================================
+        if (!navigator.bluetooth) {
+            document.getElementById('bluetoothBtn').style.display = 'none';
+            document.querySelector('.subtitle').textContent += ' ⚠️ 此浏览器不支持蓝牙';
+        }
     </script>
 </body>
 </html>
