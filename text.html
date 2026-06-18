@@ -898,7 +898,7 @@
 
         <!-- 默认注码 -->
         <div class="form-group">
-            <label>💰 默认注码 (RM) <span style="font-weight:normal;color:#888;font-size:12px;">- 添加时自动填入</span></label>
+            <label>💰 默认注码 ($) <span style="font-weight:normal;color:#888;font-size:12px;">- 添加时自动填入</span></label>
             <input type="number" id="defaultAmount" placeholder="输入默认注码" step="1" min="0" value="1">
         </div>
 
@@ -913,7 +913,7 @@
             <div class="info">
                 📊 <strong id="totalGroups">0</strong> 组投注
             </div>
-            <div class="total" id="totalAmount">RM 0</div>
+            <div class="total" id="totalAmount">$ 0</div>
         </div>
 
         <!-- 提交按钮 -->
@@ -1066,14 +1066,14 @@
         function setDefaultAmount(value) {
             document.getElementById('defaultAmount').value = value;
             highlightActiveAmount();
-            showStatus(`默认注码已设为 RM ${value}`, 'info');
+            showStatus(`默认注码已设为 S ${value}`, 'info');
         }
 
         function highlightActiveAmount() {
             const current = parseInt(document.getElementById('defaultAmount').value) || 0;
             document.querySelectorAll('.btn-amount').forEach(btn => {
                 btn.classList.remove('active');
-                const btnValue = parseInt(btn.textContent.replace('RM ', ''));
+                const btnValue = parseInt(btn.textContent.replace('$ ', ''));
                 if (btnValue === current) {
                     btn.classList.add('active');
                 }
@@ -1200,7 +1200,7 @@
             updateDisplay();
             updateAddButton();
             updateSummary();
-            showStatus(`✅ 已添加: ${betList[betList.length - 1].number} (RM ${defaultAmount})`, 'success');
+            showStatus(`✅ 已添加: ${betList[betList.length - 1].number} (S ${defaultAmount})`, 'success');
         }
 
         function removeBet(index) {
@@ -1235,7 +1235,7 @@
                 html += `
                     <div class="number-item">
                         <span class="num-display">${item.number}</span>
-                        <span class="amount-label">RM</span>
+                        <span class="amount-label">$</span>
                         <input class="amount-input" type="number" 
                                value="${item.amount}" 
                                step="1" min="0"
@@ -1269,7 +1269,7 @@
                 return;
             }
             
-            const newAmount = prompt('请输入统一注码金额 (RM):', '1');
+            const newAmount = prompt('请输入统一注码金额 ($):', '1');
             if (newAmount === null) return;
             
             const amount = parseInt(newAmount);
@@ -1284,7 +1284,7 @@
             
             renderBetList();
             updateSummary();
-            showStatus(`✅ 所有注码已统一为 RM ${amount}`, 'success');
+            showStatus(`✅ 所有注码已统一为 S ${amount}`, 'success');
         }
 
         // ============================================
@@ -1330,7 +1330,7 @@
             
             renderBetList();
             updateSummary();
-            showStatus(`✅ 已添加 ${added} 组随机投注 (RM ${defaultAmount})`, 'success');
+            showStatus(`✅ 已添加 ${added} 组随机投注 (S ${defaultAmount})`, 'success');
         }
 
         // ============================================
@@ -1339,7 +1339,7 @@
         function updateSummary() {
             const total = betList.reduce((sum, item) => sum + (item.amount || 0), 0);
             document.getElementById('totalGroups').textContent = betList.length;
-            document.getElementById('totalAmount').textContent = `RM ${total}`;
+            document.getElementById('totalAmount').textContent = `S ${total}`;
         }
 
         // ============================================
@@ -1506,13 +1506,13 @@
                     const num = String(index + 1).padStart(2);
                     const number = ticket.number;
                     const amount = ticket.amount;
-                    lines.push(`  ${num}. ${number}  RM ${amount}`);
+                    lines.push(`  ${num}. ${number}  S ${amount}`);
                 });
 
                 const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
                 lines.push('');
                 lines.push('------------------------');
-                lines.push(`Total Amount: RM ${totalAmount}`);
+                lines.push(`Total Amount: S ${totalAmount}`);
                 lines.push('========================');
                 lines.push('  Good Luck!');
                 lines.push('\n\n\n\n');
@@ -1673,7 +1673,7 @@
                 await database.ref('tickets').update(updates);
 
                 const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
-                showStatus(`✅ 成功提交 ${betList.length} 组投注，总额 RM ${totalAmount}`, 'success');
+                showStatus(`✅ 成功提交 ${betList.length} 组投注，总额 S ${totalAmount}`, 'success');
 
                 showPrintPreview(ticketsData);
 
@@ -1716,13 +1716,13 @@
 
             ticketsData.forEach((ticket, index) => {
                 const num = String(index + 1).padStart(2);
-                lines.push(`  ${num}. ${ticket.number}  RM ${ticket.amount}`);
+                lines.push(`  ${num}. ${ticket.number}  S ${ticket.amount}`);
             });
 
             const totalAmount = ticketsData.reduce((sum, t) => sum + t.amount, 0);
             lines.push('');
             lines.push('------------------------');
-            lines.push(`Total Amount: RM ${totalAmount}`);
+            lines.push(`Total Amount: S ${totalAmount}`);
             lines.push('========================');
             lines.push('  Good Luck!');
 
