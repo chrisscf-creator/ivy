@@ -1457,7 +1457,7 @@
             const preview = document.getElementById('printPreview');
             const lines = [];
             lines.push('========================');
-            lines.push('    万字票 4D 投注单');
+            lines.push('    4D Betting Number');
             lines.push('========================');
             lines.push(`日期: ${ticketsData[0].date}`);
             lines.push(`时间: ${new Date().toLocaleTimeString()}`);
@@ -1473,7 +1473,7 @@
             lines.push('');
             lines.push(`合计: RM ${totalAmount.toFixed(2)}`);
             lines.push('------------------------');
-            lines.push('  祝您 幸运中奖! 🍀');
+            lines.push('  Good Luck! 🍀');
             lines.push('========================');
 
             preview.textContent = lines.join('\n');
