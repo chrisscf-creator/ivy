@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
     <title>万字票出票系统</title>
+    <!-- 引入Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,sans-serif;}
         body{background:#111827;color:#fff;padding:15px;transition:all 0.3s;}
@@ -47,7 +50,6 @@
     </div>
 
     <div class="main-box">
-        <!-- 出票填写区 -->
         <div class="input-card">
             <div class="item">
                 <label data-lang="ticketNo">票号</label>
@@ -92,17 +94,30 @@
             <div class="status-tip" id="statusTip"></div>
         </div>
 
-        <!-- 打印预览区 -->
         <div class="print-card">
             <label data-lang="printPreview">票据打印预览</label>
             <div class="preview" id="printPreview"></div>
         </div>
-
     </div>
 </div>
 
 <script>
-// 双语翻译
+// ========== Firebase 配置（已填入你提供的全部信息）==========
+const firebaseConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "create-for-payment",
+    storageBucket: "create-for-payment.firebasestorage.app",
+    messagingSenderId: "505063429802",
+    appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+    measurementId: "G-SHP91WNP0H"
+};
+// 初始化Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ticketRef = db.ref("wanzi_ticket_records");
+
 const langData = {
     zh:{
         ticketNo:"票号",orderDate:"出票日期",playNum:"下注号码",betMoney:"下注金额",
@@ -125,11 +140,8 @@ const langData = {
 };
 let nowLang = "zh";
 let fullScreenState = false;
-
-// 本地存储KEY（和历史端共用同一个KEY）
 const HISTORY_KEY = "wanzi_ticket_history";
 
-// 读取/保存历史（和历史端互通）
 function getLocalHistory(){
     let data = localStorage.getItem(HISTORY_KEY);
     return data ? JSON.parse(data) : [];
@@ -138,18 +150,15 @@ function saveLocalHistory(list){
     localStorage.setItem(HISTORY_KEY,JSON.stringify(list));
 }
 
-// 初始化默认选中当天日期
 function getNowDate(){
     let d = new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
 }
 document.getElementById("orderDate").value = getNowDate();
 
-// 蓝牙打印机全局变量（同款不变）
 let btDevice = null;
 let btChar = null;
 
-// 自动生成票号
 function makeTicketNo(){
     let d = new Date();
     return "WZ"+d.getFullYear().toString().slice(2)+
@@ -159,7 +168,6 @@ function makeTicketNo(){
 }
 document.getElementById("ticketNo").value = makeTicketNo();
 
-// 数字键盘选号
 document.querySelectorAll("#numPad .num-btn").forEach(btn=>{
     btn.onclick=()=>{
         let val = document.getElementById("playNum").value;
@@ -170,12 +178,10 @@ document.querySelectorAll("#numPad .num-btn").forEach(btn=>{
     }
 });
 
-// 日期/金额/期号/玩法变动刷新
 ["orderDate","betMoney","playType","period"].forEach(id=>{
     document.getElementById(id).addEventListener("input",refreshPreview);
 });
 
-// 刷新打印预览
 function refreshPreview(){
     let tNo = document.getElementById("ticketNo").value;
     let orderDate = document.getElementById("orderDate").value;
@@ -199,13 +205,11 @@ function refreshPreview(){
     document.getElementById("printPreview").innerText = text.trim();
 }
 
-// 清空
 document.getElementById("clearBtn").onclick=()=>{
     document.getElementById("playNum").value="";
     refreshPreview();
 };
 
-// 全屏切换
 document.getElementById("fullScreenBtn").onclick=()=>{
     if(!fullScreenState){
         document.documentElement.requestFullscreen();
@@ -218,7 +222,6 @@ document.getElementById("fullScreenBtn").onclick=()=>{
     }
 };
 
-// 双语切换
 document.getElementById("langBtn").onclick=()=>{
     nowLang = nowLang=="zh"?"en":"zh";
     let txt = nowLang=="zh"?"English":"中文";
@@ -230,7 +233,6 @@ document.getElementById("langBtn").onclick=()=>{
     refreshPreview();
 };
 
-// ========== 蓝牙打印核心（完全不变）==========
 async function connectBluetooth(){
     let tip = document.getElementById("statusTip");
     if(!navigator.bluetooth){
@@ -243,8 +245,7 @@ async function connectBluetooth(){
     try{
         btDevice = await navigator.bluetooth.requestDevice({
             filters:[
-                {services:["0000ffe0-0000-1000-8000-00805f9b34fb"]},
-                {namePrefix:"POS"},{namePrefix:"Thermal"}
+                {services:["0000ffe0-0000-1000-8000-00805f9b34fb"]}
             ],
             optionalServices:["0000ffe0-0000-1000-8000-00805f9b34fb"]
         });
@@ -264,10 +265,9 @@ async function connectBluetooth(){
     }
 }
 
-// 打印小票内容封装
 function getPrintData(){
     let pre = document.getElementById("printPreview").innerText;
-    let encoder = new TextEncoder("gbk");
+    let encoder = new TextEncoder();
     let data = encoder.encode(pre+"\n\n\n");
     let cut = new Uint8Array([0x1D,0x56,0x00]);
     let res = new Uint8Array(data.length+cut.length);
@@ -275,7 +275,6 @@ function getPrintData(){
     return res;
 }
 
-// 点击出票打印
 document.getElementById("printBtn").onclick=async()=>{
     let num = document.getElementById("playNum").value;
     let tip = document.getElementById("statusTip");
@@ -294,7 +293,7 @@ document.getElementById("printBtn").onclick=async()=>{
         tip.innerText=langData[nowLang].printSuccess;
         tip.className="status-tip success";
 
-        // ==== 出票成功自动存入永久历史记录（和历史端互通） ====
+        // 组装单据数据
         let historyItem = {
             ticketNo:document.getElementById("ticketNo").value,
             orderDate:document.getElementById("orderDate").value,
@@ -302,13 +301,16 @@ document.getElementById("printBtn").onclick=async()=>{
             playNum:document.getElementById("playNum").value,
             betMoney:document.getElementById("betMoney").value,
             playType:document.getElementById("playType").value,
-            createTime:new Date().toLocaleString()
+            createTime:new Date().toLocaleString(),
+            timestamp:Date.now()
         };
+        // 1.存入本地
         let hisList = getLocalHistory();
         hisList.push(historyItem);
         saveLocalHistory(hisList);
+        // 2.上传云端Firebase
+        ticketRef.push(historyItem);
 
-        // 重置单号号码
         document.getElementById("ticketNo").value=makeTicketNo();
         document.getElementById("playNum").value="";
         refreshPreview();
@@ -319,8 +321,6 @@ document.getElementById("printBtn").onclick=async()=>{
 };
 
 document.getElementById("connectBtBtn").onclick=connectBluetooth;
-
-// 初始化
 refreshPreview();
 </script>
 </body>
