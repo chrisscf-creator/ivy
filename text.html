@@ -1033,7 +1033,7 @@
             
             // 打印标题
             commands.push(new TextEncoder().encode('========================\n'));
-            commands.push(new TextEncoder().encode('    万字票 4D 投注单\n'));
+            commands.push(new TextEncoder().encode('    4D Betting Number\n'));
             commands.push(new TextEncoder().encode('========================\n'));
             
             // 左对齐
@@ -1049,7 +1049,7 @@
             
             // 居中
             commands.push(new Uint8Array([0x1B, 0x61, 0x01]));
-            commands.push(new TextEncoder().encode('  祝您 幸运中奖! 🍀\n'));
+            commands.push(new TextEncoder().encode('  Good Luck! 🍀\n'));
             
             // 左对齐
             commands.push(new Uint8Array([0x1B, 0x61, 0x00]));
