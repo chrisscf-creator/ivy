@@ -36,40 +36,9 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-            border-bottom: 1px dashed #4a627a;
-            padding-bottom: 8px;
-            gap: 10px;
-        }
-        .order-number {
-            background: #ffa500;
-            color: #1e2a2e;
-            font-weight: bold;
-            padding: 4px 16px;
-            border-radius: 40px;
-            font-size: 1.1rem;
-            display: inline-block;
-        }
-        .table-number {
-            font-size: 1.5rem;
-            font-weight: bold;
-            background: #ffa50020;
-            padding: 4px 16px;
-            border-radius: 40px;
-            color: #ffb347;
-        }
-        .order-time {
-            font-size: 0.85rem;
-            color: #b8d0e0;
-            background: #0f1a24;
-            padding: 4px 12px;
-            border-radius: 30px;
-        }
+        .order-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-bottom: 14px; border-bottom: 1px dashed #4a627a; padding-bottom: 8px; }
+        .table-number { font-size: 1.5rem; font-weight: bold; background: #ffa50020; padding: 4px 16px; border-radius: 40px; color: #ffb347; }
+        .order-time { font-size: 0.85rem; color: #b8d0e0; background: #0f1a24; padding: 4px 12px; border-radius: 30px; }
         .items-list { margin: 15px 0; padding-left: 8px; }
         .item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2e445e; }
         .item-name { font-weight: 500; }
@@ -84,7 +53,6 @@
         @media (max-width: 700px) {
             body { padding: 12px; }
             .order-card { padding: 14px; }
-            .order-number { font-size: 0.9rem; padding: 2px 12px; }
             .table-number { font-size: 1.2rem; }
         }
     </style>
@@ -120,51 +88,8 @@
     };
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    // ===== POS菜单白名单 =====
-const ALLOWED_ITEMS = [
-    "🍜 1.麻酱鸡肉",
-    "🍜 2.水果酸汤鱼片",
-    "🍜 3.甘榜鸡丝",
-    "🍜 4.香港甜汁",
-    "🍜 5.番茄肥牛",
-    "🍜 6.生豉牛肉",
-    "🍜 7.招牌肉糜",
-    "🍜 8.海鲜姜汁",
-    "🍠 9.台湾香肠",
-    "🥗 10.盐酥杏鲍菇",
-    "🥗 11.鱼肉丸",
-    "🥗 12.牛肉丸",
-    "🍗 13.小酥肉",
-    "🥤 14.杨梅汁",
-    "🥤 15.玫瑰爆珠木瓜水",
-    "🍰 16.马踏樱花",
-    "🍰 17.北海道黑糖布丁",
-    "🥟 18.玫瑰鲜花饼",
-    "🥚 19.鹌鹑蛋",
-
-    // 英文版
-    "🍜 1.Sesame Chicken",
-    "🍜 2.Fruit Sour Fish",
-    "🍜 3.Kampong Chicken",
-    "🍜 4.HK Sweet Broth",
-    "🍜 5.Tomato Beef",
-    "🍜 6.Scalded Beef",
-    "🍜 7.Minced Meat",
-    "🍜 8.Seafood Ginger",
-    "🍠 9.Taiwan Sausage",
-    "🥗 10.Crispy Mushroom",
-    "🥗 11.Fish Ball",
-    "🥗 12.Beef Ball",
-    "🍗 13.Crispy Pork",
-    "🥤 14.Bayberry Juice",
-    "🥤 15.Rose Pop",
-    "🍰 16.Sakura Pudding",
-    "🍰 17.Hokkaido Pudding",
-    "🥟 18.Rose Pastry",
-    "🥚 19.Quail Eggs"
-];
     const database = firebase.database();
-    // 只查询未完成的订单（completed == false）
+    // 只查询未完成的订单（completed == false 或 不存在 completed 字段的旧数据，兼容处理）
     const ordersRef = database.ref('orders').orderByChild('completed').equalTo(false);
 
     const ordersContainer = document.getElementById('ordersContainer');
@@ -186,7 +111,7 @@ const ALLOWED_ITEMS = [
         completedCountSpan.innerText = completedLocalCount;
     }
 
-                function escapeHtml(str) {
+    function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
@@ -195,36 +120,17 @@ const ALLOWED_ITEMS = [
         if (!timeValue) return '刚刚';
         try {
             const date = new Date(timeValue);
-            if (!isNaN(date.getTime())) {
-                return date.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit', 
-                    second: '2-digit' 
-                });
-            }
+            if (!isNaN(date.getTime())) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             return timeValue;
-        } catch(e) { 
-            return timeValue; 
-        }
-    }
-
-    function isAllowedOrder(orderData) {
-        if (!orderData.items || !Array.isArray(orderData.items)) {
-            return false;
-        }
-        return orderData.items.some(item =>
-            ALLOWED_ITEMS.includes(item.name)
-        );
+        } catch(e) { return timeValue; }
     }
 
     function createOrderCard(orderId, orderData) {
-        // ... 后面的代码保持不变
-
-        // 获取订单号，如果没有则显示 —
-        const orderNumber = orderData.orderNumber ? `#${orderData.orderNumber}` : '—';
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        card.dataset.id = orderId;
         const tableText = orderData.table ? `桌 ${orderData.table}` : '🥡 外带';
         const timeStr = formatOrderTime(orderData.time);
-
         let itemsHtml = '';
         if (orderData.items && Array.isArray(orderData.items)) {
             orderData.items.forEach(item => {
@@ -234,20 +140,15 @@ const ALLOWED_ITEMS = [
             itemsHtml = '<div class="item-row">无明细</div>';
         }
         const totalPrice = orderData.total !== undefined ? orderData.total : 0;
-
         card.innerHTML = `
             <div class="order-header">
-                <div style="display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap;">
-                    <span class="order-number">📋 ${escapeHtml(orderNumber)}</span>
-                    <span class="table-number">${escapeHtml(tableText)}</span>
-                </div>
+                <span class="table-number">${escapeHtml(tableText)}</span>
                 <span class="order-time">🕒 ${escapeHtml(timeStr)}</span>
             </div>
             <div class="items-list">${itemsHtml}</div>
-            <div class="order-total">💵 合计: $${Number(totalPrice).toFixed(2)}</div>
+            <div class="order-total">💵 合计: ¥${Number(totalPrice).toFixed(2)}</div>
             <div class="order-actions"><button class="btn-complete" data-id="${orderId}">✅ 完成</button></div>
         `;
-
         const completeBtn = card.querySelector('.btn-complete');
         completeBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -270,30 +171,16 @@ const ALLOWED_ITEMS = [
         }
     }
 
-   function addOrderToScreen(orderId, orderData) {
-
-    // 只显示 poss.html 菜单
-    if (!isAllowedOrder(orderData)) {
-        return;
+    function addOrderToScreen(orderId, orderData) {
+        if (currentOrderKeys.has(orderId)) return;
+        const card = createOrderCard(orderId, orderData);
+        const firstOrderCard = ordersContainer.querySelector('.order-card');
+        if (firstOrderCard) ordersContainer.insertBefore(card, firstOrderCard);
+        else ordersContainer.appendChild(card);
+        currentOrderKeys.add(orderId);
+        updatePendingCount();
+        updateLastUpdate();
     }
-
-    if (currentOrderKeys.has(orderId)) return;
-
-    const card = createOrderCard(orderId, orderData);
-
-    const firstOrderCard =
-        ordersContainer.querySelector('.order-card');
-
-    if (firstOrderCard)
-        ordersContainer.insertBefore(card, firstOrderCard);
-    else
-        ordersContainer.appendChild(card);
-
-    currentOrderKeys.add(orderId);
-
-    updatePendingCount();
-    updateLastUpdate();
-}
 
     function removeOrderFromScreen(orderId) {
         const card = document.querySelector(`.order-card[data-id="${orderId}"]`);
