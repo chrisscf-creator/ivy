@@ -120,6 +120,49 @@
     };
 
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    // ===== POS菜单白名单 =====
+const ALLOWED_ITEMS = [
+    "🍜 1.麻酱鸡肉",
+    "🍜 2.水果酸汤鱼片",
+    "🍜 3.甘榜鸡丝",
+    "🍜 4.香港甜汁",
+    "🍜 5.番茄肥牛",
+    "🍜 6.生豉牛肉",
+    "🍜 7.招牌肉糜",
+    "🍜 8.海鲜姜汁",
+    "🍠 9.台湾香肠",
+    "🥗 10.盐酥杏鲍菇",
+    "🥗 11.鱼肉丸",
+    "🥗 12.牛肉丸",
+    "🍗 13.小酥肉",
+    "🥤 14.杨梅汁",
+    "🥤 15.玫瑰爆珠木瓜水",
+    "🍰 16.马踏樱花",
+    "🍰 17.北海道黑糖布丁",
+    "🥟 18.玫瑰鲜花饼",
+    "🥚 19.鹌鹑蛋",
+
+    // 英文版
+    "🍜 1.Sesame Chicken",
+    "🍜 2.Fruit Sour Fish",
+    "🍜 3.Kampong Chicken",
+    "🍜 4.HK Sweet Broth",
+    "🍜 5.Tomato Beef",
+    "🍜 6.Scalded Beef",
+    "🍜 7.Minced Meat",
+    "🍜 8.Seafood Ginger",
+    "🍠 9.Taiwan Sausage",
+    "🥗 10.Crispy Mushroom",
+    "🥗 11.Fish Ball",
+    "🥗 12.Beef Ball",
+    "🍗 13.Crispy Pork",
+    "🥤 14.Bayberry Juice",
+    "🥤 15.Rose Pop",
+    "🍰 16.Sakura Pudding",
+    "🍰 17.Hokkaido Pudding",
+    "🥟 18.Rose Pastry",
+    "🥚 19.Quail Eggs"
+];
     const database = firebase.database();
     // 只查询未完成的订单（completed == false）
     const ordersRef = database.ref('orders').orderByChild('completed').equalTo(false);
@@ -148,7 +191,18 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
-    function formatOrderTime(timeValue) {
+    function formatOrderTime(timeValue) 
+    function isAllowedOrder(orderData) {
+
+    if (!orderData.items || !Array.isArray(orderData.items)) {
+        return false;
+    }
+
+    return orderData.items.some(item =>
+        ALLOWED_ITEMS.includes(item.name)
+    );
+}
+    {
         if (!timeValue) return '刚刚';
         try {
             const date = new Date(timeValue);
@@ -212,16 +266,30 @@
         }
     }
 
-    function addOrderToScreen(orderId, orderData) {
-        if (currentOrderKeys.has(orderId)) return;
-        const card = createOrderCard(orderId, orderData);
-        const firstOrderCard = ordersContainer.querySelector('.order-card');
-        if (firstOrderCard) ordersContainer.insertBefore(card, firstOrderCard);
-        else ordersContainer.appendChild(card);
-        currentOrderKeys.add(orderId);
-        updatePendingCount();
-        updateLastUpdate();
+   function addOrderToScreen(orderId, orderData) {
+
+    // 只显示 poss.html 菜单
+    if (!isAllowedOrder(orderData)) {
+        return;
     }
+
+    if (currentOrderKeys.has(orderId)) return;
+
+    const card = createOrderCard(orderId, orderData);
+
+    const firstOrderCard =
+        ordersContainer.querySelector('.order-card');
+
+    if (firstOrderCard)
+        ordersContainer.insertBefore(card, firstOrderCard);
+    else
+        ordersContainer.appendChild(card);
+
+    currentOrderKeys.add(orderId);
+
+    updatePendingCount();
+    updateLastUpdate();
+}
 
     function removeOrderFromScreen(orderId) {
         const card = document.querySelector(`.order-card[data-id="${orderId}"]`);
