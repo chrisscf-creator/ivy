@@ -186,7 +186,7 @@ const ALLOWED_ITEMS = [
         completedCountSpan.innerText = completedLocalCount;
     }
 
-        function escapeHtml(str) {
+            function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
@@ -195,9 +195,17 @@ const ALLOWED_ITEMS = [
         if (!timeValue) return '刚刚';
         try {
             const date = new Date(timeValue);
-            if (!isNaN(date.getTime())) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+            }
             return timeValue;
-        } catch(e) { return timeValue; }
+        } catch(e) { 
+            return timeValue; 
+        }
     }
 
     function isAllowedOrder(orderData) {
@@ -208,6 +216,7 @@ const ALLOWED_ITEMS = [
             ALLOWED_ITEMS.includes(item.name)
         );
     }
+    
     {
         if (!timeValue) return '刚刚';
         try {
