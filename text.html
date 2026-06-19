@@ -199,10 +199,14 @@
         .toolbar .toolbar-buttons .btn-icon:active {
             transform: scale(0.92);
         }
-        .toolbar .toolbar-buttons .btn-icon.logout-btn {
-            background: #ff6b6b;
-            color: white;
-        }
+        .toolbar .toolbar-buttons .btn-icon.logout-btn .btn-history{
+    background:#2196F3 !important;
+    color:white !important;
+}
+
+.btn-history:hover{
+    background:#1976D2 !important;
+}
         .toolbar .toolbar-buttons .btn-icon.logout-btn:hover {
             background: #ee5a24;
         }
@@ -842,8 +846,6 @@
             title="退出登录">
         🚪
     </button>
-
-</div>
         </div>
 
         <!-- 蓝牙连接按钮 -->
@@ -1779,6 +1781,16 @@ function addNumberToList() {
                 e.preventDefault();
             });
         });
+
+        // ============================================
+// History 页面
+// ============================================
+function openHistory() {
+    window.open(
+        'https://chrisscf-creator.github.io/ivy/history.html',
+        '_blank'
+    );
+}
     </script>
 </body>
 </html>
