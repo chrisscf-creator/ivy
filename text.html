@@ -175,16 +175,16 @@
             font-size: 12px;
             margin: 0;
         }
-        .toolbar .toolbar-buttons {
-            display: flex;
-            gap: 18px;
-        }
-        .toolbar .toolbar-buttons .btn-icon {
+       .toolbar .toolbar-buttons {
+    display: flex;
+    gap: 18px;
+}
+.toolbar .toolbar-buttons .btn-icon {
     width: 65px;
     height: 65px;
     border: none;
     border-radius: 20px;
-    font-size: 28px;
+    font-size: 34px; /* 改这里调图标大小 */
     cursor: pointer;
     transition: all 0.2s;
     background: #f0f0f0;
@@ -192,25 +192,24 @@
     align-items: center;
     justify-content: center;
 }
-        .toolbar .toolbar-buttons .btn-icon:hover {
-            background: #e0e0e0;
-            transform: scale(1.05);
-        }
-        .toolbar .toolbar-buttons .btn-icon:active {
-            transform: scale(0.92);
-        }
-        .toolbar .toolbar-buttons .btn-icon.logout-btn .btn-history{
-    background:#2196F3 !important;
-    color:white !important;
+.toolbar .toolbar-buttons .btn-icon:hover {
+    background: #e0e0e0;
+    transform: scale(1.05);
+}
+.toolbar .toolbar-buttons .btn-icon:active {
+    transform: scale(0.92);
+}
+.toolbar .toolbar-buttons .btn-icon.logout-btn .btn-history{
+background:#2196F3 !important;
+color:white !important;
 }
 
 .btn-history:hover{
     background:#1976D2 !important;
 }
-        .toolbar .toolbar-buttons .btn-icon.logout-btn:hover {
-            background: #ee5a24;
-        }
-
+.toolbar .toolbar-buttons .btn-icon.logout-btn:hover {
+    background: #ee5a24;
+}
         /* ===== 号码显示区域 ===== */
         .number-section {
             background: #f8f9fa;
