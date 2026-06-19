@@ -186,22 +186,28 @@ const ALLOWED_ITEMS = [
         completedCountSpan.innerText = completedLocalCount;
     }
 
-    function escapeHtml(str) {
+        function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
-    function formatOrderTime(timeValue) 
-    function isAllowedOrder(orderData) {
-
-    if (!orderData.items || !Array.isArray(orderData.items)) {
-        return false;
+    function formatOrderTime(timeValue) {
+        if (!timeValue) return '刚刚';
+        try {
+            const date = new Date(timeValue);
+            if (!isNaN(date.getTime())) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            return timeValue;
+        } catch(e) { return timeValue; }
     }
 
-    return orderData.items.some(item =>
-        ALLOWED_ITEMS.includes(item.name)
-    );
-}
+    function isAllowedOrder(orderData) {
+        if (!orderData.items || !Array.isArray(orderData.items)) {
+            return false;
+        }
+        return orderData.items.some(item =>
+            ALLOWED_ITEMS.includes(item.name)
+        );
+    }
     {
         if (!timeValue) return '刚刚';
         try {
