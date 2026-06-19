@@ -822,19 +822,28 @@
     <!-- ===== 主应用 ===== -->
     <div class="container" id="mainApp" style="display:none;">
         <!-- 工具栏 -->
-        <div class="toolbar">
-            <div class="title-area">
-                <h1>🎯 万字票</h1>
-                <div class="subtitle">每组独立注码 · 整数投注</div>
-            </div>
-            <div class="toolbar-buttons">
-                <button class="btn-icon" onclick="toggleFullscreen()" title="全屏切换">
-                    ⛶
-                </button>
-                <button class="btn-icon logout-btn" onclick="handleLogout()" title="退出登录">
-                    🚪
-                </button>
-            </div>
+       <div class="toolbar-buttons">
+
+    <!-- History 按钮 -->
+    <button class="btn-icon"
+            onclick="openHistory()"
+            title="投注记录">
+        📜
+    </button>
+
+    <button class="btn-icon"
+            onclick="toggleFullscreen()"
+            title="全屏切换">
+        ⛶
+    </button>
+
+    <button class="btn-icon logout-btn"
+            onclick="handleLogout()"
+            title="退出登录">
+        🚪
+    </button>
+
+</div>
         </div>
 
         <!-- 蓝牙连接按钮 -->
