@@ -186,7 +186,7 @@ const ALLOWED_ITEMS = [
         completedCountSpan.innerText = completedLocalCount;
     }
 
-            function escapeHtml(str) {
+                function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
@@ -216,20 +216,9 @@ const ALLOWED_ITEMS = [
             ALLOWED_ITEMS.includes(item.name)
         );
     }
-    
-    {
-        if (!timeValue) return '刚刚';
-        try {
-            const date = new Date(timeValue);
-            if (!isNaN(date.getTime())) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            return timeValue;
-        } catch(e) { return timeValue; }
-    }
 
     function createOrderCard(orderId, orderData) {
-        const card = document.createElement('div');
-        card.className = 'order-card';
-        card.dataset.id = orderId;
+        // ... 后面的代码保持不变
 
         // 获取订单号，如果没有则显示 —
         const orderNumber = orderData.orderNumber ? `#${orderData.orderNumber}` : '—';
