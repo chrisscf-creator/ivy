@@ -205,11 +205,25 @@
     <div class="container">
         <header>
             <h1>📊 万字票数据管理</h1>
-            <div class="header-actions">
-                <button onclick="loadTickets()" class="btn btn-primary">🔄 刷新数据</button>
-                <button onclick="exportCSV()" class="btn btn-success">📥 导出CSV</button>
-                <button onclick="clearAllData()" class="btn btn-danger">🗑️ 清空数据</button>
-            </div>
+           <div class="header-actions">
+
+    <button onclick="openTextPage()" class="btn btn-warning">
+        📝 Text
+    </button>
+
+    <button onclick="loadTickets()" class="btn btn-primary">
+        🔄 刷新数据
+    </button>
+
+    <button onclick="exportCSV()" class="btn btn-success">
+        📥 导出CSV
+    </button>
+
+    <button onclick="clearAllData()" class="btn btn-danger">
+        🗑️ 清空数据
+    </button>
+
+</div>
         </header>
 
         <!-- 统计 -->
@@ -526,6 +540,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadTickets();
         });
+        
+        // ===== 打开 Text 页面 =====
+function openTextPage() {
+    window.open(
+        'https://chrisscf-creator.github.io/ivy/text.html',
+        '_blank'
+    );
+}
     </script>
 </body>
 </html>
