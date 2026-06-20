@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出租车收费里程表 · 计价器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: linear-gradient(145deg, #f5f7fa 0%, #e9edf3 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      padding: 20px;
+    }
+    .taxi-card {
+      max-width: 780px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 48px 48px 32px 32px;
+      box-shadow: 0 25px 50px -10px rgba(0, 0, 0, 0.25), 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+      padding: 32px 28px 38px;
+      transition: 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(2px);
+    }
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: #1e293b;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f1f5f9;
+      margin-bottom: 28px;
+    }
+    h1 span {
+      background: #fbbf24;
+      color: #0f172a;
+      font-size: 22px;
+      padding: 4px 14px 6px 14px;
+      border-radius: 60px;
+      line-height: 1.3;
+      box-shadow: inset 0 -2px 0 #b45309;
+    }
+    .meter-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .input-section {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 18px 22px;
+      background: #f8fafc;
+      padding: 24px 20px 28px;
+      border-radius: 32px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), 0 6px 12px -8px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      flex: 1 0 160px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .input-group label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .input-group label i {
+      font-style: normal;
+      background: #d1d9e6;
+      color: #1e293b;
+      border-radius: 30px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .input-group input {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 40px;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #0f172a;
+      width: 100%;
+      outline: none;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .input-group input:focus {
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+    }
+    .input-group input[type="number"]::-webkit-inner-spin-button {
+      opacity: 0.7;
+    }
+    .input-group .hint {
+      font-size: 13px;
+      color: #94a3b8;
+      padding-left: 12px;
+      margin-top: 2px;
+    }
+    .action-btn {
+      background: #f59e0b;
+      border: none;
+      border-radius: 60px;
+      padding: 14px 28px;
+      font-weight: 600;
+      font-size: 18px;
+      color: #0f172a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 8px 16px -6px rgba(245, 158, 11, 0.35);
+      transition: 0.15s;
+      border: 1px solid #fbbf24;
+      letter-spacing: 0.3px;
+      flex: 0 1 auto;
+      margin-left: auto;
+      min-width: 120px;
+    }
+    .action-btn:hover {
+      background: #d97706;
+      box-shadow: 0 10px 20px -8px #b45309;
+      color: white;
+      border-color: #d97706;
+      transform: scale(0.97);
+    }
+    .action-btn:active {
+      transform: scale(0.94);
+    }
+    .fare-display {
+      background: #1e293b;
+      border-radius: 40px;
+      padding: 18px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      color: white;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.2);
+      margin-top: 6px;
+    }
+    .fare-label {
+      font-size: 18px;
+      font-weight: 400;
+      color: #cbd5e1;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fare-amount {
+      font-size: 44px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .fare-amount small {
+      font-size: 22px;
+      font-weight: 500;
+      -webkit-text-fill-color: #fcd34d;
+      color: #fcd34d;
+      background: none;
+    }
+    .rate-table-wrap {
+      background: #f1f5f9;
+      border-radius: 28px;
+      padding: 16px 4px 4px 4px;
+      margin-top: 8px;
+    }
+    .rate-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      font-size: 15px;
+    }
+    .rate-table th {
+      text-align: left;
+      font-weight: 600;
+      color: #334155;
+      padding: 10px 16px 6px 16px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+    .rate-table td {
+      padding: 10px 16px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      color: #1e293b;
+      font-weight: 450;
+    }
+    .rate-table tr td:first-child {
+      border-radius: 20px 0 0 20px;
+    }
+    .rate-table tr td:last-child {
+      border-radius: 0 20px 20px 0;
+    }
+    .rate-table .highlight {
+      background: #fef9e7;
+      font-weight: 600;
+      color: #92400e;
+    }
+    .footnote {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 16px;
+      padding-right: 8px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .footnote span {
+      background: #e9edf3;
+      padding: 3px 14px;
+      border-radius: 40px;
+    }
+    @media (max-width: 600px) {
+      .taxi-card { padding: 24px 16px; }
+      .input-section { flex-direction: column; align-items: stretch; }
+      .action-btn { margin-left: 0; width: 100%; }
+      .fare-display { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .fare-amount { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+<div class="taxi-card">
+  <h1>
+    🚕 计程收费
+    <span>里程表</span>
+  </h1>
+
+  <div class="meter-grid">
+    <!-- 输入区域 -->
+    <div class="input-section">
+      <div class="input-group">
+        <label>📏 行驶里程 <i>km</i></label>
+        <input type="number" id="distanceInput" value="3.5" step="0.1" min="0">
+        <div class="hint">起步里程 3 km</div>
+      </div>
+      <div class="input-group">
+        <label>⏱️ 等待时间 <i>min</i></label>
+        <input type="number" id="waitInput" value="2" step="0.5" min="0">
+        <div class="hint">低速/等候 累计</div>
+      </div>
+      <button class="action-btn" id="calcBtn">↵ 计算</button>
+    </div>
+
+    <!-- 动态计费结果 -->
+    <div class="fare-display">
+      <span class="fare-label">💵 预估车费</span>
+      <span class="fare-amount" id="fareDisplay">¥21.50</span>
+    </div>
+
+    <!-- 收费明细表 (里程阶梯) -->
+    <div class="rate-table-wrap">
+      <table class="rate-table" id="rateTable">
+        <thead>
+          <tr><th>分段</th><th>里程区间</th><th>单价 (元/km)</th><th>分段费用</th></tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- 动态由 js 生成 -->
+        </tbody>
+      </table>
+      <div class="footnote">
+        <span>🕒 等候费 2.0 元/5min</span>
+        <span>🚦 低速行驶并入等候</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ----- 计价规则 (可自定义) -----
+    const RULES = {
+      // 起步价 (包含3公里)
+      baseFare: 13.0,          // 元
+      baseDistance: 3.0,       // 公里
+      // 里程阶梯 (超过起步里程后)
+      tiers: [
+        { min: 3, max: 10, rate: 2.5 },    // 3~10 km 单价2.5元/km
+        { min: 10, max: 20, rate: 2.0 },   // 10~20 km 单价2.0元/km
+        { min: 20, max: Infinity, rate: 1.8 } // 20 km以上 1.8元/km
+      ],
+      // 等候费 (每5分钟)
+      waitRate: 2.0,           // 元 / 5分钟
+      waitBase: 5              // 每5分钟计费
+    };
+
+    // DOM 元素
+    const distanceInput = document.getElementById('distanceInput');
+    const waitInput = document.getElementById('waitInput');
+    const calcBtn = document.getElementById('calcBtn');
+    const fareDisplay = document.getElementById('fareDisplay');
+    const tableBody = document.getElementById('tableBody');
+
+    // ----- 核心计价函数 -----
+    function calculateFare(distanceKm, waitMinutes) {
+      // 1. 起步价
+      let totalFare = RULES.baseFare;
+      const baseDist = RULES.baseDistance;
+
+      // 2. 里程阶梯计费 (超出起步里程部分)
+      let remaining = Math.max(0, distanceKm - baseDist);
+      let tierFare = 0;
+      const tierDetails = [];
+
+      // 深拷贝规则，便于显示
+      const tiers = RULES.tiers.map(t => ({ ...t }));
+
+      for (let i = 0; i < tiers.length; i++) {
+        const tier = tiers[i];
+        if (remaining <= 0) break;
+
+        // 区间有效里程
+        const tierMin = tier.min;
+        const tierMax = tier.max;
+        let effective = 0;
+        if (remaining > 0) {
+          // 当前区间上限
+          const upper = tierMax === Infinity ? Infinity : tierMax;
+          // 计算落入该区间的里程
+          const lowerBound = Math.max(0, tierMin - baseDist); // 相对起步后的偏移
+          const upperBound = upper === Infinity ? Infinity : Math.max(0, upper - baseDist);
+          // 剩余里程从0开始
+          const start = Math.max(0, lowerBound);
+          const end = upperBound === Infinity ? remaining : Math.min(remaining, upperBound);
+          if (end > start) {
+            effective = end - start;
+          }
+        }
+        if (effective > 0) {
+          const segCost = effective * tier.rate;
+          tierFare += segCost;
+          tierDetails.push({
+            range: `${tier.min}${tier.max === Infinity ? '+' : '～'+tier.max}`,
+            rate: tier.rate,
+            distance: effective,
+            cost: segCost
+          });
+          remaining -= effective;
+        }
+      }
+
+      // 如果剩余还有 (理论上不会，但保护)
+      if (remaining > 0) {
+        // 按最后一段费率 (无限阶梯) 计算
+        const lastTier = tiers[tiers.length - 1];
+        const extraCost = remaining * lastTier.rate;
+        tierFare += extraCost;
+        tierDetails.push({
+          range: `${lastTier.min}+`,
+          rate: lastTier.rate,
+          distance: remaining,
+          cost: extraCost
+        });
+      }
+
+      // 3. 等候费 (每5分钟)
+      let waitCost = 0;
+      if (waitMinutes > 0) {
+        const units = Math.ceil(waitMinutes / RULES.waitBase); // 向上取整，不足5分钟按5分钟计
+        waitCost = units * RULES.waitRate;
+      }
+
+      // 总费用 = 起步价 + 里程阶梯费用 + 等候费
+      totalFare = RULES.baseFare + tierFare + waitCost;
+      // 保留两位小数
+      totalFare = Math.round(totalFare * 100) / 100;
+
+      return {
+        total: totalFare,
+        baseFare: RULES.baseFare,
+        tierFare: tierFare,
+        waitCost: waitCost,
+        tierDetails: tierDetails,
+        distance: distanceKm,
+        waitMinutes: waitMinutes
+      };
+    }
+
+    // ----- 渲染表格 + 更新显示 -----
+    function updateMeter() {
+      // 获取输入值
+      let distance = parseFloat(distanceInput.value);
+      let wait = parseFloat(waitInput.value);
+      if (isNaN(distance) || distance < 0) distance = 0;
+      if (isNaN(wait) || wait < 0) wait = 0;
+
+      // 计算
+      const result = calculateFare(distance, wait);
+
+      // 更新总价
+      fareDisplay.innerHTML = `¥${result.total.toFixed(2)} <small>CNY</small>`;
+
+      // 构建阶梯表格 (显示明细)
+      let html = '';
+      const baseDist = RULES.baseDistance;
+      // 起步行
+      html += `<tr>
+        <td>🚀 起步</td>
+        <td>0 ~ ${baseDist} km</td>
+        <td>—</td>
+        <td>¥${result.baseFare.toFixed(2)}</td>
+      </tr>`;
+
+      // 里程阶梯
+      if (result.tierDetails.length === 0) {
+        // 未超出起步里程，显示一行“无额外里程”
+        html += `<tr>
+          <td>⏳ 里程</td>
+          <td>—</td>
+          <td>—</td>
+          <td>¥0.00</td>
+        </tr>`;
+      } else {
+        for (let tier of result.tierDetails) {
+          const rangeLabel = tier.range.includes('+') ? `${tier.range} km` : `${tier.range} km`;
+          html += `<tr>
+            <td>📈 阶梯</td>
+            <td>${rangeLabel}</td>
+            <td>¥${tier.rate.toFixed(2)}</td>
+            <td>¥${tier.cost.toFixed(2)}</td>
+          </tr>`;
+        }
+      }
+
+      // 等候费行
+      if (result.waitCost > 0) {
+        const waitUnits = Math.ceil(result.waitMinutes / RULES.waitBase);
+        html += `<tr class="highlight">
+          <td>🕒 等候</td>
+          <td>${result.waitMinutes} min (${waitUnits}×${RULES.waitBase}min)</td>
+          <td>¥${RULES.waitRate.toFixed(2)} / ${RULES.waitBase}min</td>
+          <td>¥${result.waitCost.toFixed(2)}</td>
+        </tr>`;
+      } else {
+        html += `<tr>
+          <td>🕒 等候</td>
+          <td>—</td>
+          <td>—</td>
+          <td>¥0.00</td>
+        </tr>`;
+      }
+
+      // 总计行 （加粗）
+      html += `<tr style="font-weight: 600; background: #fef9e7; border-radius: 20px;">
+        <td colspan="3" style="text-align: right; background: #fef9e7;">💰 总计</td>
+        <td style="background: #fef9e7; color: #b45309;">¥${result.total.toFixed(2)}</td>
+      </tr>`;
+
+      tableBody.innerHTML = html;
+    }
+
+    // ----- 绑定事件 -----
+    calcBtn.addEventListener('click', updateMeter);
+    // 按回车触发计算
+    distanceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') updateMeter(); });
+    waitInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') updateMeter(); });
+    // 输入时也可实时更新（可选），但为符合“里程表”交互，使用按钮触发，但可加实时（取消注释下一行即可）
+    // distanceInput.addEventListener('input', updateMeter);
+    // waitInput.addEventListener('input', updateMeter);
+
+    // 初始化显示
+    updateMeter();
+  })();
+</script>
+</body>
+</html>
