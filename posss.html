@@ -19,7 +19,22 @@
             margin: 0;
             padding: 20px;
             color: #1e2a2e;
+            transition: background 0.3s;
         }
+        /* 全屏模式微调 */
+        body:-webkit-full-screen {
+            background: #f2ede8;
+            padding: 12px;
+        }
+        body:-moz-full-screen {
+            background: #f2ede8;
+            padding: 12px;
+        }
+        body:fullscreen {
+            background: #f2ede8;
+            padding: 12px;
+        }
+
         .pos-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -28,7 +43,21 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             padding: 20px 24px 32px;
+            transition: padding 0.3s;
         }
+        body:fullscreen .pos-container {
+            padding: 16px 20px 24px;
+            border-radius: 24px;
+        }
+        body:-webkit-full-screen .pos-container {
+            padding: 16px 20px 24px;
+            border-radius: 24px;
+        }
+        body:-moz-full-screen .pos-container {
+            padding: 16px 20px 24px;
+            border-radius: 24px;
+        }
+
         .header-row {
             display: flex;
             justify-content: space-between;
@@ -524,6 +553,38 @@
             border-radius: 6px;
             font-size: 0.8rem;
         }
+        /* ===== 全屏按钮样式 ===== */
+        .btn-fullscreen {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .btn-fullscreen:hover {
+            background: #1a2a3a;
+            transform: scale(1.02);
+        }
+        .btn-fullscreen.is-fullscreen {
+            background: #e67e22;
+        }
+        .btn-fullscreen.is-fullscreen:hover {
+            background: #d35400;
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
         @media (max-width: 780px) {
             .pos-container {
                 padding: 16px;
@@ -536,6 +597,13 @@
             }
             .stats-amount {
                 font-size: 1.2rem;
+            }
+            .header-actions {
+                gap: 8px;
+            }
+            .btn-fullscreen {
+                padding: 6px 12px;
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -555,7 +623,11 @@
         <div class="pos-container">
             <div class="header-row">
                 <h1><span data-lang="posTitle">柜台·点餐终端</span></h1>
-                <div style="display: flex; gap: 12px;">
+                <div class="header-actions">
+                    <!-- 全屏按钮 -->
+                    <button id="fullscreenBtn" class="btn-fullscreen" title="全屏模式">
+                        <span id="fullscreenIcon">⛶</span> <span id="fullscreenLabel" data-lang="fullscreenLabel">全屏</span>
+                    </button>
                     <button id="langSwitchBtn" class="btn-lang">English</button>
                     <button id="historyBtn" class="btn-history"><span data-lang="historyBtn">📊 订单历史</span></button>
                 </div>
@@ -597,7 +669,7 @@
                     <div id="statusMsg" class="feedback" style="display:none;"></div>
                 </div>
             </div>
-            <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 支持蓝牙打印 (使用英文/数字避免乱码)</div>
+            <div class="footer-credit" data-lang="footer">✅ 订单永久保存 · 来源标记 counter，KDS 可过滤</div>
         </div>
 
         <div id="historyModal" class="modal">
@@ -696,7 +768,9 @@
                 bluetoothConnected: '✅ 打印机已连接',
                 bluetoothDisconnected: '⚠️ 未连接',
                 connecting: '🔄 连接中...',
-                kdsHint: '🍳 KDS 过滤已启用 — 本系统所有订单均标记来源为 counter。厨房显示系统只需查询 source === "counter" 即可仅显示本机订单。'
+                kdsHint: '🍳 KDS 过滤已启用 — 本系统所有订单均标记来源为 counter。厨房显示系统只需查询 source === "counter" 即可仅显示本机订单。',
+                fullscreenLabel: '全屏',
+                exitFullscreenLabel: '退出全屏'
             },
             'en': {
                 loginTitle: '🔐 Login',
@@ -762,7 +836,9 @@
                 bluetoothConnected: '✅ Connected',
                 bluetoothDisconnected: '⚠️ Disconnected',
                 connecting: '🔄 Connecting...',
-                kdsHint: '🍳 KDS filter enabled — all orders from this POS have source="counter". KDS should filter source === "counter".'
+                kdsHint: '🍳 KDS filter enabled — all orders from this POS have source="counter". KDS should filter source === "counter".',
+                fullscreenLabel: 'Fullscreen',
+                exitFullscreenLabel: 'Exit FS'
             }
         };
 
@@ -1300,13 +1376,15 @@
             if (hint) {
                 hint.innerHTML = translations[currentLang].kdsHint.replace(/\n/g, '<br>').replace(/`/g, '<code>').replace(
                     /<\/code>/g, '</code>');
-                // 简单处理，保留原有样式
                 hint.innerHTML = hint.innerHTML.replace(/counter/g, '<code>counter</code>');
             }
             if (currentCategory === 'main') categoryTitle.innerText = translations[currentLang].mainTitle;
             else if (currentCategory === 'side') categoryTitle.innerText = translations[currentLang].sideTitle;
             else categoryTitle.innerText = translations[currentLang].extraTitle;
             if (modal && modal.style.display === 'block') renderHistoryTable();
+
+            // 全屏按钮文字
+            updateFullscreenButtonLabel();
         }
 
         function switchLanguage(lang) {
@@ -1318,6 +1396,76 @@
             if (modal.style.display === 'block') renderHistoryTable();
             document.getElementById('langSwitchBtn').innerText = currentLang === 'zh-CN' ? 'English' : '中文';
         }
+
+        // ============================================================
+        // ★★★ 全屏功能 ★★★
+        // ============================================================
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenIcon = document.getElementById('fullscreenIcon');
+        const fullscreenLabel = document.getElementById('fullscreenLabel');
+
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement ||
+                document.msFullscreenElement);
+        }
+
+        function updateFullscreenButtonLabel() {
+            const fs = isFullscreen();
+            if (fs) {
+                fullscreenBtn.classList.add('is-fullscreen');
+                fullscreenIcon.textContent = '⛶';
+                fullscreenLabel.textContent = translations[currentLang].exitFullscreenLabel || '退出全屏';
+            } else {
+                fullscreenBtn.classList.remove('is-fullscreen');
+                fullscreenIcon.textContent = '⛶';
+                fullscreenLabel.textContent = translations[currentLang].fullscreenLabel || '全屏';
+            }
+        }
+
+        function toggleFullscreen() {
+            if (isFullscreen()) {
+                // 退出全屏
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            } else {
+                // 进入全屏
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen();
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                } else if (el.mozRequestFullScreen) {
+                    el.mozRequestFullScreen();
+                } else if (el.msRequestFullscreen) {
+                    el.msRequestFullscreen();
+                } else {
+                    showStatus('您的浏览器不支持全屏功能', true);
+                }
+            }
+        }
+
+        // 监听全屏变化事件
+        function onFullscreenChange() {
+            updateFullscreenButtonLabel();
+            // 全屏切换时重新渲染购物车（适配布局微调）
+            renderCart();
+        }
+
+        // 注册全屏事件
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        document.addEventListener('mozfullscreenchange', onFullscreenChange);
+        document.addEventListener('MSFullscreenChange', onFullscreenChange);
+
+        // 点击全屏按钮
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
 
         // ============================================================
         // 初始化
@@ -1373,6 +1521,7 @@
 
             updateStaticTexts();
             updateLastOrderDisplay(null, null);
+            updateFullscreenButtonLabel();
 
             // 显示KDS提示
             const hint = document.querySelector('.kds-hint');
