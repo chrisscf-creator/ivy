@@ -634,12 +634,6 @@
             </div>
             <div class="sub" data-lang="subText">实时同步厨房 | 蓝牙打印小票 (已修复乱码 - 英文数字版)</div>
 
-            <!-- KDS 过滤提示 -->
-            <div class="kds-hint">
-                🍳 <strong>KDS 过滤已启用</strong> — 本系统所有订单均标记来源为 <code>counter</code>。
-                厨房显示系统只需查询 <code>source === "counter"</code> 即可仅显示本机订单，隐藏其他来源。
-            </div>
-
             <div class="bluetooth-bar">
                 <button id="connectBluetoothBtn" class="bluetooth-print-btn">🔌 连接打印机 (58mm)</button>
                 <span id="bluetoothStatus" class="bluetooth-status">⚡ 未连接</span>
@@ -836,7 +830,6 @@
                 bluetoothConnected: '✅ Connected',
                 bluetoothDisconnected: '⚠️ Disconnected',
                 connecting: '🔄 Connecting...',
-                kdsHint: '🍳 KDS filter enabled — all orders from this POS have source="counter". KDS should filter source === "counter".',
                 fullscreenLabel: 'Fullscreen',
                 exitFullscreenLabel: 'Exit FS'
             }
