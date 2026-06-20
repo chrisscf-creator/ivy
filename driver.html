@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Driver App</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
+
+<style>
+body { font-family: Arial; }
+.order { padding:10px; border:1px solid #ccc; margin:10px; }
+button { padding:8px; }
+</style>
+</head>
+
+<body>
+
+<h2>🚗 Driver Panel</h2>
+
+<div id="orders"></div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+    authDomain: "create-for-payment.firebaseapp.com",
+    databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "create-for-payment",
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function loadOrders(){
+    db.ref("orders").on("value", snap=>{
+        let html = "";
+
+        snap.forEach(order=>{
+            let o = order.val();
+
+            if(o.status === "waiting"){
+                html += `
+                <div class="order">
+                    <p>Price: SGD ${o.price}</p>
+                    <p>Distance: ${o.distance} km</p>
+                    <button onclick="accept('${order.key}')">Accept</button>
+                </div>`;
+            }
+        });
+
+        document.getElementById("orders").innerHTML = html;
+    });
+}
+
+function accept(id){
+    db.ref("orders/" + id).update({
+        status: "accepted",
+        driverId: "driver_1"
+    });
+
+    alert("Order Accepted!");
+}
+
+loadOrders();
+</script>
+
+</body>
+</html>
