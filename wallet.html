@@ -3,324 +3,475 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>返现购物应用</title>
+    <title>支付宝概念应用</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         body {
             background-color: #f5f5f5;
-            padding: 20px;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
-        .container {
+        .app-container {
+            width: 100%;
             max-width: 400px;
-            margin: 0 auto;
+            height: 800px;
             background: white;
-            border-radius: 15px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-bar {
+            background: #1677ff;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
         }
         
         .header {
-            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            background: linear-gradient(135deg, #1677ff, #0958d9);
+            padding: 25px 20px 20px;
             color: white;
-            padding: 25px 20px;
+            position: relative;
+        }
+        
+        .balance-section {
             text-align: center;
+            margin-bottom: 20px;
         }
         
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .cashback-balance {
-            background: rgba(255,255,255,0.2);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
         }
         
         .balance-amount {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
-            margin: 10px 0;
+            margin-bottom: 5px;
         }
         
-        .content {
+        .balance-detail {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+        
+        .action-icon:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .action-text {
+            font-size: 12px;
+            color: white;
+        }
+        
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
             padding: 20px;
         }
         
         .section-title {
             font-size: 18px;
+            font-weight: bold;
             margin-bottom: 15px;
             color: #333;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
         }
         
-        .store-list {
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
             margin-bottom: 25px;
         }
         
-        .store-item {
+        .service-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            padding: 15px;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            padding: 15px 5px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             cursor: pointer;
             transition: all 0.3s;
         }
         
-        .store-item:hover {
-            border-color: #ff6b6b;
-            background-color: #fff9f9;
+        .service-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
-        .store-icon {
-            width: 50px;
-            height: 50px;
-            background: #f0f0f0;
-            border-radius: 8px;
+        .service-icon {
+            width: 40px;
+            height: 40px;
+            background: #e6f4ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            font-size: 20px;
+        }
+        
+        .service-text {
+            font-size: 12px;
+            color: #333;
+        }
+        
+        .transaction-list {
+            margin-bottom: 20px;
+        }
+        
+        .transaction-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            background: #f0f9ff;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-right: 15px;
-            font-size: 24px;
+            font-size: 18px;
         }
         
-        .store-info {
+        .transaction-info {
             flex: 1;
         }
         
-        .store-name {
+        .transaction-title {
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
+            color: #333;
         }
         
-        .cashback-percent {
-            color: #ff6b6b;
+        .transaction-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .transaction-amount {
             font-weight: bold;
+            color: #333;
         }
         
-        .purchase-form {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
+        .transaction-amount.income {
+            color: #52c41a;
         }
         
-        .form-group {
-            margin-bottom: 15px;
+        .transaction-amount.expense {
+            color: #ff4d4f;
         }
         
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: white;
+            border-top: 1px solid #f0f0f0;
+            padding: 10px 0;
         }
         
-        input, select {
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 5px 10px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .nav-item.active {
+            color: #1677ff;
+        }
+        
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+        
+        .nav-text {
+            font-size: 12px;
+        }
+        
+        .qr-code-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
         }
         
-        button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        .qr-code-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 300px;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            border: 10px solid white;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            color: #333;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .close-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #1677ff;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        
-        .history-store {
-            font-weight: bold;
-        }
-        
-        .history-cashback {
-            color: #4ecdc4;
-            font-weight: bold;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4ecdc4;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 8px;
-            z-index: 1000;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>信号满格</span>
+        </div>
+        
         <div class="header">
-            <h1>💰 返现购物</h1>
-            <p>购物返现，省钱更省心</p>
-            <div class="cashback-balance">
-                <p>可用返现余额</p>
-                <div class="balance-amount">¥128.50</div>
-                <p>立即使用</p>
+            <div class="balance-section">
+                <div class="balance-label">账户余额</div>
+                <div class="balance-amount">¥2,847.50</div>
+                <div class="balance-detail">昨日收益 ¥2.30</div>
+            </div>
+            
+            <div class="quick-actions">
+                <div class="action-item" onclick="showQRCode()">
+                    <div class="action-icon">💳</div>
+                    <div class="action-text">付款</div>
+                </div>
+                <div class="action-item" onclick="showQRCode()">
+                    <div class="action-icon">📱</div>
+                    <div class="action-text">收款</div>
+                </div>
+                <div class="action-item" onclick="transferMoney()">
+                    <div class="action-icon">📤</div>
+                    <div class="action-text">转账</div>
+                </div>
+                <div class="action-item" onclick="showBills()">
+                    <div class="action-icon">📊</div>
+                    <div class="action-text">账单</div>
+                </div>
             </div>
         </div>
         
-        <div class="content">
-            <h2 class="section-title">热门商家</h2>
-            <div class="store-list">
-                <div class="store-item" onclick="selectStore('淘宝', 8)">
-                    <div class="store-icon">🛒</div>
-                    <div class="store-info">
-                        <div class="store-name">淘宝</div>
-                        <div class="cashback-percent">返现 8%</div>
-                    </div>
+        <div class="main-content">
+            <h2 class="section-title">便民服务</h2>
+            <div class="services-grid">
+                <div class="service-item" onclick="serviceAction('生活缴费')">
+                    <div class="service-icon">💡</div>
+                    <div class="service-text">生活缴费</div>
                 </div>
-                
-                <div class="store-item" onclick="selectStore('京东', 6)">
-                    <div class="store-icon">📦</div>
-                    <div class="store-info">
-                        <div class="store-name">京东</div>
-                        <div class="cashback-percent">返现 6%</div>
-                    </div>
+                <div class="service-item" onclick="serviceAction('手机充值')">
+                    <div class="service-icon">📱</div>
+                    <div class="service-text">手机充值</div>
                 </div>
-                
-                <div class="store-item" onclick="selectStore('天猫', 7)">
-                    <div class="store-icon">🛍️</div>
-                    <div class="store-info">
-                        <div class="store-name">天猫</div>
-                        <div class="cashback-percent">返现 7%</div>
-                    </div>
+                <div class="service-item" onclick="serviceAction('信用卡还款')">
+                    <div class="service-icon">💳</div>
+                    <div class="service-text">信用卡还款</div>
                 </div>
-                
-                <div class="store-item" onclick="selectStore('拼多多', 5)">
-                    <div class="store-icon">💝</div>
-                    <div class="store-info">
-                        <div class="store-name">拼多多</div>
-                        <div class="cashback-percent">返现 5%</div>
-                    </div>
+                <div class="service-item" onclick="serviceAction('出行')">
+                    <div class="service-icon">🚗</div>
+                    <div class="service-text">出行</div>
+                </div>
+                <div class="service-item" onclick="serviceAction('医疗健康')">
+                    <div class="service-icon">🏥</div>
+                    <div class="service-text">医疗健康</div>
+                </div>
+                <div class="service-item" onclick="serviceAction('公益')">
+                    <div class="service-icon">❤️</div>
+                    <div class="service-text">公益</div>
+                </div>
+                <div class="service-item" onclick="serviceAction('彩票')">
+                    <div class="service-icon">🎲</div>
+                    <div class="service-text">彩票</div>
+                </div>
+                <div class="service-item" onclick="serviceAction('电影演出')">
+                    <div class="service-icon">🎬</div>
+                    <div class="service-text">电影演出</div>
                 </div>
             </div>
             
-            <h2 class="section-title">发起购物返现</h2>
-            <div class="purchase-form">
-                <div class="form-group">
-                    <label for="selectedStore">选择商家</label>
-                    <input type="text" id="selectedStore" placeholder="点击上方商家选择" readonly>
+            <h2 class="section-title">近期交易</h2>
+            <div class="transaction-list">
+                <div class="transaction-item">
+                    <div class="transaction-icon">🛒</div>
+                    <div class="transaction-info">
+                        <div class="transaction-title">超市购物</div>
+                        <div class="transaction-time">今天 09:15</div>
+                    </div>
+                    <div class="transaction-amount expense">-¥86.50</div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="purchaseAmount">购买金额 (¥)</label>
-                    <input type="number" id="purchaseAmount" placeholder="输入购买金额" min="1">
+                <div class="transaction-item">
+                    <div class="transaction-icon">🍽️</div>
+                    <div class="transaction-info">
+                        <div class="transaction-title">外卖订单</div>
+                        <div class="transaction-time">昨天 19:30</div>
+                    </div>
+                    <div class="transaction-amount expense">-¥42.00</div>
                 </div>
                 
-                <button onclick="calculateCashback()">计算返现</button>
+                <div class="transaction-item">
+                    <div class="transaction-icon">💰</div>
+                    <div class="transaction-info">
+                        <div class="transaction-title">工资收入</div>
+                        <div class="transaction-time">昨天 09:00</div>
+                    </div>
+                    <div class="transaction-amount income">+¥8,500.00</div>
+                </div>
+                
+                <div class="transaction-item">
+                    <div class="transaction-icon">📱</div>
+                    <div class="transaction-info">
+                        <div class="transaction-title">手机充值</div>
+                        <div class="transaction-time">前天 14:20</div>
+                    </div>
+                    <div class="transaction-amount expense">-¥100.00</div>
+                </div>
             </div>
-            
-            <h2 class="section-title">返现历史</h2>
-            <div id="historyList">
-                <div class="history-item">
-                    <span class="history-store">京东</span>
-                    <span class="history-amount">¥256.00</span>
-                    <span class="history-cashback">+¥15.36</span>
-                </div>
-                <div class="history-item">
-                    <span class="history-store">淘宝</span>
-                    <span class="history-amount">¥180.00</span>
-                    <span class="history-cashback">+¥14.40</span>
-                </div>
-                <div class="history-item">
-                    <span class="history-store">天猫</span>
-                    <span class="history-amount">¥320.00</span>
-                    <span class="history-cashback">+¥22.40</span>
-                </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-text">首页</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">🔍</div>
+                <div class="nav-text">财富</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">💬</div>
+                <div class="nav-text">朋友</div>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-text">我的</div>
             </div>
         </div>
     </div>
     
-    <div id="notification" class="notification"></div>
+    <div id="qrModal" class="qr-code-modal">
+        <div class="qr-code-content">
+            <div class="qr-code">🧾</div>
+            <div class="modal-title">扫描二维码付款</div>
+            <p>请将二维码对准扫描器</p>
+            <button class="close-btn" onclick="closeQRCode()">关闭</button>
+        </div>
+    </div>
 
     <script>
-        let selectedStore = null;
-        let cashbackRate = 0;
-        
-        function selectStore(storeName, rate) {
-            selectedStore = storeName;
-            cashbackRate = rate;
-            document.getElementById('selectedStore').value = `${storeName} (返现 ${rate}%)`;
+        function showQRCode() {
+            document.getElementById('qrModal').style.display = 'flex';
         }
         
-        function calculateCashback() {
-            if (!selectedStore) {
-                showNotification('请先选择商家');
-                return;
+        function closeQRCode() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+        
+        function transferMoney() {
+            alert('转账功能正在开发中...');
+        }
+        
+        function showBills() {
+            alert('查看账单功能正在开发中...');
+        }
+        
+        function serviceAction(service) {
+            alert(`${service}服务暂未开通，敬请期待！`);
+        }
+        
+        // 添加导航栏交互
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                navItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // 模拟二维码扫描
+        document.getElementById('qrModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeQRCode();
             }
-            
-            const amount = parseFloat(document.getElementById('purchaseAmount').value);
-            if (!amount || amount <= 0) {
-                showNotification('请输入有效的购买金额');
-                return;
-            }
-            
-            const cashback = (amount * cashbackRate / 100).toFixed(2);
-            showNotification(`在${selectedStore}消费¥${amount}，获得¥${cashback}返现！`);
-            
-            // 更新历史记录
-            const historyItem = document.createElement('div');
-            historyItem.className = 'history-item';
-            historyItem.innerHTML = `
-                <span class="history-store">${selectedStore}</span>
-                <span class="history-amount">¥${amount}</span>
-                <span class="history-cashback">+¥${cashback}</span>
-            `;
-            document.getElementById('historyList').prepend(historyItem);
-        }
-        
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000);
-        }
-        
-        // 初始化示例数据
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('purchaseAmount').value = '100';
         });
     </script>
 </body>
