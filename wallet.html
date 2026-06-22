@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>支付宝 - 支付模式</title>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        :root {
+            --primary: #1677ff;
+            --primary-light: #e8f0fe;
+            --primary-dark: #0958d9;
+            --success: #52c41a;
+            --danger: #ff4d4f;
+            --warning: #faad14;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #1a1a2e;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --border: #e5e7eb;
+            --shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        html,
+        body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+            user-select: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        #app {
+            max-width: 420px;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            margin: 0 auto;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .page {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            animation: fadeIn 0.3s ease;
+        }
+        .page.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ===== 页面头部 ===== */
+        .page-header {
+            padding: 16px 20px 12px;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .page-header .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .page-header .back-btn {
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border: none;
+            background: none;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+        .page-header .right-action {
+            font-size: 14px;
+            color: var(--primary);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 500;
+        }
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .page-content.no-padding {
+            padding: 0;
+        }
+
+        /* ===== 登录/注册 ===== */
+        .auth-page {
+            background: linear-gradient(145deg, #ffffff 0%, #f0f6ff 100%);
+            justify-content: center;
+            align-items: center;
+            padding: 40px 32px;
+        }
+        .auth-page .logo {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .auth-page .logo span {
+            background: var(--primary);
+            color: #fff;
+            font-size: 20px;
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+        .auth-page .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 36px;
+        }
+        .auth-form {
+            width: 100%;
+            max-width: 340px;
+        }
+        .auth-form .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+        .auth-form .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .auth-form .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            background: #fff;
+            transition: all 0.25s;
+            outline: none;
+            color: var(--text);
+        }
+        .auth-form .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.12);
+        }
+        .auth-form .btn-auth {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-top: 8px;
+            box-shadow: 0 4px 16px rgba(22, 119, 255, 0.35);
+        }
+        .auth-form .btn-auth:active {
+            transform: scale(0.97);
+        }
+        .auth-form .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .auth-form .auth-switch a {
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .auth-form .auth-error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: var(--danger);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .auth-form .auth-error.show {
+            display: block;
+        }
+
+        /* ===== 首页 ===== */
+        .home-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #0050cc 100%);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            color: #fff;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .home-header::after {
+            content: '';
+            position: absolute;
+            top: -60%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 50%;
+        }
+        .home-header .greeting {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+        .home-header .user-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .home-header .balance-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .home-header .balance-row .label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .home-header .balance-row .amount {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .home-header .balance-row .currency {
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        .home-header .balance-row .eye {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 12px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+        .quick-actions .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 4px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            color: var(--text);
+        }
+        .quick-actions .action-item:active {
+            background: var(--bg);
+            transform: scale(0.94);
+        }
+        .quick-actions .action-item .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .quick-actions .action-item .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .quick-actions .action-item .icon.blue {
+            background: #e8f0fe;
+            color: var(--primary);
+        }
+        .quick-actions .action-item .icon.green {
+            background: #e6f7e6;
+            color: var(--success);
+        }
+        .quick-actions .action-item .icon.orange {
+            background: #fff7e6;
+            color: var(--warning);
+        }
+        .quick-actions .action-item .icon.purple {
+            background: #f0e8ff;
+            color: #7c3aed;
+        }
+        .quick-actions .action-item .icon.red {
+            background: #fff0f0;
+            color: var(--danger);
+        }
+
+        .recent-bills {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+        .recent-bills .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .recent-bills .section-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .recent-bills .section-header a {
+            color: var(--primary);
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 500;
+        }
+        .bill-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+        }
+        .bill-item:last-child {
+            border-bottom: none;
+        }
+        .bill-item .bill-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .bill-item .bill-icon.in {
+            background: #e6f7e6;
+            color: var(--success);
+        }
+        .bill-item .bill-icon.out {
+            background: #fff0f0;
+            color: var(--danger);
+        }
+        .bill-item .bill-icon.recharge {
+            background: #e8f0fe;
+            color: var(--primary);
+        }
+        .bill-item .bill-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .bill-item .bill-info .name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .bill-item .bill-info .desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bill-item .bill-amount {
+            font-weight: 600;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .bill-item .bill-amount.in {
+            color: var(--success);
+        }
+        .bill-item .bill-amount.out {
+            color: var(--danger);
+        }
+        .bill-item .bill-amount.recharge {
+            color: var(--primary);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* ===== 支付模式（付款码/收款码） ===== */
+        .paycode-container {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .paycode-container .code-type {
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg);
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+        }
+        .paycode-container .qr-placeholder {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 16px;
+            background: #1a1a2e;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+        .paycode-container .qr-placeholder .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            width: 80%;
+            height: 80%;
+        }
+        .paycode-container .qr-placeholder .qr-grid div {
+            background: #fff;
+            border-radius: 2px;
+        }
+        .paycode-container .qr-placeholder .qr-grid div.dark {
+            background: #1677ff;
+        }
+        .paycode-container .qr-placeholder .qr-grid div.empty {
+            background: transparent;
+        }
+        .paycode-container .qr-placeholder .center-logo {
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            background: #fff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .paycode-container .code-number {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .paycode-container .code-hint {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .paycode-container .barcode {
+            margin: 16px auto 0;
+            height: 40px;
+            background: repeating-linear-gradient(90deg,
+                    #1a1a2e 0px, #1a1a2e 2px,
+                    transparent 2px, transparent 4px);
+            max-width: 280px;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .paycode-switch {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .paycode-switch button {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--card);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+        .paycode-switch button.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .paycode-switch button:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== 转账/支付 ===== */
+        .transfer-form {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.35s ease;
+        }
+        .transfer-form .form-group {
+            margin-bottom: 18px;
+        }
+        .transfer-form .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .transfer-form .form-group input,
+        .transfer-form .form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            background: #fff;
+            transition: all 0.25s;
+            outline: none;
+            color: var(--text);
+            font-family: inherit;
+        }
+        .transfer-form .form-group input:focus,
+        .transfer-form .form-group textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.08);
+        }
+        .transfer-form .transfer-amount-display {
+            text-align: center;
+            padding: 12px 0 8px;
+        }
+        .transfer-form .transfer-amount-display .big {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .transfer-form .transfer-amount-display .big .currency {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-right: 4px;
+        }
+        .transfer-form .btn-transfer {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 16px rgba(22, 119, 255, 0.3);
+        }
+        .transfer-form .btn-transfer:active {
+            transform: scale(0.97);
+        }
+        .transfer-form .btn-transfer:disabled {
+            opacity: 0.5;
+            transform: none;
+        }
+
+        /* ===== 支付方式选择（模态框） ===== */
+        .payment-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.25s ease;
+        }
+        .payment-modal .modal-content {
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 420px;
+            padding: 24px 20px calc(20px + var(--safe-bottom));
+            animation: slideUp 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .payment-modal .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .payment-modal .modal-title .sub {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            display: block;
+            margin-top: 4px;
+        }
+        .payment-method {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        .payment-method:active {
+            transform: scale(0.97);
+        }
+        .payment-method.selected {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+        .payment-method .pm-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+        .payment-method .pm-icon.blue {
+            background: #e8f0fe;
+            color: var(--primary);
+        }
+        .payment-method .pm-icon.green {
+            background: #e6f7e6;
+            color: var(--success);
+        }
+        .payment-method .pm-icon.orange {
+            background: #fff7e6;
+            color: var(--warning);
+        }
+        .payment-method .pm-info {
+            flex: 1;
+        }
+        .payment-method .pm-info .pm-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .payment-method .pm-info .pm-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .payment-method .pm-check {
+            font-size: 20px;
+            color: var(--text-light);
+        }
+        .payment-method.selected .pm-check {
+            color: var(--primary);
+        }
+        .payment-modal .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .payment-modal .modal-actions button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .payment-modal .modal-actions button:active {
+            transform: scale(0.96);
+        }
+        .payment-modal .modal-actions .btn-cancel {
+            background: var(--bg);
+            color: var(--text-secondary);
+        }
+        .payment-modal .modal-actions .btn-confirm {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+        }
+        .payment-modal .modal-actions .btn-confirm:disabled {
+            opacity: 0.5;
+        }
+
+        /* ===== 账单 ===== */
+        .bill-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            padding: 0 16px;
+            padding-top: 12px;
+        }
+        .bill-filters .filter-btn {
+            padding: 6px 16px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: var(--card);
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .bill-filters .filter-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .bill-list {
+            padding: 0 16px 16px;
+        }
+        .bill-list .bill-item {
+            background: var(--card);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            border-bottom: none;
+        }
+        .bill-list .bill-item .bill-time {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* ===== 个人中心 ===== */
+        .profile-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .profile-card .avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 auto 10px;
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+        }
+        .profile-card .name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .profile-card .phone {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .profile-card .balance-info {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+        }
+        .profile-card .balance-info .item .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .profile-card .balance-info .item .value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .profile-menu {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .profile-menu .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+            gap: 12px;
+            background: none;
+            border-left: none;
+            border-right: none;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .profile-menu .menu-item:last-child {
+            border-bottom: none;
+        }
+        .profile-menu .menu-item:active {
+            background: var(--bg);
+        }
+        .profile-menu .menu-item .menu-icon {
+            font-size: 20px;
+            width: 28px;
+            text-align: center;
+        }
+        .profile-menu .menu-item .menu-label {
+            flex: 1;
+        }
+        .profile-menu .menu-item.danger .menu-label {
+            color: var(--danger);
+        }
+
+        /* ===== Tab Bar ===== */
+        .tab-bar {
+            display: flex;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 6px 0 calc(6px + var(--safe-bottom));
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+        }
+        .tab-bar .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 4px 0;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: var(--text-light);
+            font-size: 11px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .tab-bar .tab-item .tab-icon {
+            font-size: 24px;
+            line-height: 1.2;
+        }
+        .tab-bar .tab-item .tab-label {
+            font-weight: 500;
+        }
+        .tab-bar .tab-item.active {
+            color: var(--primary);
+        }
+        .tab-bar .tab-item:active {
+            transform: scale(0.92);
+        }
+
+        /* ===== Toast ===== */
+        .toast-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 99999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            max-width: 85%;
+        }
+        .toast {
+            background: rgba(0, 0, 0, 0.78);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            animation: toastIn 0.3s ease;
+            pointer-events: auto;
+            text-align: center;
+            min-width: 120px;
+            max-width: 90%;
+        }
+        .toast.success {
+            background: rgba(22, 119, 255, 0.92);
+        }
+        .toast.error {
+            background: rgba(255, 77, 79, 0.92);
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: scale(0.88) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* ===== 工具 ===== */
+        .text-center {
+            text-align: center;
+        }
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .mt-16 {
+            margin-top: 16px;
+        }
+        .gap-8 {
+            gap: 8px;
+        }
+        @media (max-width: 420px) {
+            .home-header .balance-row .amount {
+                font-size: 28px;
+            }
+            .quick-actions .action-item .icon {
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+            .paycode-container .qr-placeholder {
+                width: 140px;
+                height: 140px;
+            }
+        }
+        @media (min-width: 421px) {
+            #app {
+                border-left: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- ======== 登录 ======== -->
+        <div class="page auth-page active" id="page-login">
+            <div class="logo">📱 <span>支付宝</span></div>
+            <div class="subtitle">安全 · 便捷 · 可信赖</div>
+            <div class="auth-form">
+                <div class="auth-error" id="loginError">账号或密码错误</div>
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="tel" id="loginPhone" placeholder="请输入手机号" value="13800138000" maxlength="11">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" value="123456">
+                </div>
+                <button class="btn-auth" id="loginBtn">登 录</button>
+                <div class="auth-switch">还没有账号？<a id="gotoRegister">立即注册</a></div>
+            </div>
+        </div>
+
+        <!-- ======== 注册 ======== -->
+        <div class="page auth-page" id="page-register">
+            <div class="logo" style="font-size:32px;">📱 <span>支付宝</span></div>
+            <div class="subtitle">创建你的支付账户</div>
+            <div class="auth-form">
+                <div class="auth-error" id="registerError">注册信息有误</div>
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="tel" id="regPhone" placeholder="请输入手机号" maxlength="11">
+                </div>
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="regName" placeholder="请输入真实姓名">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="regPassword" placeholder="请设置密码（至少6位）">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="regConfirm" placeholder="再次输入密码">
+                </div>
+                <button class="btn-auth" id="registerBtn">注 册</button>
+                <div class="auth-switch">已有账号？<a id="gotoLogin">去登录</a></div>
+            </div>
+        </div>
+
+        <!-- ======== 首页 ======== -->
+        <div class="page" id="page-home">
+            <div class="page-content">
+                <div class="home-header">
+                    <div class="greeting" id="greeting">👋 上午好</div>
+                    <div class="user-name" id="userName">用户</div>
+                    <div class="balance-row">
+                        <span class="label">余额</span>
+                        <span class="currency">¥</span>
+                        <span class="amount" id="balanceDisplay">0.00</span>
+                        <button class="eye" id="toggleBalance">👁️</button>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <button class="action-item" data-action="transfer">
+                        <div class="icon blue">💸</div>
+                        <span class="label">转账</span>
+                    </button>
+                    <button class="action-item" data-action="paycode">
+                        <div class="icon green">📱</div>
+                        <span class="label">付款码</span>
+                    </button>
+                    <button class="action-item" data-action="bills">
+                        <div class="icon orange">📋</div>
+                        <span class="label">账单</span>
+                    </button>
+                    <button class="action-item" data-action="profile">
+                        <div class="icon purple">👤</div>
+                        <span class="label">我的</span>
+                    </button>
+                </div>
+                <div class="recent-bills">
+                    <div class="section-header">
+                        <h3>📄 最近交易</h3>
+                        <button class="right-action" id="viewAllBills">查看全部 →</button>
+                    </div>
+                    <div id="recentBillList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 转账 ======== -->
+        <div class="page" id="page-transfer">
+            <div class="page-header">
+                <button class="back-btn" data-back>‹ 返回</button>
+                <span class="title">转账</span>
+                <span style="width:48px;"></span>
+            </div>
+            <div class="page-content">
+                <div class="transfer-form">
+                    <div class="transfer-amount-display">
+                        <span class="currency">¥</span>
+                        <span class="big" id="transferAmountDisplay">0.00</span>
+                    </div>
+                    <div class="form-group">
+                        <label>收款账户</label>
+                        <input type="text" id="transferTo" placeholder="请输入对方手机号" value="13800138001">
+                    </div>
+                    <div class="form-group">
+                        <label>金额</label>
+                        <input type="number" id="transferAmount" placeholder="0.00" step="0.01" min="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <input type="text" id="transferNote" placeholder="添加备注" maxlength="20">
+                    </div>
+                    <button class="btn-transfer" id="transferBtn">选择支付方式</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 付款码 / 收款码 ======== -->
+        <div class="page" id="page-paycode">
+            <div class="page-header">
+                <button class="back-btn" data-back>‹ 返回</button>
+                <span class="title">付款码</span>
+                <span style="width:48px;"></span>
+            </div>
+            <div class="page-content">
+                <div class="paycode-switch">
+                    <button class="active" data-code="pay">付款码</button>
+                    <button data-code="collect">收款码</button>
+                </div>
+                <div class="paycode-container" id="paycodeDisplay">
+                    <div class="code-type" id="codeTypeLabel">付款给商家</div>
+                    <div class="qr-placeholder">
+                        <div class="qr-grid" id="qrGrid"></div>
+                        <div class="center-logo">支</div>
+                    </div>
+                    <div class="code-number" id="codeNumber">1234 5678 9012</div>
+                    <div class="code-hint" id="codeHint">请商家扫描此码</div>
+                    <div class="barcode"></div>
+                </div>
+                <div style="display:flex; gap:12px; margin-top:12px;">
+                    <button class="btn-transfer" style="flex:1; background:var(--card); color:var(--text); box-shadow:var(--shadow);" id="refreshCode">🔄 刷新</button>
+                    <button class="btn-transfer" style="flex:1; background:var(--card); color:var(--text); box-shadow:var(--shadow);" id="saveCode">💾 保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 账单 ======== -->
+        <div class="page" id="page-bills">
+            <div class="page-header">
+                <button class="back-btn" data-back>‹ 返回</button>
+                <span class="title">账单</span>
+                <span style="width:48px;"></span>
+            </div>
+            <div class="page-content no-padding">
+                <div class="bill-filters" id="billFilters">
+                    <button class="filter-btn active" data-filter="all">全部</button>
+                    <button class="filter-btn" data-filter="out">支出</button>
+                    <button class="filter-btn" data-filter="in">收入</button>
+                    <button class="filter-btn" data-filter="recharge">充值</button>
+                </div>
+                <div class="bill-list" id="billList"></div>
+            </div>
+        </div>
+
+        <!-- ======== 个人中心 ======== -->
+        <div class="page" id="page-profile">
+            <div class="page-header">
+                <span class="title">我的</span>
+                <span style="width:48px;"></span>
+            </div>
+            <div class="page-content">
+                <div class="profile-card">
+                    <div class="avatar" id="profileAvatar">用</div>
+                    <div class="name" id="profileName">用户</div>
+                    <div class="phone" id="profilePhone">138****8000</div>
+                    <div class="balance-info">
+                        <div class="item"><div class="label">余额</div><div class="value" id="profileBalance">¥0.00</div></div>
+                        <div class="item"><div class="label">交易笔数</div><div class="value" id="profileCount">0</div></div>
+                    </div>
+                </div>
+                <div class="profile-menu">
+                    <button class="menu-item" data-action="paycode"><span class="menu-icon">📱</span><span class="menu-label">付款码</span></button>
+                    <button class="menu-item" data-action="bills"><span class="menu-icon">📋</span><span class="menu-label">我的账单</span></button>
+                    <button class="menu-item danger" id="logoutBtn"><span class="menu-icon">🚪</span><span class="menu-label">退出登录</span></button>
+                </div>
+                <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-light);">支付宝 v3.0 · 支付模式</div>
+            </div>
+        </div>
+
+        <!-- ======== Tab Bar ======== -->
+        <div class="tab-bar" id="tabBar">
+            <button class="tab-item active" data-tab="home"><span class="tab-icon">🏠</span><span class="tab-label">首页</span></button>
+            <button class="tab-item" data-tab="transfer"><span class="tab-icon">💸</span><span class="tab-label">转账</span></button>
+            <button class="tab-item" data-tab="paycode"><span class="tab-icon">📱</span><span class="tab-label">付款码</span></button>
+            <button class="tab-item" data-tab="profile"><span class="tab-icon">👤</span><span class="tab-label">我的</span></button>
+        </div>
+    </div>
+
+    <!-- ======== Toast ======== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ============================================================
+        //  数据层
+        // ============================================================
+        const DB = {
+            getUsers() { return JSON.parse(localStorage.getItem('pay_users') || '[]'); },
+            setUsers(u) { localStorage.setItem('pay_users', JSON.stringify(u)); },
+            getTransactions() { return JSON.parse(localStorage.getItem('pay_transactions') || '[]'); },
+            setTransactions(t) { localStorage.setItem('pay_transactions', JSON.stringify(t)); },
+            getCurrentUser() { return JSON.parse(localStorage.getItem('pay_current') || 'null'); },
+            setCurrentUser(u) { localStorage.setItem('pay_current', JSON.stringify(u)); },
+            clearCurrentUser() { localStorage.removeItem('pay_current'); },
+            init() {
+                if (this.getUsers().length === 0) {
+                    this.setUsers([
+                        { id: 'u1', phone: '13800138000', password: '123456', name: '张小明', balance: 12800.50,
+                            avatar: '张' },
+                        { id: 'u2', phone: '13800138001', password: '123456', name: '李小红', balance: 5600.00,
+                            avatar: '李' },
+                    ]);
+                    this.setTransactions([
+                        { id: 't1', userId: 'u1', type: 'out', amount: 200, counterparty: '李小红',
+                            time: Date.now() - 3600000 * 2, note: '午餐', status: 'completed' },
+                        { id: 't2', userId: 'u1', type: 'in', amount: 5000, counterparty: '工资',
+                            time: Date.now() - 3600000 * 24, note: '1月工资', status: 'completed' },
+                        { id: 't3', userId: 'u1', type: 'recharge', amount: 1000, counterparty: '充值',
+                            time: Date.now() - 3600000 * 48, note: '银行卡充值', status: 'completed' },
+                    ]);
+                }
+            }
+        };
+
+        // ============================================================
+        //  工具
+        // ============================================================
+        const $ = id => document.getElementById(id);
+        const formatMoney = n => Number(n).toFixed(2);
+        const formatTime = ts => { const d = new Date(ts); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+        const getTypeLabel = t => ({ in: '收入', out: '支出', recharge: '充值' } [t] || t);
+        const getTypeIcon = t => ({ in: '📈', out: '📉', recharge: '💳' } [t] || '📄');
+        const getTypeClass = t => ({ in: 'in', out: 'out', recharge: 'recharge' } [t] || '');
+        const getGreeting = () => { const h = new Date().getHours(); if (h < 6) return '🌙 夜深了'; if (h < 9) return '🌅 早上好'; if (
+                h < 12) return '☀️ 上午好'; if (h < 14) return '🌤️ 中午好'; if (h < 18) return '🌇 下午好'; if (h < 22) return '🌆 晚上好'; return '🌙 夜深了'; };
+
+        function showToast(msg, type = 'info', duration = 2000) {
+            const c = document.getElementById('toastContainer');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.textContent = msg;
+            c.appendChild(el);
+            setTimeout(() => { if (el.parentNode) el.remove(); }, duration);
+        }
+
+        function showDialog(title, desc, confirmText = '确定', cancelText = '取消', onConfirm, danger = false) {
+            const overlay = document.createElement('div');
+            overlay.className = 'dialog-overlay';
+            overlay.style.cssText =
+                'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn 0.2s ease;';
+            overlay.innerHTML = `
+                <div style="background:#fff;border-radius:20px;padding:28px 24px 20px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;">
+                    <div style="font-size:18px;font-weight:600;text-align:center;margin-bottom:8px;">${title}</div>
+                    <div style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:20px;line-height:1.6;">${desc}</div>
+                    <div style="display:flex;gap:12px;">
+                        <button class="btn-cancel" style="flex:1;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--text-secondary);">${cancelText}</button>
+                        <button class="btn-confirm ${danger?'danger':''}" style="flex:1;padding:12px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(22,119,255,0.3);">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            const close = () => overlay.remove();
+            overlay.querySelector('.btn-cancel').addEventListener('click', close);
+            overlay.querySelector('.btn-confirm').addEventListener('click', () => { close(); if (onConfirm) onConfirm(); });
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        }
+
+        // ============================================================
+        //  应用
+        // ============================================================
+        const App = {
+            currentUser: null,
+            currentPage: 'login',
+            balanceHidden: false,
+            billFilter: 'all',
+            payCodeMode: 'pay', // pay | collect
+
+            init() {
+                DB.init();
+                this.currentUser = DB.getCurrentUser();
+                this.currentUser ? this.navigateTo('home') : this.navigateTo('login');
+                this.bindEvents();
+                this.renderPayCode();
+            },
+
+            navigateTo(page) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                const target = document.getElementById(`page-${page}`);
+                if (target) target.classList.add('active');
+                this.currentPage = page;
+                document.querySelectorAll('.tab-item').forEach(t => t.classList.toggle('active', t.dataset.tab === page));
+                const tabBar = document.getElementById('tabBar');
+                tabBar.style.display = ['login', 'register'].includes(page) ? 'none' : 'flex';
+                if (page === 'home') this.renderHome();
+                if (page === 'bills') this.renderBills();
+                if (page === 'profile') this.renderProfile();
+                if (page === 'paycode') this.renderPayCode();
+                if (page === 'transfer') this.renderTransfer();
+                const c = target?.querySelector('.page-content');
+                if (c) c.scrollTop = 0;
+            },
+
+            bindEvents() {
+                // 登录
+                $('loginBtn').addEventListener('click', () => this.handleLogin());
+                $('loginPhone').addEventListener('keydown', e => { if (e.key === 'Enter') this.handleLogin(); });
+                $('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') this.handleLogin(); });
+                $('registerBtn').addEventListener('click', () => this.handleRegister());
+                $('gotoRegister').addEventListener('click', () => this.navigateTo('register'));
+                $('gotoLogin').addEventListener('click', () => this.navigateTo('login'));
+
+                // Tab
+                document.querySelectorAll('.tab-item').forEach(el => {
+                    el.addEventListener('click', () => { if (this.currentUser) this.navigateTo(el.dataset.tab); });
+                });
+
+                // Back
+                document.querySelectorAll('[data-back]').forEach(el => {
+                    el.addEventListener('click', () => this.currentUser ? this.navigateTo('home') : this.navigateTo(
+                    'login'));
+                });
+
+                // 首页快捷
+                document.querySelectorAll('.quick-actions .action-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const a = el.dataset.action;
+                        if (!this.currentUser) return;
+                        if (a === 'transfer') this.navigateTo('transfer');
+                        else if (a === 'paycode') this.navigateTo('paycode');
+                        else if (a === 'bills') this.navigateTo('bills');
+                        else if (a === 'profile') this.navigateTo('profile');
+                    });
+                });
+
+                $('viewAllBills').addEventListener('click', () => { if (this.currentUser) this.navigateTo('bills'); });
+                $('toggleBalance').addEventListener('click', () => { this.balanceHidden = !this.balanceHidden;
+                    this.renderHome(); });
+
+                // 转账
+                $('transferBtn').addEventListener('click', () => this.showPaymentModal());
+                $('transferAmount').addEventListener('input', e => {
+                    const v = parseFloat(e.target.value) || 0;
+                    $('transferAmountDisplay').textContent = formatMoney(v);
+                });
+                ['transferAmount', 'transferTo', 'transferNote'].forEach(id => {
+                    $(id).addEventListener('keydown', e => { if (e.key === 'Enter') this.showPaymentModal(); });
+                });
+
+                // 账单筛选
+                document.getElementById('billFilters').addEventListener('click', e => {
+                    const btn = e.target.closest('.filter-btn');
+                    if (!btn) return;
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.billFilter = btn.dataset.filter;
+                    this.renderBills();
+                });
+
+                // 个人中心
+                document.querySelectorAll('.profile-menu .menu-item[data-action]').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const a = el.dataset.action;
+                        if (a === 'paycode') this.navigateTo('paycode');
+                        else if (a === 'bills') this.navigateTo('bills');
+                    });
+                });
+                $('logoutBtn').addEventListener('click', () => {
+                    showDialog('确认退出', '确定要退出当前账号吗？', '退出', '取消', () => {
+                        DB.clearCurrentUser();
+                        this.currentUser = null;
+                        this.navigateTo('login');
+                        showToast('已退出', 'info');
+                    }, true);
+                });
+
+                // 付款码切换
+                document.querySelectorAll('.paycode-switch button').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.paycode-switch button').forEach(b => b.classList.remove(
+                        'active'));
+                        btn.classList.add('active');
+                        this.payCodeMode = btn.dataset.code;
+                        this.renderPayCode();
+                    });
+                });
+                $('refreshCode').addEventListener('click', () => {
+                    this.renderPayCode();
+                    showToast('已刷新', 'success');
+                });
+                $('saveCode').addEventListener('click', () => {
+                    showToast('已保存到相册 (演示)', 'info');
+                });
+
+                // 个人中心菜单跳转付款码
+                document.querySelector('.profile-menu .menu-item[data-action="paycode"]')?.addEventListener('click', () =>
+                    this.navigateTo('paycode'));
+            },
+
+            // ---- 登录 ----
+            handleLogin() {
+                const phone = $('loginPhone').value.trim(),
+                    pwd = $('loginPassword').value.trim(),
+                    err = $('loginError');
+                if (!phone || !pwd) { err.textContent = '请输入手机号和密码';
+                    err.classList.add('show'); return; }
+                if (!/^\d{11}$/.test(phone)) { err.textContent = '请输入11位手机号';
+                    err.classList.add('show'); return; }
+                const user = DB.getUsers().find(u => u.phone === phone && u.password === pwd);
+                if (!user) { err.textContent = '账号或密码错误';
+                    err.classList.add('show'); return; }
+                err.classList.remove('show');
+                this.currentUser = user;
+                DB.setCurrentUser(user);
+                showToast(`欢迎回来，${user.name}！`, 'success');
+                this.navigateTo('home');
+            },
+
+            // ---- 注册 ----
+            handleRegister() {
+                const phone = $('regPhone').value.trim(),
+                    name = $('regName').value.trim(),
+                    pwd = $('regPassword').value.trim(),
+                    confirm = $('regConfirm').value.trim(),
+                    err = $('registerError');
+                if (!phone || !name || !pwd || !confirm) { err.textContent = '请填写完整信息';
+                    err.classList.add('show'); return; }
+                if (!/^\d{11}$/.test(phone)) { err.textContent = '请输入11位手机号';
+                    err.classList.add('show'); return; }
+                if (pwd.length < 6) { err.textContent = '密码至少6位';
+                    err.classList.add('show'); return; }
+                if (pwd !== confirm) { err.textContent = '两次密码不一致';
+                    err.classList.add('show'); return; }
+                const users = DB.getUsers();
+                if (users.find(u => u.phone === phone)) { err.textContent = '该手机号已注册';
+                    err.classList.add('show'); return; }
+                const newUser = { id: 'u' + Date.now(), phone, password: pwd, name, balance: 0, avatar: name.charAt(0) };
+                users.push(newUser);
+                DB.setUsers(users);
+                this.currentUser = newUser;
+                DB.setCurrentUser(newUser);
+                err.classList.remove('show');
+                showToast(`🎉 注册成功，欢迎 ${name}！`, 'success');
+                this.navigateTo('home');
+            },
+
+            // ---- 渲染首页 ----
+            renderHome() {
+                const u = this.currentUser;
+                if (!u) return;
+                $('greeting').textContent = getGreeting();
+                $('userName').textContent = u.name;
+                $('balanceDisplay').textContent = this.balanceHidden ? '****' : formatMoney(u.balance);
+                $('toggleBalance').textContent = this.balanceHidden ? '👁️‍🗨️' : '👁️';
+                const txs = DB.getTransactions().filter(t => t.userId === u.id).sort((a, b) => b.time - a.time);
+                const list = $('recentBillList');
+                if (!txs.length) { list.innerHTML =
+                    `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无交易</p></div>`; return; }
+                list.innerHTML = txs.slice(0, 5).map(t => this.billItemHTML(t)).join('');
+            },
+
+            // ---- 渲染账单 ----
+            renderBills() {
+                const u = this.currentUser;
+                if (!u) return;
+                let txs = DB.getTransactions().filter(t => t.userId === u.id);
+                const f = this.billFilter;
+                if (f === 'in') txs = txs.filter(t => t.type === 'in');
+                else if (f === 'out') txs = txs.filter(t => t.type === 'out');
+                else if (f === 'recharge') txs = txs.filter(t => t.type === 'recharge');
+                txs.sort((a, b) => b.time - a.time);
+                const list = $('billList');
+                if (!txs.length) { list.innerHTML =
+                    `<div class="empty-state"><div class="empty-icon">📭</div><p>暂无相关交易</p></div>`; return; }
+                list.innerHTML = txs.map(t => this.billItemHTML(t, true)).join('');
+            },
+
+            billItemHTML(t, showTime = false) {
+                const sign = t.type === 'in' || t.type === 'recharge' ? '+' : '-';
+                const cls = getTypeClass(t.type);
+                return `
+                    <div class="bill-item">
+                        <div class="bill-icon ${cls}">${getTypeIcon(t.type)}</div>
+                        <div class="bill-info">
+                            <div class="name">${t.counterparty || '未知'}</div>
+                            <div class="desc">${getTypeLabel(t.type)}${t.note ? ' · ' + t.note : ''}</div>
+                            ${showTime ? `<div class="bill-time">${formatTime(t.time)}</div>` : ''}
+                        </div>
+                        <div class="bill-amount ${cls}">${sign}¥${formatMoney(t.amount)}</div>
+                    </div>
+                `;
+            },
+
+            // ---- 渲染个人中心 ----
+            renderProfile() {
+                const u = this.currentUser;
+                if (!u) return;
+                $('profileAvatar').textContent = u.avatar || u.name.charAt(0);
+                $('profileName').textContent = u.name;
+                $('profilePhone').textContent = u.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+                $('profileBalance').textContent = `¥${formatMoney(u.balance)}`;
+                $('profileCount').textContent = DB.getTransactions().filter(t => t.userId === u.id).length;
+            },
+
+            // ---- 渲染转账 ----
+            renderTransfer() {
+                $('transferAmount').value = '';
+                $('transferAmountDisplay').textContent = '0.00';
+                $('transferNote').value = '';
+                $('transferTo').value = '13800138001';
+            },
+
+            // ---- 付款码渲染 ----
+            renderPayCode() {
+                const isPay = this.payCodeMode === 'pay';
+                $('codeTypeLabel').textContent = isPay ? '付款给商家' : '向朋友收款';
+                $('codeHint').textContent = isPay ? '请商家扫描此码' : '扫一扫向我付款';
+                const num = isPay ? '1234 5678 9012' : '9876 5432 1098';
+                $('codeNumber').textContent = num;
+                const grid = $('qrGrid');
+                grid.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    for (let j = 0; j < 9; j++) {
+                        const div = document.createElement('div');
+                        const isDark = (i * 9 + j) % 3 === 0 || (i + j) % 4 === 0;
+                        div.className = isDark ? 'dark' : 'empty';
+                        grid.appendChild(div);
+                    }
+                }
+                // 中心Logo覆盖
+            },
+
+            // ---- 支付方式弹窗（核心支付模式） ----
+            showPaymentModal() {
+                const user = this.currentUser;
+                if (!user) return;
+                const toPhone = $('transferTo').value.trim();
+                const amountStr = $('transferAmount').value.trim();
+                const note = $('transferNote').value.trim();
+                if (!toPhone) { showToast('请输入收款账户', 'error'); return; }
+                if (!amountStr || parseFloat(amountStr) <= 0) { showToast('请输入有效金额', 'error'); return; }
+                const amount = parseFloat(amountStr);
+                if (amount > 10000) { showToast('单笔限额 ¥10,000', 'error'); return; }
+                const users = DB.getUsers();
+                const target = users.find(u => u.phone === toPhone);
+                if (!target) { showToast('收款账户不存在', 'error'); return; }
+                if (toPhone === user.phone) { showToast('不能给自己转账', 'error'); return; }
+
+                // 构建支付方式选择器
+                const overlay = document.createElement('div');
+                overlay.className = 'payment-modal';
+                overlay.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-title">
+                            选择支付方式
+                            <span class="sub">向 ${target.name} 转账 ¥${formatMoney(amount)}</span>
+                        </div>
+                        <div id="paymentMethods">
+                            <div class="payment-method selected" data-method="balance">
+                                <div class="pm-icon blue">💰</div>
+                                <div class="pm-info">
+                                    <div class="pm-name">余额支付</div>
+                                    <div class="pm-desc">可用余额 ¥${formatMoney(user.balance)}</div>
+                                </div>
+                                <div class="pm-check">✓</div>
+                            </div>
+                            <div class="payment-method" data-method="card">
+                                <div class="pm-icon green">💳</div>
+                                <div class="pm-info">
+                                    <div class="pm-name">储蓄卡（尾号 1234）</div>
+                                    <div class="pm-desc">单笔限额 ¥5,000</div>
+                                </div>
+                                <div class="pm-check">○</div>
+                            </div>
+                            <div class="payment-method" data-method="credit">
+                                <div class="pm-icon orange">💎</div>
+                                <div class="pm-info">
+                                    <div class="pm-name">信用卡（尾号 5678）</div>
+                                    <div class="pm-desc">可用额度 ¥20,000</div>
+                                </div>
+                                <div class="pm-check">○</div>
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn-cancel">取消</button>
+                            <button class="btn-confirm" id="confirmPayment">确认支付</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                let selectedMethod = 'balance';
+
+                // 选择支付方式
+                overlay.querySelectorAll('.payment-method').forEach(el => {
+                    el.addEventListener('click', () => {
+                        overlay.querySelectorAll('.payment-method').forEach(m => {
+                            m.classList.remove('selected');
+                            m.querySelector('.pm-check').textContent = '○';
+                        });
+                        el.classList.add('selected');
+                        el.querySelector('.pm-check').textContent = '✓';
+                        selectedMethod = el.dataset.method;
+                    });
+                });
+
+                const close = () => overlay.remove();
+
+                overlay.querySelector('.btn-cancel').addEventListener('click', close);
+
+                overlay.querySelector('#confirmPayment').addEventListener('click', () => {
+                    // 执行支付
+                    let canPay = false;
+                    let msg = '';
+                    if (selectedMethod === 'balance') {
+                        if (user.balance >= amount) {
+                            user.balance = parseFloat((user.balance - amount).toFixed(2));
+                            canPay = true;
+                        } else {
+                            msg = '余额不足，请选择其他方式或充值';
+                        }
+                    } else if (selectedMethod === 'card') {
+                        // 模拟银行卡支付（假设卡内有钱）
+                        if (amount <= 5000) {
+                            canPay = true;
+                            // 模拟扣款（不实际扣余额，但记录）
+                        } else {
+                            msg = '储蓄卡单笔限额 ¥5,000';
+                        }
+                    } else if (selectedMethod === 'credit') {
+                        if (amount <= 20000) {
+                            canPay = true;
+                        } else {
+                            msg = '信用卡可用额度不足';
+                        }
+                    }
+
+                    if (!canPay) {
+                        showToast(msg || '支付失败，请重试', 'error');
+                        return;
+                    }
+
+                    // 更新收款方余额（只有余额支付才真正增减余额，银行卡/信用卡模拟银行清算，不改变余额）
+                    if (selectedMethod === 'balance') {
+                        target.balance = parseFloat((target.balance + amount).toFixed(2));
+                        const allUsers = DB.getUsers();
+                        const u1 = allUsers.find(u => u.id === user.id);
+                        const u2 = allUsers.find(u => u.id === target.id);
+                        if (u1) u1.balance = user.balance;
+                        if (u2) u2.balance = target.balance;
+                        DB.setUsers(allUsers);
+                        DB.setCurrentUser(user);
+                        this.currentUser = user;
+                    } else {
+                        // 银行卡/信用卡：用户余额不变，但收款方余额增加（模拟银行清算）
+                        target.balance = parseFloat((target.balance + amount).toFixed(2));
+                        const allUsers = DB.getUsers();
+                        const u2 = allUsers.find(u => u.id === target.id);
+                        if (u2) u2.balance = target.balance;
+                        DB.setUsers(allUsers);
+                        // 当前用户余额不变
+                    }
+
+                    // 记录交易
+                    const txs = DB.getTransactions();
+                    const methodLabel = { balance: '余额支付', card: '储蓄卡', credit: '信用卡' } [selectedMethod] || '支付';
+                    txs.push({
+                        id: 't' + Date.now(),
+                        userId: user.id,
+                        type: 'out',
+                        amount: amount,
+                        counterparty: target.name,
+                        time: Date.now(),
+                        note: `${note || '转账'} (${methodLabel})`,
+                        status: 'completed'
+                    });
+                    txs.push({
+                        id: 't' + Date.now() + 1,
+                        userId: target.id,
+                        type: 'in',
+                        amount: amount,
+                        counterparty: user.name,
+                        time: Date.now(),
+                        note: note || '转账收入',
+                        status: 'completed'
+                    });
+                    DB.setTransactions(txs);
+
+                    close();
+                    showToast(`✅ 支付成功！¥${formatMoney(amount)} → ${target.name} (${methodLabel})`, 'success');
+                    this.renderHome();
+                    if (this.currentPage === 'profile') this.renderProfile();
+                });
+
+                overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            }
+        };
+
+        // ============================================================
+        //  启动
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => App.init());
+        window.__App = App;
+    </script>
+</body>
+</html>
