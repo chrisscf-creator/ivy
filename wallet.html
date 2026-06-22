@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>支付宝 - 支付模式</title>
+    <title>支付宝 - 扫码支付</title>
     <style>
         /* ===== 全局重置 ===== */
         * {
@@ -470,7 +470,7 @@
             opacity: 0.5;
         }
 
-        /* ===== 支付模式（付款码/收款码） ===== */
+        /* ===== 付款码 / 收款码 ===== */
         .paycode-container {
             background: var(--card);
             border-radius: var(--radius);
@@ -650,6 +650,107 @@
         .transfer-form .btn-transfer:disabled {
             opacity: 0.5;
             transform: none;
+        }
+
+        /* ===== 扫码弹窗 ===== */
+        .scanner-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+            padding: 20px;
+        }
+        .scanner-modal .scanner-box {
+            background: #fff;
+            border-radius: 24px;
+            padding: 24px 20px 20px;
+            max-width: 340px;
+            width: 100%;
+            animation: slideUp 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .scanner-modal .scanner-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .scanner-modal .scanner-title .sub {
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            display: block;
+            margin-top: 4px;
+        }
+        .scanner-modal .user-list {
+            margin: 12px 0 16px;
+        }
+        .scanner-modal .user-list .user-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        .scanner-modal .user-list .user-item:active {
+            transform: scale(0.96);
+            background: var(--bg);
+        }
+        .scanner-modal .user-list .user-item .u-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .scanner-modal .user-list .user-item .u-info {
+            flex: 1;
+        }
+        .scanner-modal .user-list .user-item .u-info .u-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .scanner-modal .user-list .user-item .u-info .u-phone {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .scanner-modal .scanner-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .scanner-modal .scanner-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .scanner-modal .scanner-actions button:active {
+            transform: scale(0.96);
+        }
+        .scanner-modal .scanner-actions .btn-cancel {
+            background: var(--bg);
+            color: var(--text-secondary);
         }
 
         /* ===== 支付方式选择（模态框） ===== */
@@ -1095,9 +1196,9 @@
                         <div class="icon blue">💸</div>
                         <span class="label">转账</span>
                     </button>
-                    <button class="action-item" data-action="paycode">
-                        <div class="icon green">📱</div>
-                        <span class="label">付款码</span>
+                    <button class="action-item" data-action="scan">
+                        <div class="icon green">📷</div>
+                        <span class="label">扫一扫</span>
                     </button>
                     <button class="action-item" data-action="bills">
                         <div class="icon orange">📋</div>
@@ -1216,7 +1317,7 @@
                     <button class="menu-item" data-action="bills"><span class="menu-icon">📋</span><span class="menu-label">我的账单</span></button>
                     <button class="menu-item danger" id="logoutBtn"><span class="menu-icon">🚪</span><span class="menu-label">退出登录</span></button>
                 </div>
-                <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-light);">支付宝 v3.0 · 支付模式</div>
+                <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-light);">支付宝 v3.0 · 扫码支付</div>
             </div>
         </div>
 
@@ -1251,6 +1352,8 @@
                             avatar: '张' },
                         { id: 'u2', phone: '13800138001', password: '123456', name: '李小红', balance: 5600.00,
                             avatar: '李' },
+                        { id: 'u3', phone: '13800138002', password: '123456', name: '王大伟', balance: 3200.00,
+                            avatar: '王' },
                     ]);
                     this.setTransactions([
                         { id: 't1', userId: 'u1', type: 'out', amount: 200, counterparty: '李小红',
@@ -1368,7 +1471,7 @@
                         const a = el.dataset.action;
                         if (!this.currentUser) return;
                         if (a === 'transfer') this.navigateTo('transfer');
-                        else if (a === 'paycode') this.navigateTo('paycode');
+                        else if (a === 'scan') this.showScanner();
                         else if (a === 'bills') this.navigateTo('bills');
                         else if (a === 'profile') this.navigateTo('profile');
                     });
@@ -1544,20 +1647,35 @@
             },
 
             // ---- 渲染转账 ----
-            renderTransfer() {
+            renderTransfer(data) {
+                if (data && data.to) {
+                    $('transferTo').value = data.to;
+                } else {
+                    $('transferTo').value = '';
+                }
                 $('transferAmount').value = '';
                 $('transferAmountDisplay').textContent = '0.00';
                 $('transferNote').value = '';
-                $('transferTo').value = '13800138001';
+                // 如果有收款方，自动聚焦金额
+                if (data && data.to) {
+                    setTimeout(() => $('transferAmount').focus(), 300);
+                }
             },
 
             // ---- 付款码渲染 ----
             renderPayCode() {
+                const u = this.currentUser;
                 const isPay = this.payCodeMode === 'pay';
                 $('codeTypeLabel').textContent = isPay ? '付款给商家' : '向朋友收款';
                 $('codeHint').textContent = isPay ? '请商家扫描此码' : '扫一扫向我付款';
-                const num = isPay ? '1234 5678 9012' : '9876 5432 1098';
-                $('codeNumber').textContent = num;
+                // 二维码内容：根据当前用户生成唯一标识
+                const codeData = isPay ? `PAY:${u?.phone || '13800138000'}` : `COLLECT:${u?.phone || '13800138000'}`;
+                // 显示手机号作为码号
+                const phone = u?.phone || '13800138000';
+                const displayNum = isPay ? phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : phone.replace(/(\d{3})\d{4}(\d{4})/,
+                    '$1****$2');
+                $('codeNumber').textContent = displayNum;
+                // 生成模拟二维码网格
                 const grid = $('qrGrid');
                 grid.innerHTML = '';
                 for (let i = 0; i < 9; i++) {
@@ -1568,10 +1686,64 @@
                         grid.appendChild(div);
                     }
                 }
-                // 中心Logo覆盖
             },
 
-            // ---- 支付方式弹窗（核心支付模式） ----
+            // ---- 扫一扫（模拟扫码） ----
+            showScanner() {
+                const user = this.currentUser;
+                if (!user) return;
+                const users = DB.getUsers().filter(u => u.id !== user.id);
+                if (users.length === 0) {
+                    showToast('当前没有其他用户可扫码', 'error');
+                    return;
+                }
+                // 构建扫码弹窗
+                const overlay = document.createElement('div');
+                overlay.className = 'scanner-modal';
+                overlay.innerHTML = `
+                    <div class="scanner-box">
+                        <div class="scanner-title">
+                            📷 扫一扫
+                            <span class="sub">选择要付款的收款方</span>
+                        </div>
+                        <div class="user-list">
+                            ${users.map(u => `
+                                <div class="user-item" data-phone="${u.phone}" data-name="${u.name}">
+                                    <div class="u-avatar">${u.avatar || u.name.charAt(0)}</div>
+                                    <div class="u-info">
+                                        <div class="u-name">${u.name}</div>
+                                        <div class="u-phone">${u.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</div>
+                                    </div>
+                                    <span style="color:var(--primary);font-weight:500;">选择</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="scanner-actions">
+                            <button class="btn-cancel">取消</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                const close = () => overlay.remove();
+
+                overlay.querySelector('.btn-cancel').addEventListener('click', close);
+
+                overlay.querySelectorAll('.user-item').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const phone = el.dataset.phone;
+                        const name = el.dataset.name;
+                        close();
+                        // 跳转到转账页面并填入收款方
+                        this.navigateTo('transfer', { to: phone });
+                        showToast(`已识别收款方：${name}`, 'success');
+                    });
+                });
+
+                overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            },
+
+            // ---- 支付方式弹窗（核心支付） ----
             showPaymentModal() {
                 const user = this.currentUser;
                 if (!user) return;
@@ -1632,7 +1804,6 @@
 
                 let selectedMethod = 'balance';
 
-                // 选择支付方式
                 overlay.querySelectorAll('.payment-method').forEach(el => {
                     el.addEventListener('click', () => {
                         overlay.querySelectorAll('.payment-method').forEach(m => {
@@ -1650,7 +1821,6 @@
                 overlay.querySelector('.btn-cancel').addEventListener('click', close);
 
                 overlay.querySelector('#confirmPayment').addEventListener('click', () => {
-                    // 执行支付
                     let canPay = false;
                     let msg = '';
                     if (selectedMethod === 'balance') {
@@ -1661,10 +1831,8 @@
                             msg = '余额不足，请选择其他方式或充值';
                         }
                     } else if (selectedMethod === 'card') {
-                        // 模拟银行卡支付（假设卡内有钱）
                         if (amount <= 5000) {
                             canPay = true;
-                            // 模拟扣款（不实际扣余额，但记录）
                         } else {
                             msg = '储蓄卡单笔限额 ¥5,000';
                         }
@@ -1681,7 +1849,7 @@
                         return;
                     }
 
-                    // 更新收款方余额（只有余额支付才真正增减余额，银行卡/信用卡模拟银行清算，不改变余额）
+                    // 更新收款方余额（只有余额支付才真正增减余额）
                     if (selectedMethod === 'balance') {
                         target.balance = parseFloat((target.balance + amount).toFixed(2));
                         const allUsers = DB.getUsers();
@@ -1699,7 +1867,6 @@
                         const u2 = allUsers.find(u => u.id === target.id);
                         if (u2) u2.balance = target.balance;
                         DB.setUsers(allUsers);
-                        // 当前用户余额不变
                     }
 
                     // 记录交易
