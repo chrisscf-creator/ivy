@@ -1,62 +1,99 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>Food Junction 动态公平排班系统</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 15px; margin: 0; }
-        .container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
-        h1 { text-align: center; color: #333; font-size: 20px; margin: 5px 0; }
-        .control-panel { background: #f9f9f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 12px; }
-        .form-group { display: inline-block; margin-right: 12px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 13px; }
-        .form-group input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 140px; }
-        button { background-color: #ff9800; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
-        button:hover { background-color: #e68a00; }
-        .btn-gen { background-color: #4CAF50; }
-        .btn-gen:hover { background-color: #45a049; }
-        .btn-print { background-color: #607D8B; }
-        .staff-config { background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; }
-        .staff-row { display: inline-block; margin-right: 15px; margin-bottom: 5px; }
-        .staff-row input { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; width: 110px; }
-        .table-wrapper { overflow-x: auto; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
-        th, td { border: 1px solid #555; padding: 5px 2px; min-width: 90px; }
-        .header-brand { background-color: #fff9e6; font-weight: bold; font-size: 15px; text-align: left; padding-left: 10px; color: #d32f2f; }
-        .header-title { font-weight: bold; font-size: 14px; background-color: #fff9e6; }
-        .meta-label { background-color: #f2f2f2; font-weight: bold; text-align: left; padding-left: 5px; }
-        .date-col { background-color: #f9f9f9; font-weight: bold; }
-        .shift-select { width: 95%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 12px; cursor: pointer; appearance: none; -webkit-appearance: none; }
-        .shift-M { background-color: #e2efda; color: #375623; }
-        .shift-MM { background-color: #fff2cc; color: #b25900; }
-        .shift-A { background-color: #ffffff; color: #000; }
-        .shift-REST { background-color: #b4c6e7; color: #000; }
-        .shift-AL { background-color: #fce4d6; color: #c55a11; }
-        .shift-PH { background-color: #ffccff; color: #660066; }
-        .summary-row { background-color: #eef2f7; font-weight: bold; }
-        .rest-auto { background-color: #d6eaf8 !important; }
-        @media print {
-            .control-panel, .staff-config, button, h1 { display: none !important; }
-            body { padding: 0; background: white; }
-            .container { box-shadow: none; padding: 0; }
-            .shift-select { border: none !important; }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Food Junction 动态公平排班系统</title>
+<style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 15px; margin: 0; }
+    .container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+    h1 { text-align: center; color: #333; font-size: 20px; margin: 5px 0; }
+    
+    /* 控制面板样式 */
+    .control-panel { 
+        background: #f9f9f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; 
+        margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; 
+    }
+    .form-group { display: inline-block; margin-right: 12px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 13px; }
+    .form-group input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 140px; }
+    
+    /* 按钮通用样式 */
+    button { 
+        background-color: #ff9800; color: white; border: none; padding: 6px 15px; 
+        border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; 
+    }
+    button:hover { background-color: #e68a00; }
+    
+    /* 不同功能按钮的颜色 */
+    .btn-gen { background-color: #4CAF50; } /* 生成排班 */
+    .btn-gen:hover { background-color: #45a049; }
+    .btn-print { background-color: #607D8B; } /* 打印 */
+    .btn-fullscreen { background-color: #9c27b0; } /* 全屏 */
+    .btn-fullscreen:hover { background-color: #7b1fa2; }
+
+    .staff-config { background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; }
+    .staff-row { display: inline-block; margin-right: 15px; margin-bottom: 5px; }
+    .staff-row input { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; width: 110px; }
+    .table-wrapper { overflow-x: auto; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+    th, td { border: 1px solid #555; padding: 5px 2px; min-width: 90px; }
+    
+    /* 表格头部样式 */
+    .header-brand { background-color: #fff9e6; font-weight: bold; font-size: 15px; text-align: left; padding-left: 10px; color: #d32f2f; }
+    .header-title { font-weight: bold; font-size: 14px; background-color: #fff9e6; }
+    .meta-label { background-color: #f2f2f2; font-weight: bold; text-align: left; padding-left: 5px; }
+    .date-col { background-color: #f9f9f9; font-weight: bold; }
+    
+    /* 班次下拉菜单样式 */
+    .shift-select { 
+        width: 95%; border: none; background: transparent; text-align: center; 
+        font-weight: bold; font-size: 12px; cursor: pointer; appearance: none; -webkit-appearance: none; 
+    }
+    
+    /* 班次颜色定义 */
+    .shift-M { background-color: #e2efda; color: #375623; } /* 早班 */
+    .shift-MM { background-color: #fff2cc; color: #b25900; } /* 中班 */
+    .shift-A { background-color: #ffffff; color: #000; } /* 晚班 */
+    .shift-REST { background-color: #b4c6e7; color: #000; } /* 自动休息 */
+    .shift-AL { background-color: #fce4d6; color: #c55a11; } /* 年假 */
+    .shift-PH { background-color: #ffccff; color: #660066; } /* 公假 */
+    .summary-row { background-color: #eef2f7; font-weight: bold; }
+    .rest-auto { background-color: #d6eaf8 !important; } /* 强调自动休息色 */
+
+    /* 全屏模式下的样式 */
+    :-webkit-full-screen .container { height: 100%; margin: 0; border-radius: 0; }
+    :-moz-full-screen .container { height: 100%; margin: 0; border-radius: 0; }
+    :ms-fullscreen .container { height: 100%; margin: 0; border-radius: 0; }
+    :fullscreen .container { height: 100%; margin: 0; border-radius: 0; }
+    
+    /* 全屏时隐藏按钮自身 */
+    .fullscreen-hidden { display: none; }
+    
+    @media print { 
+        .control-panel, .staff-config, button, h1 { display: none !important; }
+        body { padding: 0; background: white; }
+        .container { box-shadow: none; padding: 0; }
+        .shift-select { border: none !important; }
+    }
+</style>
 </head>
 <body>
-
 <div class="container">
     <h1>Food Junction 动态假期与绝对公平排班系统 (6天工作制)</h1>
     
+    <!-- 控制面板：包含月份选择、生成、打印和全屏按钮 -->
     <div class="control-panel">
         <div class="form-group">
             <label>排班月份</label>
             <input type="month" id="schedule-month" value="2026-06">
         </div>
         <button type="button" class="btn-gen" onclick="generateSmartSchedule()">✨ 智能平摊排班</button>
-        <button type="button" class="btn-print" style="margin-left:10px;" onclick="window.print()">🖨️ 打印 / 导出 PDF</button>
+        <button type="button" class="btn-print" onclick="window.print()">🖨️ 打印 / 导出 PDF</button>
+        <!-- 全屏按钮 -->
+        <button type="button" id="fs-btn" class="btn-fullscreen" onclick="toggleFullScreen()">⛶ 进入全屏</button>
     </div>
-
+    
+    <!-- 员工配置区域 -->
     <div class="staff-config">
         <strong>👥 5位员工自定义名字：</strong><br><br>
         <div id="staff-inputs-container">
@@ -66,49 +103,83 @@
             <div class="staff-row"><span>人员4:</span> <input type="text" class="s-name" value="Yee Fei Lim"></div>
             <div class="staff-row"><span>人员5:</span> <input type="text" class="s-name" value="Darlene"></div>
         </div>
-        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">💡 <b>动态请假操作</b>：先点击一键生成，若有人请假，在表格中将其下拉改选为 <b>AL(年假) / PH(公假) / REST</b>，然后<b>再次</b>点击“智能平摊排班”，系统会自动锁定假期并公平重新排满其他人！<br>✅ 系统已启用 <b>6天工作1天休息</b> 规则，自动休息日显示为浅蓝色背景。</p>
+        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
+             <b>动态请假操作</b>：先点击一键生成，若有人请假，在表格中将其下拉改选为 <b>AL(年假) / PH(公假) / REST</b>，然后<b>再次</b>点击“智能平摊排班”，系统会自动锁定假期并公平重新排满其他人！<br>
+             ✅ <b>系统规则更新</b>：已强制执行<b>全员每周必须休息一天</b>。若休息日遇到周末，系统将自动将休息日调整至<b>周一至周五</b>，确保员工劳逸结合。
+        </p>
     </div>
-
+    
+    <!-- 排班表格容器 -->
     <div class="table-wrapper" id="schedule-table-container"></div>
 </div>
 
 <script>
+    // 切换全屏模式（带按钮文字动态切换）
+    function toggleFullScreen() {
+        const container = document.querySelector('.container');
+        const btn = document.getElementById('fs-btn');
+        
+        if (!document.fullscreenElement) {
+            // 进入全屏
+            document.documentElement.requestFullscreen().catch(err => {
+                alert(`无法进入全屏: ${err.message}`);
+            });
+            btn.textContent = "⛶ 退出全屏";
+        } else {
+            // 退出全屏
+            document.exitFullscreen();
+            btn.textContent = "⛶ 进入全屏";
+        }
+    }
+
+    // 监听全屏状态变化（防止用户按 ESC 退出全屏时按钮文字不更新）
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fs-btn');
+        if (document.fullscreenElement) {
+            btn.textContent = "⛶ 退出全屏";
+        } else {
+            btn.textContent = "⛶ 进入全屏";
+        }
+    });
+
     // 动态变色并同步底部计数器
     function updateCellColor(selectElement) {
         selectElement.parentNode.className = 'shift-' + selectElement.value;
         calculateMonthlyStats();
-    }
-
+    } 
+    
     // 实时计算底部公平度数据总计
     function calculateMonthlyStats() {
         const rows = document.querySelectorAll('.data-row');
         const counts = Array.from({length: 5}, () => ({ M:0, MM:0, A:0, REST:0, AL:0, PH:0 }));
-        
         rows.forEach(row => {
             row.querySelectorAll('.shift-select').forEach((select, sIdx) => {
                 if (counts[sIdx][select.value] !== undefined) counts[sIdx][select.value]++;
             });
         });
-        
         for (let i = 0; i < 5; i++) {
             document.getElementById(`stat-M-${i}`).innerText = counts[i].M;
             document.getElementById(`stat-MM-${i}`).innerText = counts[i].MM;
             document.getElementById(`stat-A-${i}`).innerText = counts[i].A;
             document.getElementById(`stat-OFF-${i}`).innerText = counts[i].REST + counts[i].AL + counts[i].PH;
         }
-    }
+    } 
+    
+    // 【终极修复】判断员工在指定日期是否应该自动休息
+    function shouldAutoRest(employeeIndex, dayOfMonth, year, month) {
+        const currentDate = new Date(year, month - 1, dayOfMonth);
+        const dayOfWeek = currentDate.getDay(); // 0=Sun, 1=Mon... 6=Sat
 
-    // 判断员工在指定日期是否应该自动休息（6天工作1天休息规则）
-    function shouldAutoRest(employeeIndex, dayOfMonth) {
-        // 使用轮转休息系统：每个员工有不同的休息周期
-        // 员工0: 休息日为 7,14,21,28...
-        // 员工1: 休息日为 6,13,20,27...
-        // 员工2: 休息日为 5,12,19,26...
-        // 员工3: 休息日为 4,11,18,25...
-        // 员工4: 休息日为 3,10,17,24,31...
-        const offset = employeeIndex % 5;
-        return (dayOfMonth + offset) % 7 === 0;
-    }
+        // 1. 如果今天是周末，绝对不安排自动休息
+        if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+
+        // 2. 将5名员工与周一到周五进行绝对公平的绑定
+        // 员工0 -> 周一(1), 员工1 -> 周二(2), 员工2 -> 周三(3), 员工3 -> 周四(4), 员工4 -> 周五(5)
+        const targetDayOfWeek = employeeIndex + 1;
+
+        // 3. 如果当前日期的星期与员工绑定的星期一致，则返回 true
+        return dayOfWeek === targetDayOfWeek;
+    } 
 
     // 核心智能池化排班生成算法
     function generateSmartSchedule() {
@@ -117,8 +188,8 @@
         const [year, month] = monthVal.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
         const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-        // 读取用户已经在网页上修改锁定的假期（AL/PH/REST）
+        
+        // 读取用户锁定的假期
         const lockedShifts = {};
         const existingTable = document.querySelector('table');
         if (existingTable) {
@@ -130,71 +201,73 @@
                 });
             });
         }
-
-        const globalCounter = Array.from({length: 5}, () => ({ M: 0, MM: 0, A: 0 }));
-        let prevDayShifts = new Array(5).fill('REST');
-
-        // 构建表格骨架
-        const table = document.createElement('table');
         
-        // 头部大标题
-        table.innerHTML = `
-            <tr><th colspan="2" class="header-brand">FOOD JUNCTION</th><th colspan="5" class="header-title">Duty Roster For Month Of: ${monthVal}</th></tr>
-            <tr><td colspan="2" class="meta-label">Staff Name:</td>${names.map(n => `<td><b>${n}</b></td>`).join('')}</tr>
+        const globalCounter = Array.from({length: 5}, () => ({ M: 0, MM: 0, A: 0 }));
+        let prevDayShifts = new Array(5).fill('REST'); 
+        
+        // 构建表格
+        const table = document.createElement('table');
+        table.innerHTML = ` 
+            <tr>
+                <th colspan="2" class="header-brand">FOOD JUNCTION</th>
+                <th colspan="5" class="header-title">Duty Roster For Month Of: ${monthVal}</th>
+            </tr>
+            <tr>
+                <td colspan="2" class="meta-label">Staff Name:</td>
+                ${names.map(n => `<td><b>${n}</b></td>`).join('')}
+            </tr>
         `;
-
-        // 逐日算法填充
+        
+        // 逐日生成排班
         for (let day = 1; day <= daysInMonth; day++) {
             const weekDay = weekdayNames[new Date(year, month - 1, day).getDay()];
             const row = document.createElement('tr');
             row.className = 'data-row';
             if (weekDay === 'Sat' || weekDay === 'Sun') row.style.backgroundColor = '#f2f2f2';
-
             row.innerHTML = `<td class="date-col">${weekDay}</td><td class="date-col">${day}-${month}</td>`;
-
+            
             let required = ['M', 'MM', 'A', 'A'];
             let todaysAssigned = new Array(5).fill(null);
-
-            // 1. 处理各种休息情况
+            
+            // 1. 处理休息和锁定
             for (let i = 0; i < 5; i++) {
-                // 优先处理用户锁定的假期
                 if (lockedShifts[`${day}-${i}`]) {
                     todaysAssigned[i] = lockedShifts[`${day}-${i}`];
-                }
-                // 如果没有锁定假期，检查是否是该员工的自动休息日
-                else if (shouldAutoRest(i, day)) {
+                } else if (shouldAutoRest(i, day, year, month)) {
                     todaysAssigned[i] = 'REST';
                 }
             }
-
+            
+            // 2. 确定可用员工
             let available = [];
-            for (let i = 0; i < 5; i++) { 
-                if (todaysAssigned[i] === null) available.push(i); 
+            for (let i = 0; i < 5; i++) {
+                if (todaysAssigned[i] === null) available.push(i);
             }
-
-            // 调整所需班次数量以匹配可用员工数
-            if (available.length === 5) {
-                required = ['M', 'MM', 'A', 'A', 'A']; // 5人全部上班时分配5个班次
-            } else if (available.length === 4) {
-                required = ['M', 'MM', 'A', 'A']; // 4人上班时分配4个班次
-            } else if (available.length === 3) {
-                required = ['M', 'A', 'A']; // 3人上班时分配3个班次
-            } else if (available.length === 2) {
-                required = ['M', 'A']; // 2人上班时分配2个班次
-            } else if (available.length === 1) {
-                required = ['A']; // 1人上班时分配A班
-            } else {
-                required = []; // 没有人上班（理论上不应该发生）
+            
+            // 3. 根据可用人数调整班次需求
+            if (available.length === 5) { 
+                required = ['M', 'MM', 'A', 'A', 'A']; 
+            } else if (available.length === 4) { 
+                required = ['M', 'MM', 'A', 'A']; 
+            } else if (available.length === 3) { 
+                required = ['M', 'A', 'A']; 
+            } else if (available.length === 2) { 
+                required = ['M', 'A']; 
+            } else if (available.length === 1) { 
+                required = ['A']; 
+            } else { 
+                required = []; 
             }
-
-            // 2. 公平发班，防止A跳M
+            
+            // 4. 公平分配班次 (优先分配M/MM，剩余补A)
             required.forEach(shift => {
                 let bestIdx = -1, minC = Infinity;
                 available.forEach(i => {
-                    if (shift === 'M' && prevDayShifts[i] === 'A') return; // A班绝不连M班
-                    if (globalCounter[i][shift] < minC) { 
-                        minC = globalCounter[i][shift]; 
-                        bestIdx = i; 
+                    // 规则：A班后不能直接接M班
+                    if (shift === 'M' && prevDayShifts[i] === 'A') return;
+                    if (globalCounter[i][shift] < minC) {
+                        minC = globalCounter[i][shift];
+                        bestIdx = i;
                     }
                 });
                 if (bestIdx === -1 && available.length > 0) bestIdx = available[0];
@@ -204,21 +277,21 @@
                     available = available.filter(idx => idx !== bestIdx);
                 }
             });
-
-            // 兜底补A（处理剩余可用员工）
-            available.forEach(i => { 
-                todaysAssigned[i] = 'A'; 
-                globalCounter[i]['A']++; 
+            
+            // 5. 剩余未分配班次的员工统一上A班
+            available.forEach(i => {
+                todaysAssigned[i] = 'A';
+                globalCounter[i]['A']++;
             });
             
-            prevDayShifts = [...todaysAssigned];
-
-            // 3. 动态渲染每一天的下拉菜单单元格
+            prevDayShifts = [...todaysAssigned]; 
+            
+            // 6. 渲染单元格
             todaysAssigned.forEach((shift, empIdx) => {
-                const isAutoRest = shift === 'REST' && !lockedShifts[`${day}-${empIdx}`] && shouldAutoRest(empIdx, day);
+                const isAutoRest = shift === 'REST' && !lockedShifts[`${day}-${empIdx}`] && shouldAutoRest(empIdx, day, year, month);
                 const td = document.createElement('td');
                 td.className = 'shift-' + shift + (isAutoRest ? ' rest-auto' : '');
-                td.innerHTML = `
+                td.innerHTML = ` 
                     <select class="shift-select" onchange="updateCellColor(this)">
                         <option value="A" ${shift==='A'?'selected':''}>A</option>
                         <option value="M" ${shift==='M'?'selected':''}>M</option>
@@ -232,31 +305,33 @@
             });
             table.appendChild(row);
         }
-
-        // 4. 追加渲染最底部的月度总公平统计行
-        const statsConfig = [
-            { label: "当月 M 班合计", key: "M" },
-            { label: "当月 MM 班合计", key: "MM" },
-            { label: "当月 A 班合计", key: "A" },
-            { label: "当月总休假/OFF", key: "OFF" }
-        ];
         
+        // 7. 添加统计行
+        const statsConfig = [ 
+            { label: "当月 M 班合计", key: "M" }, 
+            { label: "当月 MM 班合计", key: "MM" }, 
+            { label: "当月 A 班合计", key: "A" }, 
+            { label: "当月总休假/OFF", key: "OFF" } 
+        ];
         statsConfig.forEach(cfg => {
             const tr = document.createElement('tr');
             tr.className = 'summary-row';
-            tr.innerHTML = `<td colspan="2">${cfg.label}</td>` + Array.from({length:5}, (_, i) => `<td id="stat-${cfg.key}-${i}">0</td>`).join('');
+            tr.innerHTML = `<td colspan="2">${cfg.label}</td>` + 
+                Array.from({length:5}, (_, i) => `<td id="stat-${cfg.key}-${i}">0</td>`).join('');
             table.appendChild(tr);
         });
-
-        // 将生成的表格推入容器中，并计算数据
+        
+        // 8. 更新页面
         const container = document.getElementById('schedule-table-container');
         container.innerHTML = '';
         container.appendChild(table);
         calculateMonthlyStats();
-    }
+    } 
 
-    // 网页加载时立即初始化运行
-    window.onload = generateSmartSchedule;
+    // 页面加载完成后初始化
+    window.onload = function() {
+        generateSmartSchedule();
+    };
 </script>
 </body>
 </html>
