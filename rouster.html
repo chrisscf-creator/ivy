@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Food Junction 动态公平排班系统</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 15px; margin: 0; }
+        .container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+        h1 { text-align: center; color: #333; font-size: 20px; margin: 5px 0; }
+        .control-panel { background: #f9f9f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 12px; }
+        .form-group { display: inline-block; margin-right: 12px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 13px; }
+        .form-group input { padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 140px; }
+        button { background-color: #ff9800; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        button:hover { background-color: #e68a00; }
+        .btn-gen { background-color: #4CAF50; }
+        .btn-gen:hover { background-color: #45a049; }
+        .btn-print { background-color: #607D8B; }
+        .staff-config { background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 13px; }
+        .staff-row { display: inline-block; margin-right: 15px; margin-bottom: 5px; }
+        .staff-row input { padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; width: 110px; }
+        .table-wrapper { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; }
+        th, td { border: 1px solid #555; padding: 5px 2px; min-width: 90px; }
+        .header-brand { background-color: #fff9e6; font-weight: bold; font-size: 15px; text-align: left; padding-left: 10px; color: #d32f2f; }
+        .header-title { font-weight: bold; font-size: 14px; background-color: #fff9e6; }
+        .meta-label { background-color: #f2f2f2; font-weight: bold; text-align: left; padding-left: 5px; }
+        .date-col { background-color: #f9f9f9; font-weight: bold; }
+        .shift-select { width: 95%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 12px; cursor: pointer; appearance: none; -webkit-appearance: none; }
+        .shift-M { background-color: #e2efda; color: #375623; }
+        .shift-MM { background-color: #fff2cc; color: #b25900; }
+        .shift-A { background-color: #ffffff; color: #000; }
+        .shift-REST { background-color: #b4c6e7; color: #000; }
+        .shift-AL { background-color: #fce4d6; color: #c55a11; }
+        .shift-PH { background-color: #ffccff; color: #660066; }
+        .summary-row { background-color: #eef2f7; font-weight: bold; }
+        @media print {
+            .control-panel, .staff-config, button, h1 { display: none !important; }
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; padding: 0; }
+            .shift-select { border: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Food Junction 动态假期与绝对公平排班系统</h1>
+    
+    <div class="control-panel">
+        <div class="form-group">
+            <label>排班月份</label>
+            <input type="month" id="schedule-month" value="2026-06">
+        </div>
+        <button type="button" class="btn-gen" onclick="generateSmartSchedule()">✨ 智能平摊排班</button>
+        <button type="button" class="btn-print" style="margin-left:10px;" onclick="window.print()">🖨️ 打印 / 导出 PDF</button>
+    </div>
+
+    <div class="staff-config">
+        <strong>👥 5位员工自定义名字：</strong><br><br>
+        <div id="staff-inputs-container">
+            <div class="staff-row"><span>人员1:</span> <input type="text" class="s-name" value="Elva Yang"></div>
+            <div class="staff-row"><span>人员2:</span> <input type="text" class="s-name" value="Leon Ng"></div>
+            <div class="staff-row"><span>人员3:</span> <input type="text" class="s-name" value="Christopher"></div>
+            <div class="staff-row"><span>人员4:</span> <input type="text" class="s-name" value="Yee Fei Lim"></div>
+            <div class="staff-row"><span>人员5:</span> <input type="text" class="s-name" value="Nicole Ong"></div>
+        </div>
+        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">💡 <b>动态请假操作</b>：先点击一键生成，若有人请假，在表格中将其下拉改选为 <b>AL(年假) / PH(公假) / REST</b>，然后<b>再次</b>点击“智能平摊排班”，系统会自动锁定假期并公平重新排满其他人！</p>
+    </div>
+
+    <div class="table-wrapper" id="schedule-table-container"></div>
+</div>
+
+<script>
+    // 动态变色并同步底部计数器
+    function updateCellColor(selectElement) {
+        selectElement.parentNode.className = 'shift-' + selectElement.value;
+        calculateMonthlyStats();
+    }
+
+    // 实时计算底部公平度数据总计
+    function calculateMonthlyStats() {
+        const rows = document.querySelectorAll('.data-row');
+        const counts = Array.from({length: 5}, () => ({ M:0, MM:0, A:0, REST:0, AL:0, PH:0 }));
+        
+        rows.forEach(row => {
+            row.querySelectorAll('.shift-select').forEach((select, sIdx) => {
+                if (counts[sIdx][select.value] !== undefined) counts[sIdx][select.value]++;
+            });
+        });
+        
+        for (let i = 0; i < 5; i++) {
+            document.getElementById(`stat-M-${i}`).innerText = counts[i].M;
+            document.getElementById(`stat-MM-${i}`).innerText = counts[i].MM;
+            document.getElementById(`stat-A-${i}`).innerText = counts[i].A;
+            document.getElementById(`stat-OFF-${i}`).innerText = counts[i].REST + counts[i].AL + counts[i].PH;
+        }
+    }
+
+    // 核心智能池化排班生成算法
+    function generateSmartSchedule() {
+        const names = Array.from(document.querySelectorAll('.s-name')).map(input => input.value.trim() || "未命名");
+        const monthVal = document.getElementById('schedule-month').value;
+        const [year, month] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        // 读取用户已经在网页上修改锁定的假期（AL/PH/REST）
+        const lockedShifts = {};
+        const existingTable = document.querySelector('table');
+        if (existingTable) {
+            existingTable.querySelectorAll('.data-row').forEach((row, rIdx) => {
+                row.querySelectorAll('.shift-select').forEach((select, sIdx) => {
+                    if (['REST', 'AL', 'PH'].includes(select.value)) {
+                        lockedShifts[`${rIdx+1}-${sIdx}`] = select.value;
+                    }
+                });
+            });
+        }
+
+        const globalCounter = Array.from({length: 5}, () => ({ M: 0, MM: 0, A: 0 }));
+        let prevDayShifts = new Array(5).fill('REST');
+
+        // 构建表格骨架
+        const table = document.createElement('table');
+        
+        // 头部大标题
+        table.innerHTML = `
+            <tr><th colspan="2" class="header-brand">FOOD JUNCTION</th><th colspan="5" class="header-title">Duty Roster For Month Of: ${monthVal}</th></tr>
+            <tr><td colspan="2" class="meta-label">Staff Name:</td>${names.map(n => `<td><b>${n}</b></td>`).join('')}</tr>
+        `;
+
+        // 逐日算法填充
+        for (let day = 1; day <= daysInMonth; day++) {
+            const weekDay = weekdayNames[new Date(year, month - 1, day).getDay()];
+            const row = document.createElement('tr');
+            row.className = 'data-row';
+            if (weekDay === 'Sat' || weekDay === 'Sun') row.style.backgroundColor = '#f2f2f2';
+
+            row.innerHTML = `<td class="date-col">${weekDay}</td><td class="date-col">${day}-${month}</td>`;
+
+            let required = ['M', 'MM', 'A', 'A'];
+            let todaysAssigned = new Array(5).fill(null);
+
+            // 1. 拦截休假
+            for (let i = 0; i < 5; i++) {
+                if (lockedShifts[`${day}-${i}`]) todaysAssigned[i] = lockedShifts[`${day}-${i}`];
+                else if (weekDay === 'Sun' && (day % 5) === i) todaysAssigned[i] = 'REST';
+            }
+
+            let available = [];
+            for (let i = 0; i < 5; i++) { if (todaysAssigned[i] === null) available.push(i); }
+
+            // 多出的人自动转MM/M以实现绝对平均分配
+            if (available.length === 5) required.push('MM');
+            else while (required.length > available.length) required.pop();
+
+            // 2. 公平发班，防止A跳M
+            required.forEach(shift => {
+                let bestIdx = -1, minC = Infinity;
+                available.forEach(i => {
+                    if (shift === 'M' && prevDayShifts[i] === 'A') return; // A班绝不连M班
+                    if (globalCounter[i][shift] < minC) { minC = globalCounter[i][shift]; bestIdx = i; }
+                });
+                if (bestIdx === -1 && available.length > 0) bestIdx = available[0];
+                if (bestIdx !== -1) {
+                    todaysAssigned[bestIdx] = shift;
+                    globalCounter[bestIdx][shift]++;
+                    available = available.filter(idx => idx !== bestIdx);
+                }
+            });
+
+            // 兜底补A
+            available.forEach(i => { todaysAssigned[i] = 'A'; globalCounter[i]['A']++; });
+            prevDayShifts = [...todaysAssigned];
+
+            // 3. 动态渲染每一天的下拉菜单单元格
+            todaysAssigned.forEach((shift) => {
+                const td = document.createElement('td');
+                td.className = 'shift-' + shift;
+                td.innerHTML = `
+                    <select class="shift-select" onchange="updateCellColor(this)">
+                        <option value="A" ${shift==='A'?'selected':''}>A</option>
+                        <option value="M" ${shift==='M'?'selected':''}>M</option>
+                        <option value="MM" ${shift==='MM'?'selected':''}>MM</option>
+                        <option value="REST" ${shift==='REST'?'selected':''}>REST</option>
+                        <option value="AL" ${shift==='AL'?'selected':''}>AL</option>
+                        <option value="PH" ${shift==='PH'?'selected':''}>PH</option>
+                    </select>
+                `;
+                row.appendChild(td);
+            });
+            table.appendChild(row);
+        }
+
+        // 4. 追加渲染最底部的月度总公平统计行
+        const statsConfig = [
+            { label: "当月 M 班合计", key: "M" },
+            { label: "当月 MM 班合计", key: "MM" },
+            { label: "当月 A 班合计", key: "A" },
+            { label: "当月总休假/OFF", key: "OFF" }
+        ];
+        
+        statsConfig.forEach(cfg => {
+            const tr = document.createElement('tr');
+            tr.className = 'summary-row';
+            tr.innerHTML = `<td colspan="2">${cfg.label}</td>` + Array.from({length:5}, (_, i) => `<td id="stat-${cfg.key}-${i}">0</td>`).join('');
+            table.appendChild(tr);
+        });
+
+        // 将生成的表格推入容器中，并计算数据
+        const container = document.getElementById('schedule-table-container');
+        container.innerHTML = '';
+        container.appendChild(table);
+        calculateMonthlyStats();
+    }
+
+    // 网页加载时立即初始化运行
+    window.onload = generateSmartSchedule;
+</script>
+</body>
+</html>
