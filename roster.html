@@ -34,6 +34,7 @@
         .shift-AL { background-color: #fce4d6; color: #c55a11; }
         .shift-PH { background-color: #ffccff; color: #660066; }
         .summary-row { background-color: #eef2f7; font-weight: bold; }
+        .rest-auto { background-color: #d6eaf8 !important; }
         @media print {
             .control-panel, .staff-config, button, h1 { display: none !important; }
             body { padding: 0; background: white; }
@@ -45,7 +46,7 @@
 <body>
 
 <div class="container">
-    <h1>Food Junction 动态假期与绝对公平排班系统</h1>
+    <h1>Food Junction 动态假期与绝对公平排班系统 (6天工作制)</h1>
     
     <div class="control-panel">
         <div class="form-group">
@@ -65,7 +66,7 @@
             <div class="staff-row"><span>人员4:</span> <input type="text" class="s-name" value="Yee Fei Lim"></div>
             <div class="staff-row"><span>人员5:</span> <input type="text" class="s-name" value="Nicole Ong"></div>
         </div>
-        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">💡 <b>动态请假操作</b>：先点击一键生成，若有人请假，在表格中将其下拉改选为 <b>AL(年假) / PH(公假) / REST</b>，然后<b>再次</b>点击“智能平摊排班”，系统会自动锁定假期并公平重新排满其他人！</p>
+        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">💡 <b>动态请假操作</b>：先点击一键生成，若有人请假，在表格中将其下拉改选为 <b>AL(年假) / PH(公假) / REST</b>，然后<b>再次</b>点击“智能平摊排班”，系统会自动锁定假期并公平重新排满其他人！<br>✅ 系统已启用 <b>6天工作1天休息</b> 规则，自动休息日显示为浅蓝色背景。</p>
     </div>
 
     <div class="table-wrapper" id="schedule-table-container"></div>
@@ -95,6 +96,18 @@
             document.getElementById(`stat-A-${i}`).innerText = counts[i].A;
             document.getElementById(`stat-OFF-${i}`).innerText = counts[i].REST + counts[i].AL + counts[i].PH;
         }
+    }
+
+    // 判断员工在指定日期是否应该自动休息（6天工作1天休息规则）
+    function shouldAutoRest(employeeIndex, dayOfMonth) {
+        // 使用轮转休息系统：每个员工有不同的休息周期
+        // 员工0: 休息日为 7,14,21,28...
+        // 员工1: 休息日为 6,13,20,27...
+        // 员工2: 休息日为 5,12,19,26...
+        // 员工3: 休息日为 4,11,18,25...
+        // 员工4: 休息日为 3,10,17,24,31...
+        const offset = employeeIndex % 5;
+        return (dayOfMonth + offset) % 7 === 0;
     }
 
     // 核心智能池化排班生成算法
@@ -142,25 +155,47 @@
             let required = ['M', 'MM', 'A', 'A'];
             let todaysAssigned = new Array(5).fill(null);
 
-            // 1. 拦截休假
+            // 1. 处理各种休息情况
             for (let i = 0; i < 5; i++) {
-                if (lockedShifts[`${day}-${i}`]) todaysAssigned[i] = lockedShifts[`${day}-${i}`];
-                else if (weekDay === 'Sun' && (day % 5) === i) todaysAssigned[i] = 'REST';
+                // 优先处理用户锁定的假期
+                if (lockedShifts[`${day}-${i}`]) {
+                    todaysAssigned[i] = lockedShifts[`${day}-${i}`];
+                }
+                // 如果没有锁定假期，检查是否是该员工的自动休息日
+                else if (shouldAutoRest(i, day)) {
+                    todaysAssigned[i] = 'REST';
+                }
             }
 
             let available = [];
-            for (let i = 0; i < 5; i++) { if (todaysAssigned[i] === null) available.push(i); }
+            for (let i = 0; i < 5; i++) { 
+                if (todaysAssigned[i] === null) available.push(i); 
+            }
 
-            // 多出的人自动转MM/M以实现绝对平均分配
-            if (available.length === 5) required.push('MM');
-            else while (required.length > available.length) required.pop();
+            // 调整所需班次数量以匹配可用员工数
+            if (available.length === 5) {
+                required = ['M', 'MM', 'A', 'A', 'A']; // 5人全部上班时分配5个班次
+            } else if (available.length === 4) {
+                required = ['M', 'MM', 'A', 'A']; // 4人上班时分配4个班次
+            } else if (available.length === 3) {
+                required = ['M', 'A', 'A']; // 3人上班时分配3个班次
+            } else if (available.length === 2) {
+                required = ['M', 'A']; // 2人上班时分配2个班次
+            } else if (available.length === 1) {
+                required = ['A']; // 1人上班时分配A班
+            } else {
+                required = []; // 没有人上班（理论上不应该发生）
+            }
 
             // 2. 公平发班，防止A跳M
             required.forEach(shift => {
                 let bestIdx = -1, minC = Infinity;
                 available.forEach(i => {
                     if (shift === 'M' && prevDayShifts[i] === 'A') return; // A班绝不连M班
-                    if (globalCounter[i][shift] < minC) { minC = globalCounter[i][shift]; bestIdx = i; }
+                    if (globalCounter[i][shift] < minC) { 
+                        minC = globalCounter[i][shift]; 
+                        bestIdx = i; 
+                    }
                 });
                 if (bestIdx === -1 && available.length > 0) bestIdx = available[0];
                 if (bestIdx !== -1) {
@@ -170,14 +205,19 @@
                 }
             });
 
-            // 兜底补A
-            available.forEach(i => { todaysAssigned[i] = 'A'; globalCounter[i]['A']++; });
+            // 兜底补A（处理剩余可用员工）
+            available.forEach(i => { 
+                todaysAssigned[i] = 'A'; 
+                globalCounter[i]['A']++; 
+            });
+            
             prevDayShifts = [...todaysAssigned];
 
             // 3. 动态渲染每一天的下拉菜单单元格
-            todaysAssigned.forEach((shift) => {
+            todaysAssigned.forEach((shift, empIdx) => {
+                const isAutoRest = shift === 'REST' && !lockedShifts[`${day}-${empIdx}`] && shouldAutoRest(empIdx, day);
                 const td = document.createElement('td');
-                td.className = 'shift-' + shift;
+                td.className = 'shift-' + shift + (isAutoRest ? ' rest-auto' : '');
                 td.innerHTML = `
                     <select class="shift-select" onchange="updateCellColor(this)">
                         <option value="A" ${shift==='A'?'selected':''}>A</option>
