@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Junction · 公平排班系统</title>
+    <title>Food Junction · 每周休一天（周一至周五固定）</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -208,14 +208,14 @@
         }
         .shift-select:focus { outline: none; background: rgba(0,0,0,0.03); }
 
-        /* 班次颜色 – 柔和 */
+        /* 班次颜色 */
         .shift-M { background-color: #d4edda; color: #1e6f3f; }
         .shift-MM { background-color: #fff3cd; color: #8a6d2b; }
         .shift-A { background-color: #ffffff; color: #1e2b3c; }
-        .shift-REST { background-color: #d6eaf8; color: #1a5276; }
+        .shift-REST { background-color: #999999; color: #ffffff; }
         .shift-AL { background-color: #fdebd0; color: #a04000; }
         .shift-PH { background-color: #e8d5f5; color: #6c3483; }
-        .rest-auto { background-color: #d1f2eb !important; color: #0e6655; }
+        .rest-auto { background-color: #999999 !important; color: #ffffff !important; }
 
         .summary-row { background: #eef3fa; font-weight: 600; }
         .summary-row td { padding: 8px 4px; }
@@ -239,7 +239,7 @@
 <div class="container">
     <h1>
         <span>🍔 Food Junction · 公平排班</span>
-        <small>每月4天休息 · 周末不排休</small>
+        <small>每周一天 · 周一至五固定休</small>
     </h1>
 
     <div class="control-panel">
@@ -264,8 +264,9 @@
             <div class="staff-row"><span>5.</span> <input type="text" class="s-name" value="Darlene"></div>
         </div>
         <div class="rule-note">
-            ✅ <b>强制规则</b>：每位员工每月休息 <b>4天</b>，且休息日 <b>不安排在周末</b>（周六/周日）。
-            若系统自动分配休息日落在周末，将自动顺延至下个周一～周五。可手动下拉修改为 <b>AL/PH/REST</b> 后再次点击“智能排班”锁定。
+            ✅ <b>固定休息</b>：员工1→周一休，员工2→周二休，员工3→周三休，员工4→周四休，员工5→周五休。<br>
+            ✅ 每月每个员工休息 <b>4天</b>（每个星期几的前4个日期），周六日全员上班。<br>
+            ✅ 班次分配：1人M，1人MM，2人A；若5人上班则2人MM，若4人上班则1人MM。
         </div>
     </div>
 
@@ -306,54 +307,13 @@
         }
     }
 
-    // 单元格变色 + 联动统计
     function updateCellColor(sel) {
         const td = sel.parentNode;
         td.className = 'shift-' + sel.value;
         calculateMonthlyStats();
     }
 
-    // ----- ★★★ 核心修复：严格每月4天休息，且全部安排在周一至周五 ★★★ -----
-    function getMonthlyRestDays(empIndex, year, month) {
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const restDates = [];
-        // 收集当月所有工作日（周一至周五）
-        const workdays = [];
-        for (let d = 1; d <= daysInMonth; d++) {
-            const date = new Date(year, month - 1, d);
-            const dow = date.getDay();
-            if (dow !== 0 && dow !== 6) { // 排除周末
-                workdays.push(d);
-            }
-        }
-        // 从工作日中均匀选取4天（按员工索引偏移，保证公平）
-        const step = Math.floor(workdays.length / 4);
-        const startOffset = empIndex % 4; // 不同员工起始点不同，更公平
-        for (let i = 0; i < 4; i++) {
-            const idx = (startOffset + i * step) % workdays.length;
-            restDates.push(workdays[idx]);
-        }
-        // 去重并排序（防止step为0时重复）
-        const unique = [...new Set(restDates)].sort((a, b) => a - b);
-        // 如果去重后不足4天，从工作日中补全（极少发生）
-        while (unique.length < 4) {
-            for (const d of workdays) {
-                if (!unique.includes(d)) {
-                    unique.push(d);
-                    if (unique.length === 4) break;
-                }
-            }
-        }
-        return unique;
-    }
-
-    // 判断某天是否为该员工的休息日（基于预计算的4天列表）
-    function isScheduledRest(empIndex, day, year, month) {
-        const restDays = getMonthlyRestDays(empIndex, year, month);
-        return restDays.includes(day);
-    }
-
-    // ----- 智能排班生成 (锁假 + 公平轮转) -----
+    // ----- 核心排班：固定星期几休息，每人4天 -----
     function generateSmartSchedule() {
         const names = Array.from(document.querySelectorAll('.s-name')).map(inp => inp.value.trim() || '未命名');
         const monthVal = document.getElementById('schedule-month').value;
@@ -361,24 +321,38 @@
         const daysInMonth = new Date(year, month, 0).getDate();
         const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-        // 1. 读取已有锁定 (AL/PH/REST)
+        // 读取已有的锁定 (AL/PH) —— REST将被我们重新分配
         const locked = {};
         const oldTable = document.querySelector('table');
         if (oldTable) {
             oldTable.querySelectorAll('.data-row').forEach((row, rIdx) => {
                 row.querySelectorAll('.shift-select').forEach((sel, cIdx) => {
-                    if (['REST', 'AL', 'PH'].includes(sel.value)) {
-                        locked[`${rIdx+1}-${cIdx}`] = sel.value;
+                    const val = sel.value;
+                    if (['AL', 'PH'].includes(val)) {
+                        locked[`${rIdx+1}-${cIdx}`] = val;
                     }
                 });
             });
         }
 
-        // 全局计数器 (M, MM, A)
-        const counter = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0 }));
-        let prevShift = new Array(5).fill('REST');
+        // ---- 1. 生成每个员工的休息日 (固定星期几) ----
+        // 员工 i (0-4) 对应星期 (i+1) 即 周一~周五
+        const restDays = Array.from({ length: 5 }, () => []); // restDays[empIdx] = [day1, day2, day3, day4]
 
-        // 2. 构建表格
+        for (let empIdx = 0; empIdx < 5; empIdx++) {
+            const targetWeekday = empIdx + 1; // 1=周一, 2=周二, ... 5=周五
+            const dates = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month - 1, d);
+                if (date.getDay() === targetWeekday) {
+                    dates.push(d);
+                }
+            }
+            // 取前4个（如果不足4个则取全部，但一般都有4个）
+            restDays[empIdx] = dates.slice(0, 4);
+        }
+
+        // ---- 2. 逐日构建排班表 ----
         const table = document.createElement('table');
         table.innerHTML = `
             <tr>
@@ -391,57 +365,87 @@
             </tr>
         `;
 
-        // 3. 逐日排班
+        // 计数器用于公平轮转班次
+        const counter = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0 }));
+        let prevShift = new Array(5).fill('REST');
+
         for (let day = 1; day <= daysInMonth; day++) {
             const dateObj = new Date(year, month - 1, day);
             const dow = dateObj.getDay();
             const weekDay = weekdays[dow];
-            const isWeekend = (dow === 0 || dow === 6);
 
             const row = document.createElement('tr');
-            row.className = 'data-row' + (isWeekend ? ' weekend-row' : '');
+            row.className = 'data-row' + (dow === 0 || dow === 6 ? ' weekend-row' : '');
             row.innerHTML = `<td class="date-col">${weekDay}</td><td class="date-col">${day}</td>`;
 
-            // 当天分配数组
             const assigned = new Array(5).fill(null);
 
-            // 3.1 锁定 & 自动休息 (强制每月4天，且避开周末)
-            for (let i = 0; i < 5; i++) {
-                const key = `${day}-${i}`;
-                if (locked[key]) {
-                    assigned[i] = locked[key];
-                } else if (!isWeekend && isScheduledRest(i, day, year, month)) {
-                    assigned[i] = 'REST';
+            // 2.1 分配系统休息日
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (restDays[empIdx].includes(day)) {
+                    assigned[empIdx] = 'REST';
                 }
             }
 
-            // 3.2 可用员工池
-            let available = [];
-            for (let i = 0; i < 5; i++) {
-                if (assigned[i] === null) available.push(i);
+            // 2.2 应用锁定 (AL/PH) 覆盖 REST
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                const key = `${day}-${empIdx}`;
+                if (locked[key]) {
+                    assigned[empIdx] = locked[key]; // AL 或 PH
+                }
             }
 
-            // 3.3 根据可用人数动态调整班次需求
-            let required = [];
-            const len = available.length;
-            if (len === 5) required = ['M', 'MM', 'A', 'A', 'A'];
-            else if (len === 4) required = ['M', 'MM', 'A', 'A'];
-            else if (len === 3) required = ['M', 'A', 'A'];
-            else if (len === 2) required = ['M', 'A'];
-            else if (len === 1) required = ['A'];
-            else required = [];
+            // 2.3 确定上班员工（未分配班次的）
+            let available = [];
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (assigned[empIdx] === null) available.push(empIdx);
+            }
 
-            // 3.4 公平分配 (M/MM优先, 避免A后接M)
-            required.forEach(shift => {
+            // 2.4 根据上班人数确定班次需求
+            let requiredShifts = [];
+            const numWorking = available.length;
+            if (numWorking === 0) {
+                // 全部休息或锁定，不分配
+            } else if (numWorking === 1) {
+                requiredShifts = ['A'];
+            } else if (numWorking === 2) {
+                requiredShifts = ['M', 'A'];
+            } else if (numWorking === 3) {
+                requiredShifts = ['M', 'A', 'A'];
+            } else if (numWorking === 4) {
+                requiredShifts = ['M', 'MM', 'A', 'A'];
+            } else if (numWorking === 5) {
+                requiredShifts = ['M', 'MM', 'MM', 'A', 'A'];
+            }
+
+            // 2.5 公平分配 (优先M，再MM，最后A，且避免A后接M)
+            // 排序：M 优先，MM 次之，A 最后
+            const sortedShifts = requiredShifts.slice().sort((a, b) => {
+                if (a === 'M') return -1;
+                if (b === 'M') return 1;
+                if (a === 'MM' && b === 'A') return -1;
+                if (a === 'A' && b === 'MM') return 1;
+                return 0;
+            });
+
+            sortedShifts.forEach(shift => {
                 let bestIdx = -1, minCount = Infinity;
-                available.forEach(idx => {
-                    if (shift === 'M' && prevShift[idx] === 'A') return; // 规则
+                // 过滤：M不能接在A之后
+                const candidates = available.filter(idx => {
+                    if (shift === 'M' && prevShift[idx] === 'A') return false;
+                    return true;
+                });
+                if (candidates.length === 0) {
+                    // 如果没有符合条件的，则全部可用
+                    candidates.push(...available);
+                }
+                // 选累计次数最少的
+                candidates.forEach(idx => {
                     if (counter[idx][shift] < minCount) {
                         minCount = counter[idx][shift];
                         bestIdx = idx;
                     }
                 });
-                if (bestIdx === -1 && available.length > 0) bestIdx = available[0];
                 if (bestIdx !== -1) {
                     assigned[bestIdx] = shift;
                     counter[bestIdx][shift]++;
@@ -449,7 +453,7 @@
                 }
             });
 
-            // 剩余员工补 A 班
+            // 剩余未分配员工补 A（理论上不会发生，但以防万一）
             available.forEach(idx => {
                 assigned[idx] = 'A';
                 counter[idx]['A']++;
@@ -458,11 +462,11 @@
             // 更新 prevShift
             prevShift = [...assigned];
 
-            // 3.5 渲染单元格
+            // 2.6 渲染单元格
             assigned.forEach((shift, empIdx) => {
-                const isAuto = (shift === 'REST' && !locked[`${day}-${empIdx}`] && !isWeekend && isScheduledRest(empIdx, day, year, month));
                 const td = document.createElement('td');
-                td.className = 'shift-' + shift + (isAuto ? ' rest-auto' : '');
+                const isRest = (shift === 'REST');
+                td.className = 'shift-' + shift + (isRest ? ' rest-auto' : '');
                 td.innerHTML = `
                     <select class="shift-select" onchange="updateCellColor(this)">
                         <option value="A" ${shift==='A'?'selected':''}>A</option>
@@ -478,7 +482,7 @@
             table.appendChild(row);
         }
 
-        // 4. 统计行
+        // ---- 3. 统计行 ----
         const statTypes = [
             { label: 'M 班合计', key: 'M' },
             { label: 'MM 班合计', key: 'MM' },
@@ -493,14 +497,12 @@
             table.appendChild(tr);
         });
 
-        // 5. 更新DOM
         const container = document.getElementById('schedule-table-container');
         container.innerHTML = '';
         container.appendChild(table);
         calculateMonthlyStats();
     }
 
-    // 初始化
     window.onload = function() {
         generateSmartSchedule();
     };
