@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>** foodrepublic Vivocity **</title>
+    <title>Food Junction · 公平排班（每周一休）</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -160,19 +160,21 @@
             font-size: 13px;
             min-width: 780px;
         }
+        /* 所有单元格强制居中 */
         th, td {
             border: 1px solid #d5dce6;
             padding: 6px 4px;
-            text-align: center;
-            vertical-align: middle;
+            text-align: center !important;
+            vertical-align: middle !important;
         }
         .header-brand {
             background: #fef6e7;
             font-weight: 700;
             font-size: 16px;
             color: #b03a2e;
-            text-align: left;
-            padding-left: 14px;
+            /* 居中覆盖 */
+            text-align: center !important;
+            padding-left: 0;
         }
         .header-title {
             background: #fef6e7;
@@ -183,8 +185,9 @@
         .meta-label {
             background: #f2f6fc;
             font-weight: 600;
-            text-align: left;
-            padding-left: 12px;
+            /* 居中覆盖 */
+            text-align: center !important;
+            padding-left: 0;
         }
         .date-col {
             background: #f8faff;
@@ -233,14 +236,14 @@
             .container { box-shadow: none; border-radius: 0; padding: 10px; }
             .shift-select { border: none !important; appearance: none; -webkit-appearance: none; }
             .table-wrapper { border: 1px solid #ccc; }
-            .shift-select option { color: black; } /* 保证文字可见 */
+            .shift-select option { color: black; }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>
-        <span>** foodrepublic Vivocity **</span>
+        <span>🍔 Food Junction · 公平排班</span>
         <small>每周一休 · 固定日期</small>
     </h1>
 
