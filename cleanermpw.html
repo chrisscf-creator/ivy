@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>排班人力计算器 · 月度版</title>
+    <style>
+        /* 全局重置 & 字体 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #f4f7fb;
+            color: #1e293b;
+            padding: 24px 16px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .app-container {
+            max-width: 1100px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.08), 0 8px 24px rgba(0, 20, 40, 0.04);
+            padding: 32px 28px 40px;
+            transition: all 0.2s ease;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fullscreen-btn {
+            background: #f1f5f9;
+            border: 1px solid #dce2ec;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .fullscreen-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .fullscreen-btn:active {
+            transform: scale(0.96);
+        }
+
+        .header-sub {
+            font-size: 15px;
+            color: #64748b;
+            margin-top: 2px;
+            margin-left: 46px;
+            margin-bottom: 24px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 14px;
+            font-weight: 400;
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+            padding: 8px 16px;
+        }
+
+        /* 提示卡片 */
+        .info-badge {
+            background: #eff6ff;
+            border-radius: 10px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #1e40af;
+            margin-bottom: 28px;
+            border: 1px solid #bfdbfe;
+            flex-wrap: wrap;
+        }
+
+        .info-badge span {
+            font-weight: 500;
+        }
+
+        /* 表格区域 */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 14px;
+            border: 1px solid #e9edf4;
+            background: #ffffff;
+            margin-bottom: 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 640px;
+            font-size: 15px;
+        }
+
+        .schedule-table th,
+        .schedule-table td {
+            padding: 12px 14px;
+            text-align: center;
+            border-bottom: 1px solid #eef2f6;
+            vertical-align: middle;
+        }
+
+        .schedule-table thead th {
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.01em;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 14px 10px;
+        }
+
+        .schedule-table thead th:first-child {
+            border-radius: 14px 0 0 0;
+        }
+
+        .schedule-table thead th:last-child {
+            border-radius: 0 14px 0 0;
+        }
+
+        .schedule-table .col-header {
+            background: #f1f5f9;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .schedule-table .row-label {
+            font-weight: 600;
+            color: #1e293b;
+            background: #fafcff;
+            text-align: left;
+            padding-left: 18px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .schedule-table .row-label-sub {
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .schedule-table .hours-row td {
+            background: #f9fcff;
+            color: #3b82f6;
+            font-weight: 500;
+            font-size: 13px;
+            padding: 6px 10px;
+            border-bottom: 1px dashed #dbeafe;
+        }
+
+        .schedule-table .hours-row td:first-child {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* 输入框 */
+        .schedule-table input[type="number"] {
+            width: 60px;
+            padding: 6px 4px;
+            text-align: center;
+            border: 1.5px solid #dce2ec;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #0f172a;
+            background: #ffffff;
+            transition: border 0.15s, box-shadow 0.15s;
+            appearance: textfield;
+            -moz-appearance: textfield;
+        }
+
+        .schedule-table input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .schedule-table input[type="number"]:hover {
+            border-color: #94a3b8;
+        }
+
+        .schedule-table input[type="number"]::-webkit-inner-spin-button,
+        .schedule-table input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .schedule-table .total-cell {
+            font-weight: 700;
+            color: #0f172a;
+            background: #f8fafc;
+            font-size: 16px;
+        }
+
+        .schedule-table .total-row td {
+            background: #f1f5f9;
+            font-weight: 700;
+            border-top: 2px solid #e2e8f0;
+            padding: 12px 10px;
+        }
+
+        .schedule-table .total-row td:first-child {
+            color: #1e293b;
+        }
+
+        /* 配置区域 */
+        .config-area {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px 28px;
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 18px 24px;
+            margin-bottom: 28px;
+            border: 1px solid #e9edf4;
+        }
+
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .config-group label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #334155;
+            white-space: nowrap;
+        }
+
+        .config-group input[type="number"] {
+            width: 64px;
+            padding: 6px 6px;
+            text-align: center;
+            border: 1.5px solid #dce2ec;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #0f172a;
+            background: #ffffff;
+            transition: border 0.15s, box-shadow 0.15s;
+        }
+
+        .config-group input[type="number"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .config-group .unit {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .config-divider {
+            width: 1px;
+            height: 32px;
+            background: #dce2ec;
+            flex-shrink: 0;
+        }
+
+        /* 结果区域 */
+        .results-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 700px) {
+            .results-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .result-card {
+            background: #fafcff;
+            border-radius: 16px;
+            border: 1px solid #e9edf4;
+            padding: 20px 22px 24px;
+            transition: box-shadow 0.15s;
+        }
+
+        .result-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .result-card .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-card .card-title .badge {
+            font-size: 12px;
+            font-weight: 500;
+            background: #e9edf4;
+            color: #475569;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 400px) {
+            .result-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .result-item {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px 10px;
+            text-align: center;
+            border: 1px solid #eef2f6;
+        }
+
+        .result-item .number {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #0f172a;
+        }
+
+        .result-item .number.ft {
+            color: #2563eb;
+        }
+
+        .result-item .number.pt {
+            color: #7c3aed;
+        }
+
+        .result-item .number.total-num {
+            color: #0f172a;
+        }
+
+        .result-item .label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .result-item .label .icon {
+            margin-right: 4px;
+        }
+
+        .result-summary {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e9edf4;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .result-summary .total-hours {
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .result-summary .total-hours strong {
+            color: #0f172a;
+            font-size: 18px;
+        }
+
+        .result-summary .total-staff {
+            display: flex;
+            gap: 20px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .result-summary .total-staff .ft-label {
+            color: #2563eb;
+        }
+
+        .result-summary .total-staff .pt-label {
+            color: #7c3aed;
+        }
+
+        /* 月度卡片特殊样式 */
+        .card-monthly {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .card-monthly .card-title {
+            color: #166534;
+        }
+
+        .card-monthly .result-item {
+            background: #ffffff;
+            border-color: #dcfce7;
+        }
+
+        /* 底部 */
+        .footer-note {
+            margin-top: 28px;
+            font-size: 13px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 18px;
+        }
+
+        /* 动画 & 辅助 */
+        .fade-in {
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0.5;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 小屏适配 */
+        @media (max-width: 600px) {
+            .app-container {
+                padding: 18px 14px 28px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header-sub {
+                margin-left: 0;
+                font-size: 13px;
+                padding: 6px 12px;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: flex-end;
+                margin-top: 4px;
+            }
+
+            .schedule-table {
+                font-size: 13px;
+                min-width: 520px;
+            }
+
+            .schedule-table th,
+            .schedule-table td {
+                padding: 8px 6px;
+            }
+
+            .schedule-table input[type="number"] {
+                width: 48px;
+                font-size: 13px;
+                padding: 4px 2px;
+            }
+
+            .config-area {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .config-divider {
+                display: none;
+            }
+
+            .result-card {
+                padding: 16px;
+            }
+
+            .result-item .number {
+                font-size: 22px;
+            }
+
+            .result-summary {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+        }
+
+        /* 打印优化 */
+        @media print {
+            body {
+                background: white;
+                padding: 8px;
+            }
+            .app-container {
+                box-shadow: none;
+                padding: 16px;
+            }
+            .schedule-table input[type="number"] {
+                border: 1px solid #ccc;
+                background: #f9f9f9;
+            }
+            .config-area {
+                background: #f5f5f5;
+            }
+            .result-card {
+                border: 1px solid #ddd;
+            }
+            .fullscreen-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- 头部 -->
+        <div class="header">
+            <div class="header-left">
+                <span class="header-icon">🧹</span>
+                <h1>排班人力计算器 · 月度版</h1>
+            </div>
+            <div class="header-right">
+                <button class="fullscreen-btn" id="fullscreenBtn">⛶ 全屏</button>
+            </div>
+        </div>
+        <div class="header-sub">
+            根据各时段人力需求，自动计算 <strong>每日</strong> 与 <strong>本月（2026年6月）</strong> 的全职/兼职配置 ·
+            <span style="color:#2563eb;">全职每周休息1天已扣除</span>
+        </div>
+
+        <!-- 提示 -->
+        <div class="info-badge">
+            <span>📋</span>
+            适用于 <strong>周一至周日（含公共假期）</strong> · 修改下方表格或配置参数即可实时更新
+        </div>
+
+        <!-- 表格 -->
+        <div class="table-wrapper">
+            <table class="schedule-table" id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding-left:18px;">岗位 / 时段</th>
+                        <th>08:00 – 10:00</th>
+                        <th>10:00 – 12:00</th>
+                        <th>12:00 – 17:00</th>
+                        <th>17:00 – 21:00</th>
+                        <th>21:00 – 23:00</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 小时数行 -->
+                    <tr class="hours-row">
+                        <td style="text-align:left; padding-left:18px;">🕒 小时数</td>
+                        <td>2 h</td>
+                        <td>2 h</td>
+                        <td>5 h</td>
+                        <td>4 h</td>
+                        <td>2 h</td>
+                    </tr>
+                    <!-- Supervisor -->
+                    <tr>
+                        <td class="row-label">👤 主管 <span style="font-weight:400;color:#64748b;font-size:13px;">(Supervisor)</span></td>
+                        <td><input type="number" class="staff-input" data-role="supervisor" data-col="0" value="1" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="supervisor" data-col="1" value="1" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="supervisor" data-col="2" value="1" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="supervisor" data-col="3" value="1" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="supervisor" data-col="4" value="1" min="0" max="99" /></td>
+                    </tr>
+                    <!-- Cleaners / Dishwashers -->
+                    <tr>
+                        <td class="row-label">🧽 清洁工 / 洗碗工 <span style="font-weight:400;color:#64748b;font-size:13px;">(Cleaners / Dishwashers)</span></td>
+                        <td><input type="number" class="staff-input" data-role="cleaner" data-col="0" value="4" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="cleaner" data-col="1" value="6" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="cleaner" data-col="2" value="12" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="cleaner" data-col="3" value="12" min="0" max="99" /></td>
+                        <td><input type="number" class="staff-input" data-role="cleaner" data-col="4" value="6" min="0" max="99" /></td>
+                    </tr>
+                    <!-- Total 行 -->
+                    <tr class="total-row">
+                        <td class="row-label" style="font-weight:700;">📊 合计人力</td>
+                        <td class="total-cell" id="totalCol0">5</td>
+                        <td class="total-cell" id="totalCol1">7</td>
+                        <td class="total-cell" id="totalCol2">13</td>
+                        <td class="total-cell" id="totalCol3">13</td>
+                        <td class="total-cell" id="totalCol4">7</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 配置区域（新增月度参数） -->
+        <div class="config-area">
+            <div class="config-group">
+                <label>🏢 全职每日工时</label>
+                <input type="number" id="ftHours" value="8" min="1" max="24" step="0.5" />
+                <span class="unit">小时</span>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-group">
+                <label>🕐 兼职每日工时</label>
+                <input type="number" id="ptHours" value="4" min="0.5" max="12" step="0.5" />
+                <span class="unit">小时</span>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-group">
+                <label>📅 本月天数</label>
+                <input type="number" id="monthDays" value="30" min="28" max="31" step="1" />
+                <span class="unit">天 (2026年6月)</span>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-group">
+                <label>📆 全职每周休息</label>
+                <input type="number" id="restDaysPerWeek" value="1" min="0" max="2" step="1" />
+                <span class="unit">天</span>
+            </div>
+            <div class="config-divider"></div>
+            <div class="config-group" style="color:#94a3b8;font-size:13px;gap:4px;">
+                <span>⚡ 实时计算</span>
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;"></span>
+            </div>
+        </div>
+
+        <!-- 结果区域 -->
+        <div class="results-area" id="resultsArea">
+            <!-- 主管结果 (每日) -->
+            <div class="result-card" id="resultSupervisor">
+                <div class="card-title">
+                    👤 主管 <span class="badge">Supervisor · 每日</span>
+                </div>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="number ft" id="supFT">0</div>
+                        <div class="label"><span class="icon">🏢</span> 全职</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number pt" id="supPT">0</div>
+                        <div class="label"><span class="icon">🕐</span> 兼职</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number total-num" id="supTotal">0</div>
+                        <div class="label"><span class="icon">👥</span> 合计</div>
+                    </div>
+                </div>
+                <div class="result-summary" style="border-top-color:#e9edf4;padding-top:12px;margin-top:8px;">
+                    <span class="total-hours">⏱ 每日总工时 <strong id="supHours">0</strong> h</span>
+                </div>
+            </div>
+
+            <!-- 清洁工结果 (每日) -->
+            <div class="result-card" id="resultCleaner">
+                <div class="card-title">
+                    🧽 清洁工 / 洗碗工 <span class="badge">Cleaners · 每日</span>
+                </div>
+                <div class="result-grid">
+                    <div class="result-item">
+                        <div class="number ft" id="clnFT">0</div>
+                        <div class="label"><span class="icon">🏢</span> 全职</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number pt" id="clnPT">0</div>
+                        <div class="label"><span class="icon">🕐</span> 兼职</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number total-num" id="clnTotal">0</div>
+                        <div class="label"><span class="icon">👥</span> 合计</div>
+                    </div>
+                </div>
+                <div class="result-summary" style="border-top-color:#e9edf4;padding-top:12px;margin-top:8px;">
+                    <span class="total-hours">⏱ 每日总工时 <strong id="clnHours">0</strong> h</span>
+                </div>
+            </div>
+
+            <!-- 总计卡片 (每日) -->
+            <div class="result-card" style="grid-column: 1 / -1; background:#f1f6fe; border-color:#bfdbfe;">
+                <div class="card-title" style="font-size:17px;">
+                    📊 每日总计 <span class="badge" style="background:#dbeafe;color:#1e40af;">All Staff</span>
+                </div>
+                <div class="result-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+                    <div class="result-item" style="background:#ffffff;">
+                        <div class="number ft" id="totalFT">0</div>
+                        <div class="label"><span class="icon">🏢</span> 全职</div>
+                    </div>
+                    <div class="result-item" style="background:#ffffff;">
+                        <div class="number pt" id="totalPT">0</div>
+                        <div class="label"><span class="icon">🕐</span> 兼职</div>
+                    </div>
+                    <div class="result-item" style="background:#ffffff;">
+                        <div class="number total-num" id="totalAllStaff">0</div>
+                        <div class="label"><span class="icon">👥</span> 总人数</div>
+                    </div>
+                    <div class="result-item" style="background:#ffffff;">
+                        <div class="number total-num" id="totalAllHours" style="font-size:24px;">0</div>
+                        <div class="label"><span class="icon">⏱</span> 每日总工时 (h)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 新增：本月人力需求卡片 (跨两列) -->
+            <div class="result-card card-monthly" style="grid-column: 1 / -1;">
+                <div class="card-title">
+                    📅 本月人力需求 <span class="badge" style="background:#bbf7d0;color:#166534;">2026年6月 · 全职扣休</span>
+                </div>
+                <div class="result-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+                    <div class="result-item">
+                        <div class="number ft" id="monthFT">0</div>
+                        <div class="label"><span class="icon">🏢</span> 全职 (本月)</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number pt" id="monthPT">0</div>
+                        <div class="label"><span class="icon">🕐</span> 兼职 (本月)</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number total-num" id="monthTotalStaff">0</div>
+                        <div class="label"><span class="icon">👥</span> 总人数</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="number total-num" id="monthTotalHours" style="font-size:24px;">0</div>
+                        <div class="label"><span class="icon">⏱</span> 月总工时 (h)</div>
+                    </div>
+                </div>
+                <div style="margin-top:14px;font-size:13px;color:#475569;text-align:center;background:#ffffff;border-radius:10px;padding:8px 12px;border:1px solid #dcfce7;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 20px;">
+                    <span>📆 全职工作 <strong id="monthFTDays">26</strong> 天 (每月休 <span id="monthRestDaysDisplay">4</span> 天)</span>
+                    <span>🔄 兼职工作 <strong id="monthPTDays">30</strong> 天 (无休)</span>
+                    <span>⚙️ 基于每日总工时 <strong id="monthDailyBase">0</strong> h</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            ⚙️ 可编辑所有数字 · 数据实时更新 · 全职休息天数自动折算为月度工作天数
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ---------- 全屏功能 ----------
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+            function updateFullscreenButton() {
+                if (document.fullscreenElement) {
+                    fullscreenBtn.textContent = '⛶ 退出全屏';
+                } else {
+                    fullscreenBtn.textContent = '⛶ 全屏';
+                }
+            }
+
+            fullscreenBtn.addEventListener('click', function() {
+                if (document.fullscreenElement) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen().catch(err => {
+                            console.warn('退出全屏失败', err);
+                        });
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                } else {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) {
+                        el.requestFullscreen().catch(err => {
+                            console.warn('全屏请求失败', err);
+                        });
+                    } else if (el.webkitRequestFullscreen) {
+                        el.webkitRequestFullscreen();
+                    } else if (el.mozRequestFullScreen) {
+                        el.mozRequestFullScreen();
+                    } else if (el.msRequestFullscreen) {
+                        el.msRequestFullscreen();
+                    }
+                }
+            });
+
+            // 监听全屏变化事件
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+            document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+            document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+
+            // 初始化按钮状态
+            updateFullscreenButton();
+
+            // ---------- 排班计算逻辑 ----------
+            // DOM 引用
+            const inputs = document.querySelectorAll('.staff-input');
+            const totalCells = [
+                document.getElementById('totalCol0'),
+                document.getElementById('totalCol1'),
+                document.getElementById('totalCol2'),
+                document.getElementById('totalCol3'),
+                document.getElementById('totalCol4')
+            ];
+
+            const ftInput = document.getElementById('ftHours');
+            const ptInput = document.getElementById('ptHours');
+            const monthDaysInput = document.getElementById('monthDays');
+            const restDaysInput = document.getElementById('restDaysPerWeek');
+
+            // 每日结果
+            const supFT = document.getElementById('supFT');
+            const supPT = document.getElementById('supPT');
+            const supTotal = document.getElementById('supTotal');
+            const supHours = document.getElementById('supHours');
+
+            const clnFT = document.getElementById('clnFT');
+            const clnPT = document.getElementById('clnPT');
+            const clnTotal = document.getElementById('clnTotal');
+            const clnHours = document.getElementById('clnHours');
+
+            const totalFT = document.getElementById('totalFT');
+            const totalPT = document.getElementById('totalPT');
+            const totalAllStaff = document.getElementById('totalAllStaff');
+            const totalAllHours = document.getElementById('totalAllHours');
+
+            // 月度结果
+            const monthFT = document.getElementById('monthFT');
+            const monthPT = document.getElementById('monthPT');
+            const monthTotalStaff = document.getElementById('monthTotalStaff');
+            const monthTotalHours = document.getElementById('monthTotalHours');
+            const monthFTDays = document.getElementById('monthFTDays');
+            const monthPTDays = document.getElementById('monthPTDays');
+            const monthRestDaysDisplay = document.getElementById('monthRestDaysDisplay');
+            const monthDailyBase = document.getElementById('monthDailyBase');
+
+            // 时段小时数
+            const HOURS_PER_SLOT = [2, 2, 5, 4, 2];
+
+            // 读取所有输入数据
+            function getData() {
+                const supervisor = [];
+                const cleaner = [];
+                inputs.forEach(inp => {
+                    const val = parseInt(inp.value, 10);
+                    const num = isNaN(val) ? 0 : Math.max(0, val);
+                    if (inp.dataset.role === 'supervisor') {
+                        supervisor[parseInt(inp.dataset.col, 10)] = num;
+                    } else if (inp.dataset.role === 'cleaner') {
+                        cleaner[parseInt(inp.dataset.col, 10)] = num;
+                    }
+                });
+                return { supervisor, cleaner };
+            }
+
+            // 计算各岗位工时 (每日)
+            function calcHours(data) {
+                const supHoursTotal = data.supervisor.reduce((sum, v, i) => sum + v * HOURS_PER_SLOT[i], 0);
+                const clnHoursTotal = data.cleaner.reduce((sum, v, i) => sum + v * HOURS_PER_SLOT[i], 0);
+                return { supHoursTotal, clnHoursTotal };
+            }
+
+            // 计算全职/兼职人数 (每日)
+            function calcStaff(hoursTotal, ftDaily, ptDaily) {
+                if (ftDaily <= 0 || ptDaily <= 0 || hoursTotal <= 0) {
+                    return { ft: 0, pt: 0 };
+                }
+                let ft = Math.floor(hoursTotal / ftDaily);
+                let remaining = hoursTotal - ft * ftDaily;
+                let pt = 0;
+                if (remaining > 0) {
+                    pt = Math.ceil(remaining / ptDaily);
+                }
+                if (hoursTotal < ftDaily && hoursTotal > 0) {
+                    ft = 0;
+                    pt = Math.ceil(hoursTotal / ptDaily);
+                }
+                return { ft, pt };
+            }
+
+            // 更新所有结果
+            function updateResults() {
+                const data = getData();
+                const { supHoursTotal, clnHoursTotal } = calcHours(data);
+                const dailyTotal = supHoursTotal + clnHoursTotal;
+
+                const ftDaily = parseFloat(ftInput.value) || 8;
+                const ptDaily = parseFloat(ptInput.value) || 4;
+                const monthDays = parseInt(monthDaysInput.value, 10) || 30;
+                const restPerWeek = parseInt(restDaysInput.value, 10) || 1;
+
+                // 安全值
+                const safeFt = Math.max(0.5, ftDaily);
+                const safePt = Math.max(0.5, ptDaily);
+
+                // ----- 每日计算 -----
+                const supStaff = calcStaff(supHoursTotal, safeFt, safePt);
+                const clnStaff = calcStaff(clnHoursTotal, safeFt, safePt);
+
+                supFT.textContent = supStaff.ft;
+                supPT.textContent = supStaff.pt;
+                supTotal.textContent = supStaff.ft + supStaff.pt;
+                supHours.textContent = supHoursTotal;
+
+                clnFT.textContent = clnStaff.ft;
+                clnPT.textContent = clnStaff.pt;
+                clnTotal.textContent = clnStaff.ft + clnStaff.pt;
+                clnHours.textContent = clnHoursTotal;
+
+                const totalFt = supStaff.ft + clnStaff.ft;
+                const totalPt = supStaff.pt + clnStaff.pt;
+                totalFT.textContent = totalFt;
+                totalPT.textContent = totalPt;
+                totalAllStaff.textContent = totalFt + totalPt;
+                totalAllHours.textContent = dailyTotal;
+
+                // 更新合计行
+                for (let i = 0; i < 5; i++) {
+                    const supVal = data.supervisor[i] || 0;
+                    const clnVal = data.cleaner[i] || 0;
+                    totalCells[i].textContent = supVal + clnVal;
+                }
+
+                // ----- 月度计算 (全职扣休) -----
+                const fullWeeks = Math.floor(monthDays / 7);
+                const restDaysTotal = fullWeeks * restPerWeek;
+                const ftWorkDays = Math.max(0, monthDays - restDaysTotal);
+                const ptWorkDays = monthDays; // 兼职不休假
+
+                const monthlyTotalHours = dailyTotal * monthDays;
+
+                const ftMonthlyHours = safeFt * ftWorkDays;
+                const ptMonthlyHours = safePt * ptWorkDays;
+
+                let ftCount = 0;
+                let ptCount = 0;
+
+                if (ftMonthlyHours > 0 && monthlyTotalHours > 0) {
+                    ftCount = Math.floor(monthlyTotalHours / ftMonthlyHours);
+                    let rem = monthlyTotalHours - ftCount * ftMonthlyHours;
+                    if (rem > 0 && ptMonthlyHours > 0) {
+                        ptCount = Math.ceil(rem / ptMonthlyHours);
+                    }
+                    if (monthlyTotalHours < ftMonthlyHours && monthlyTotalHours > 0) {
+                        ftCount = 0;
+                        if (ptMonthlyHours > 0) {
+                            ptCount = Math.ceil(monthlyTotalHours / ptMonthlyHours);
+                        }
+                    }
+                } else if (ptMonthlyHours > 0 && monthlyTotalHours > 0) {
+                    ptCount = Math.ceil(monthlyTotalHours / ptMonthlyHours);
+                }
+
+                if (monthlyTotalHours === 0) {
+                    ftCount = 0;
+                    ptCount = 0;
+                }
+
+                monthFT.textContent = ftCount;
+                monthPT.textContent = ptCount;
+                monthTotalStaff.textContent = ftCount + ptCount;
+                monthTotalHours.textContent = monthlyTotalHours;
+
+                monthFTDays.textContent = ftWorkDays;
+                monthPTDays.textContent = ptWorkDays;
+                monthRestDaysDisplay.textContent = restDaysTotal;
+                monthDailyBase.textContent = dailyTotal;
+
+                // 淡入动画
+                document.querySelectorAll('.result-item .number').forEach(el => {
+                    el.classList.remove('fade-in');
+                    void el.offsetWidth;
+                    el.classList.add('fade-in');
+                });
+            }
+
+            // 绑定事件
+            inputs.forEach(inp => {
+                inp.addEventListener('input', updateResults);
+                inp.addEventListener('change', function() {
+                    let val = parseInt(this.value, 10);
+                    if (isNaN(val) || val < 0) this.value = 0;
+                    if (val > 99) this.value = 99;
+                    updateResults();
+                });
+            });
+
+            [ftInput, ptInput, monthDaysInput, restDaysInput].forEach(inp => {
+                inp.addEventListener('input', updateResults);
+                inp.addEventListener('change', function() {
+                    let val = parseFloat(this.value);
+                    if (isNaN(val) || val < 0) this.value = 0;
+                    if (this.id === 'ftHours' && val > 24) this.value = 24;
+                    if (this.id === 'ptHours' && val > 12) this.value = 12;
+                    if (this.id === 'monthDays' && val > 31) this.value = 31;
+                    if (this.id === 'monthDays' && val < 28) this.value = 28;
+                    if (this.id === 'restDaysPerWeek' && val > 2) this.value = 2;
+                    updateResults();
+                });
+            });
+
+            // 初始化
+            updateResults();
+
+            console.log('🧹 排班人力计算器 · 月度版 已启动 (全职扣休 + 全屏)');
+        })();
+    </script>
+
+</body>
+</html>
