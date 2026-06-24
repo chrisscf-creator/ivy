@@ -112,14 +112,26 @@
             border-radius: 40px;
             font-size: 14px;
             font-weight: 500;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
             color: #1a3a5e;
             white-space: nowrap;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid transparent;
+        }
+        .target-date:hover {
+            background: #e2ebf5;
+            border-color: #b0c8dd;
         }
         .target-date i {
             color: #c44536;
+        }
+        .target-date .edit-hint {
+            font-size: 11px;
+            opacity: 0.5;
+            margin-left: 2px;
         }
         .header-actions {
             display: flex;
@@ -415,7 +427,12 @@
             </span>
         </div>
         <div class="header-actions">
-            <span class="target-date"><i class="fas fa-calendar-check"></i> Target 1 Dec 2025</span>
+            <!-- 可编辑 Target 日期 -->
+            <span class="target-date" id="targetDateBadge" title="点击编辑目标日期">
+                <i class="fas fa-calendar-check"></i>
+                <span id="targetDisplay">Target 1 Dec 2025</span>
+                <i class="fas fa-pen" style="font-size: 10px; opacity:0.4; margin-left:2px;"></i>
+            </span>
             <button class="btn-icon" id="fullscreenBtn"><i class="fas fa-expand"></i> 全屏</button>
             <button class="btn-icon btn-primary" id="pdfBtn"><i class="fas fa-file-pdf"></i> 下载PDF</button>
         </div>
@@ -477,9 +494,10 @@
         // 状态存储
         let doneStatus = {};
 
-        // 招牌编辑
+        // 可编辑字段
         let outletName = 'FR · Vivo City';
         let stallName = '#R04 Koe Koe Ang';
+        let targetDate = 'Target 1 Dec 2025';
 
         // ----- 存储/加载 -----
         function loadStorage() {
@@ -491,13 +509,13 @@
                         doneStatus = parsed;
                     }
                 }
-                // 加载招牌
                 const savedOutlet = localStorage.getItem('setupOutletName');
                 if (savedOutlet) outletName = savedOutlet;
                 const savedStall = localStorage.getItem('setupStallName');
                 if (savedStall) stallName = savedStall;
+                const savedTarget = localStorage.getItem('setupTargetDate');
+                if (savedTarget) targetDate = savedTarget;
             } catch (e) { /* ignore */ }
-            // 确保所有任务有状态
             TASKS.forEach(t => {
                 if (!(t.id in doneStatus)) {
                     doneStatus[t.id] = false;
@@ -509,12 +527,14 @@
             localStorage.setItem('setupProgress_FR_R04', JSON.stringify(doneStatus));
             localStorage.setItem('setupOutletName', outletName);
             localStorage.setItem('setupStallName', stallName);
+            localStorage.setItem('setupTargetDate', targetDate);
         }
 
-        // 更新显示招牌
+        // 更新显示
         function updateBadgeDisplay() {
             document.getElementById('outletDisplay').textContent = outletName;
             document.getElementById('stallDisplay').textContent = stallName;
+            document.getElementById('targetDisplay').textContent = targetDate;
         }
 
         // 切换任务
@@ -525,9 +545,9 @@
             updateProgress();
         }
 
-        // 重置所有任务为未完成 (保留招牌名称)
+        // 重置所有任务为未完成 (保留招牌名称和目标日期)
         function resetAllTasks() {
-            if (confirm('确认重置所有任务为“未完成”吗？\n（招牌名称不会被重置）')) {
+            if (confirm('确认重置所有任务为“未完成”吗？\n（招牌名称和目标日期不会被重置）')) {
                 TASKS.forEach(t => { doneStatus[t.id] = false; });
                 saveStorage();
                 renderTasks();
@@ -630,12 +650,10 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
             btn.disabled = true;
 
-            // 临时隐藏交互元素 (check-btn, reset, fullscreen 等) 在PDF中隐藏
             const checkBtns = document.querySelectorAll('.check-btn');
             const resetBtn = document.getElementById('resetBtn');
             const fsBtn = document.getElementById('fullscreenBtn');
             const pdfBtn = document.getElementById('pdfBtn');
-            // 隐藏交互元素
             checkBtns.forEach(el => el.style.opacity = '0.3');
             resetBtn.style.display = 'none';
             fsBtn.style.display = 'none';
@@ -650,7 +668,6 @@
             };
 
             html2pdf().set(opt).from(element).save().then(() => {
-                // 恢复
                 checkBtns.forEach(el => el.style.opacity = '1');
                 resetBtn.style.display = '';
                 fsBtn.style.display = '';
@@ -669,14 +686,14 @@
             });
         }
 
-        // 初始化编辑招牌 (点击文字弹出输入)
-        function setupEditableBadge(badgeId, displayId, storageKey, callback) {
-            const badge = document.getElementById(badgeId);
+        // 通用编辑: 点击弹出输入框修改
+        function setupEditable(elementId, displayId, callback) {
+            const element = document.getElementById(elementId);
             const display = document.getElementById(displayId);
-            badge.addEventListener('click', function(e) {
+            element.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const current = display.textContent;
-                const newVal = prompt('编辑招牌名称:', current);
+                const newVal = prompt('编辑内容:', current);
                 if (newVal !== null && newVal.trim() !== '') {
                     callback(newVal.trim());
                     display.textContent = callback(newVal.trim());
@@ -688,36 +705,34 @@
         // 初始化
         function init() {
             loadStorage();
-            // 确保所有任务有状态
             TASKS.forEach(t => {
                 if (!(t.id in doneStatus)) {
                     doneStatus[t.id] = false;
                 }
             });
             saveStorage();
-
-            // 设置招牌显示
             updateBadgeDisplay();
 
             // 编辑招牌
-            setupEditableBadge('outletBadge', 'outletDisplay', 'outletName', (val) => {
+            setupEditable('outletBadge', 'outletDisplay', (val) => {
                 outletName = val;
                 return outletName;
             });
-            setupEditableBadge('stallBadge', 'stallDisplay', 'stallName', (val) => {
+            setupEditable('stallBadge', 'stallDisplay', (val) => {
                 stallName = val;
                 return stallName;
             });
+            // 编辑 Target 日期
+            setupEditable('targetDateBadge', 'targetDisplay', (val) => {
+                targetDate = val;
+                return targetDate;
+            });
 
             renderTasks();
-            // 全屏按钮
             document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-            // PDF
             document.getElementById('pdfBtn').addEventListener('click', exportPDF);
-            // reset - 使用新的重置函数
             document.getElementById('resetBtn').addEventListener('click', resetAllTasks);
 
-            // 监听全屏退出事件
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement) {
                     document.body.classList.remove('fullscreen-mode');
