@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Junction · 每周休一天（周一至周五固定）</title>
+    <title>Food Junction · 公平排班（每周一休）</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -97,8 +97,8 @@
         button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .btn-gen { background: #f39c12; color: white; }
         .btn-gen:hover { background: #e08e0b; }
-        .btn-print { background: #34495e; color: white; }
-        .btn-print:hover { background: #2c3e50; }
+        .btn-pdf { background: #c0392b; color: white; }
+        .btn-pdf:hover { background: #a93226; }
         .btn-fullscreen { background: #8e44ad; color: white; }
         .btn-fullscreen:hover { background: #7d3c98; }
 
@@ -226,12 +226,14 @@
         :-webkit-full-screen .container { max-width: 100%; border-radius: 0; }
         :-moz-full-screen .container { max-width: 100%; border-radius: 0; }
 
+        /* PDF 打印样式 */
         @media print {
             .control-panel, .staff-config, button, h1 small { display: none !important; }
             body { padding: 0; background: white; }
             .container { box-shadow: none; border-radius: 0; padding: 10px; }
-            .shift-select { border: none !important; }
+            .shift-select { border: none !important; appearance: none; -webkit-appearance: none; }
             .table-wrapper { border: 1px solid #ccc; }
+            .shift-select option { color: black; } /* 保证文字可见 */
         }
     </style>
 </head>
@@ -239,7 +241,7 @@
 <div class="container">
     <h1>
         <span>🍔 Food Junction · 公平排班</span>
-        <small>每周一天 · 周一至五固定休</small>
+        <small>每周一休 · 固定日期</small>
     </h1>
 
     <div class="control-panel">
@@ -249,7 +251,7 @@
         </div>
         <div class="btn-group">
             <button class="btn-gen" onclick="generateSmartSchedule()">⚡ 智能排班</button>
-            <button class="btn-print" onclick="window.print()">🖨️ 打印 / PDF</button>
+            <button class="btn-pdf" onclick="generatePDF()">📄 生成 PDF</button>
             <button class="btn-fullscreen" id="fs-btn" onclick="toggleFullScreen()">⛶ 全屏</button>
         </div>
     </div>
@@ -289,6 +291,11 @@
         const btn = document.getElementById('fs-btn');
         btn.textContent = document.fullscreenElement ? "⛶ 退出" : "⛶ 全屏";
     });
+
+    // ----- 生成 PDF（调用打印） -----
+    function generatePDF() {
+        window.print();
+    }
 
     // ----- 统计更新 -----
     function calculateMonthlyStats() {
@@ -419,7 +426,6 @@
             }
 
             // 2.5 公平分配 (优先M，再MM，最后A，且避免A后接M)
-            // 排序：M 优先，MM 次之，A 最后
             const sortedShifts = requiredShifts.slice().sort((a, b) => {
                 if (a === 'M') return -1;
                 if (b === 'M') return 1;
@@ -430,7 +436,6 @@
 
             sortedShifts.forEach(shift => {
                 let bestIdx = -1, minCount = Infinity;
-                // 过滤：M不能接在A之后
                 const candidates = available.filter(idx => {
                     if (shift === 'M' && prevShift[idx] === 'A') return false;
                     return true;
@@ -439,7 +444,6 @@
                     // 如果没有符合条件的，则全部可用
                     candidates.push(...available);
                 }
-                // 选累计次数最少的
                 candidates.forEach(idx => {
                     if (counter[idx][shift] < minCount) {
                         minCount = counter[idx][shift];
