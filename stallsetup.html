@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档口 Setup · 进度管理</title>
+    <!-- Font Awesome (icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- html2pdf (for PDF export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: #f4f7fc;
+            padding: 24px;
+            color: #1e2b3c;
+            transition: background 0.2s;
+        }
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* header */
+        .header-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px 28px;
+            box-shadow: 0 8px 20px rgba(0,20,50,0.04);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            border: 1px solid #e9edf4;
+            gap: 12px 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px 16px;
+            flex-wrap: wrap;
+            flex: 1 1 300px;
+        }
+        .header-left h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge-outlet {
+            background: #0b2b4a;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-outlet i {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .editable-badge {
+            background: #0b2b4a;
+            color: white;
+            padding: 4px 12px 4px 16px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .editable-badge:hover {
+            background: #1a4060;
+        }
+        .editable-badge i {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        .editable-badge-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px dashed rgba(255,255,255,0.5);
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            padding: 2px 4px;
+            min-width: 80px;
+            outline: none;
+        }
+        .editable-badge-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .target-date {
+            background: #eef3fa;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1a3a5e;
+            white-space: nowrap;
+        }
+        .target-date i {
+            color: #c44536;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-icon {
+            background: white;
+            border: 1px solid #d0d9e6;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 13px;
+            color: #1e3a5f;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.15s;
+            background: #f8faff;
+        }
+        .btn-icon:hover {
+            background: #e6eefa;
+            border-color: #a0b6d0;
+        }
+        .btn-icon i {
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #0b2b4a;
+            border-color: #0b2b4a;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1a4060;
+            border-color: #1a4060;
+        }
+
+        /* progress */
+        .progress-strip {
+            background: white;
+            border-radius: 20px;
+            padding: 14px 24px;
+            margin-bottom: 28px;
+            border: 1px solid #e9edf4;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+        .progress-strip .stat {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .stat .num {
+            font-weight: 700;
+            font-size: 22px;
+            color: #0b2b4a;
+        }
+        .stat .label {
+            color: #5e6f88;
+            font-size: 14px;
+        }
+        .progress-bar-bg {
+            flex: 1;
+            min-width: 140px;
+            height: 8px;
+            background: #e1e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #1f7b4d;
+            border-radius: 20px;
+            transition: width 0.2s;
+        }
+
+        /* task grid */
+        .task-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .task-row {
+            background: white;
+            border-radius: 18px;
+            padding: 14px 20px 14px 24px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 16px;
+            border: 1px solid #eaedf3;
+            transition: 0.12s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.01);
+        }
+        .task-row:hover {
+            border-color: #bccbde;
+            background: #fafcff;
+        }
+        .task-index {
+            font-weight: 600;
+            color: #7b8aa0;
+            font-size: 14px;
+            min-width: 32px;
+        }
+        .task-content {
+            flex: 3;
+            min-width: 200px;
+        }
+        .task-title {
+            font-weight: 500;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+        }
+        .task-title .en {
+            color: #1c2f44;
+        }
+        .task-title .zh {
+            color: #5e6f88;
+            font-weight: 400;
+            font-size: 14px;
+        }
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 20px;
+            margin-top: 4px;
+            font-size: 13px;
+            color: #3e5a77;
+        }
+        .task-meta i {
+            width: 16px;
+            color: #6f87a3;
+        }
+        .no-required {
+            background: #f1f4f9;
+            color: #6e7f96;
+            font-size: 12px;
+            padding: 2px 12px;
+            border-radius: 40px;
+        }
+        .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+        .status-badge {
+            font-size: 13px;
+            font-weight: 500;
+            padding: 4px 14px;
+            border-radius: 40px;
+            background: #eef2f8;
+            color: #2a405b;
+            white-space: nowrap;
+        }
+        .status-badge.done {
+            background: #d7ede3;
+            color: #0d5a34;
+        }
+        .status-badge.pending {
+            background: #fff1e0;
+            color: #a6572a;
+        }
+        .status-badge.na {
+            background: #e9eef4;
+            color: #6a7e99;
+        }
+        .check-btn {
+            background: transparent;
+            border: 2px solid #cbd6e5;
+            width: 34px;
+            height: 34px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #7b8fa8;
+            font-size: 16px;
+            transition: 0.1s;
+        }
+        .check-btn:hover {
+            border-color: #1f7b4d;
+            background: #eafff2;
+            color: #1f7b4d;
+        }
+        .check-btn.done {
+            background: #1f7b4d;
+            border-color: #1f7b4d;
+            color: white;
+        }
+        .check-btn.done:hover {
+            background: #14633b;
+        }
+
+        /* responsive */
+        @media (max-width: 700px) {
+            .task-row {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 16px;
+            }
+            .task-actions {
+                margin-left: 0;
+                justify-content: flex-start;
+            }
+            .header-left {
+                width: 100%;
+            }
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+
+        .footer-note {
+            margin-top: 28px;
+            font-size: 13px;
+            color: #5f748d;
+            background: white;
+            padding: 16px 24px;
+            border-radius: 40px;
+            border: 1px solid #e2e9f2;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .reset-btn {
+            background: none;
+            border: none;
+            color: #4f6f8f;
+            text-decoration: underline dotted;
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 20px;
+            transition: 0.1s;
+        }
+        .reset-btn:hover {
+            background: #f0f4fa;
+            color: #1a3a5e;
+        }
+
+        /* fullscreen class */
+        body.fullscreen-mode {
+            padding: 12px;
+            background: #f0f4fa;
+        }
+        body.fullscreen-mode .app-container {
+            max-width: 100%;
+        }
+        /* PDF export quality */
+        @media print {
+            body { padding: 0.3in; }
+            .header-card { box-shadow: none; border: 1px solid #ccc; }
+            .task-row { break-inside: avoid; }
+            .btn-icon, .check-btn, .reset-btn { display: none !important; }
+            .header-actions .btn-icon { display: none !important; }
+            .editable-badge i { display: none; }
+            .no-required { background: #eee; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="app">
+    <!-- header -->
+    <div class="header-card" id="headerCard">
+        <div class="header-left">
+            <h1><i class="fas fa-utensils" style="color: #c44536; margin-right: 6px;"></i>Setup 看板</h1>
+            <!-- 可编辑招牌：Vivo City -->
+            <span class="editable-badge" id="outletBadge" title="点击编辑商场名称">
+                <i class="fas fa-store"></i>
+                <span id="outletDisplay">FR · Vivo City</span>
+                <i class="fas fa-pen" style="font-size: 11px; opacity:0.6;"></i>
+            </span>
+            <!-- 可编辑 stall name -->
+            <span class="editable-badge" id="stallBadge" title="点击编辑档口名称" style="background:#1f4b6e;">
+                <i class="fas fa-tag"></i>
+                <span id="stallDisplay">#R04 Koe Koe Ang</span>
+                <i class="fas fa-pen" style="font-size: 11px; opacity:0.6;"></i>
+            </span>
+        </div>
+        <div class="header-actions">
+            <span class="target-date"><i class="fas fa-calendar-check"></i> Target 1 Dec 2025</span>
+            <button class="btn-icon" id="fullscreenBtn"><i class="fas fa-expand"></i> 全屏</button>
+            <button class="btn-icon btn-primary" id="pdfBtn"><i class="fas fa-file-pdf"></i> 下载PDF</button>
+        </div>
+    </div>
+
+    <!-- progress -->
+    <div class="progress-strip">
+        <div class="stat"><span class="num" id="doneCount">0</span> <span class="label">/ 25 完成</span></div>
+        <div class="stat"><span class="num" id="progressPercent">0</span><span class="label">%</span></div>
+        <div class="progress-bar-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div style="display: flex; gap: 12px; font-size:13px; color:#2d4d6e;">
+            <span><i class="fas fa-check-circle" style="color:#1f7b4d;"></i> 完成</span>
+            <span><i class="fas fa-hourglass-half" style="color:#b1642a;"></i> 待办</span>
+        </div>
+    </div>
+
+    <!-- task list -->
+    <div class="task-grid" id="taskGrid"></div>
+
+    <!-- footer -->
+    <div class="footer-note">
+        <span><i class="fas fa-sync-alt"></i> 点击 <strong>⭕</strong> 切换完成状态 · 基于 FR Vivo City R04 流程</span>
+        <span><i class="far fa-clock"></i> 自动保存进度 (localStorage)</span>
+        <button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> 重置所有任务</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----- 原始任务数据 (从excel提取, 共25项, 含安装) -----
+        const TASKS = [
+            { id: 1, en: 'Booking Form Approved / Set up Group chat', zh: '预订表格批准 / 建立群聊', pic: 'Leasing' },
+            { id: 2, en: 'Prepare LA', zh: '准备租赁协议', pic: 'Admin' },
+            { id: 3, en: 'Collection of Balance SD/ Upfront Entrance Fee', zh: '收取剩余保证金 / 预付入场费', pic: 'Leasing' },
+            { id: 4, en: 'Signing of LA', zh: '签署租赁协议', pic: 'Leasing' },
+            { id: 5, en: 'JRF - Compile Proposed Menu, 5 items photoshooting, Logo', zh: '整理菜单、拍摄、标志', pic: 'Ops' },
+            { id: 6, en: 'Arrange Kitchen Layout / M&E drawing', zh: '安排厨房布局 / 机电图纸', pic: 'Ops' },
+            { id: 7, en: 'Approval Kitchen Layout / M&E / Exhaust / Equip Spec', zh: '审批厨房布局/机电/排风', pic: 'Project' },
+            { id: 8, en: 'Photoshooting Arrangement', zh: '安排拍摄', pic: 'Branding' },
+            { id: 9, en: 'Prepare of Signage Artwork', zh: '准备招牌设计稿', pic: 'Branding' },
+            { id: 10, en: 'Prepare of Menu / TM/ Media Clipping Artwork', zh: '准备菜单/商标/媒体稿', pic: 'Branding' },
+            { id: 11, en: 'Tenant to review Menu / TM / Signage Artwork', zh: '租户审核菜单/商标/招牌', pic: 'Tenant/Ops' },
+            { id: 12, en: 'Melamine/ Takeaway packaging order', zh: '订购密胺餐具 / 外带包装', pic: 'Ops/Tenant' },
+            { id: 13, en: 'Equipment Fabrication (Overseas)', zh: '设备制作（海外）', pic: 'Tenant' },
+            { id: 14, en: 'SFA / Gas/ Stamp Duty Application', zh: '申请 SFA / 燃气 / 印花税', pic: 'Tenant' },
+            { id: 15, en: 'SFA Approval', zh: 'SFA 审批通过', pic: 'Tenant' },
+            { id: 16, en: 'Installation 安装工程', zh: '安装工程', pic: 'Install' },
+            { id: 17, en: 'Touch Up/ Reinstatement work', zh: '修补 / 复原工程', pic: 'Project/Ops', notRequired: true },
+            { id: 18, en: 'Equipment Shift In', zh: '设备进场', pic: 'Tenant/Ops' },
+            { id: 19, en: 'Electrical 电力工程', zh: '电力工程', pic: 'Project/Ops' },
+            { id: 20, en: 'Gas Meter / Gas Pipe Connection', zh: '燃气表 / 燃气管道', pic: 'Project/Ops', notRequired: true },
+            { id: 21, en: 'Plumbing work', zh: '给排水工程', pic: 'Project/Ops/Tenant' },
+            { id: 22, en: 'Additional Exhaust Hood/ Grille or Power Upgrade', zh: '额外排风罩/格栅/电力升级', pic: 'Project/Ops', notRequired: true },
+            { id: 23, en: 'Signage 招牌安装', zh: '招牌安装', pic: 'Branding' },
+            { id: 24, en: 'Menu / Table Menu/ Media clipping', zh: '菜单 / 桌面菜单 / 媒体', pic: 'Branding' },
+            { id: 25, en: 'POS Programing', zh: 'POS 系统编程', pic: 'Ops' }
+        ];
+
+        // 状态存储
+        let doneStatus = {};
+
+        // 招牌编辑
+        let outletName = 'FR · Vivo City';
+        let stallName = '#R04 Koe Koe Ang';
+
+        // ----- 存储/加载 -----
+        function loadStorage() {
+            try {
+                const raw = localStorage.getItem('setupProgress_FR_R04');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        doneStatus = parsed;
+                    }
+                }
+                // 加载招牌
+                const savedOutlet = localStorage.getItem('setupOutletName');
+                if (savedOutlet) outletName = savedOutlet;
+                const savedStall = localStorage.getItem('setupStallName');
+                if (savedStall) stallName = savedStall;
+            } catch (e) { /* ignore */ }
+            // 确保所有任务有状态
+            TASKS.forEach(t => {
+                if (!(t.id in doneStatus)) {
+                    doneStatus[t.id] = false;
+                }
+            });
+        }
+
+        function saveStorage() {
+            localStorage.setItem('setupProgress_FR_R04', JSON.stringify(doneStatus));
+            localStorage.setItem('setupOutletName', outletName);
+            localStorage.setItem('setupStallName', stallName);
+        }
+
+        // 更新显示招牌
+        function updateBadgeDisplay() {
+            document.getElementById('outletDisplay').textContent = outletName;
+            document.getElementById('stallDisplay').textContent = stallName;
+        }
+
+        // 切换任务
+        function toggleTask(id) {
+            doneStatus[id] = !doneStatus[id];
+            saveStorage();
+            renderTasks();
+            updateProgress();
+        }
+
+        // 重置所有任务为未完成 (保留招牌名称)
+        function resetAllTasks() {
+            if (confirm('确认重置所有任务为“未完成”吗？\n（招牌名称不会被重置）')) {
+                TASKS.forEach(t => { doneStatus[t.id] = false; });
+                saveStorage();
+                renderTasks();
+                updateProgress();
+            }
+        }
+
+        // 进度
+        function updateProgress() {
+            const total = TASKS.length;
+            let doneCount = 0;
+            TASKS.forEach(t => {
+                if (doneStatus[t.id] === true) doneCount++;
+            });
+            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+            document.getElementById('doneCount').innerText = doneCount;
+            document.getElementById('progressPercent').innerText = pct;
+            document.getElementById('progressFill').style.width = pct + '%';
+        }
+
+        // 渲染任务
+        function renderTasks() {
+            const grid = document.getElementById('taskGrid');
+            grid.innerHTML = '';
+            TASKS.forEach((task, idx) => {
+                const isDone = doneStatus[task.id] === true;
+                const isNA = task.notRequired || false;
+
+                const row = document.createElement('div');
+                row.className = 'task-row';
+
+                const idxSpan = document.createElement('span');
+                idxSpan.className = 'task-index';
+                idxSpan.textContent = (idx+1).toString().padStart(2, '0');
+                row.appendChild(idxSpan);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'task-content';
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'task-title';
+                titleDiv.innerHTML = `<span class="en">${task.en}</span> <span class="zh">${task.zh}</span>`;
+                contentDiv.appendChild(titleDiv);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'task-meta';
+                metaDiv.innerHTML = `<i class="fas fa-user-circle"></i> ${task.pic}`;
+                if (isNA) {
+                    metaDiv.innerHTML += ` <span class="no-required"><i class="fas fa-minus-circle"></i> Not Required</span>`;
+                }
+                contentDiv.appendChild(metaDiv);
+                row.appendChild(contentDiv);
+
+                const actions = document.createElement('div');
+                actions.className = 'task-actions';
+
+                const statusSpan = document.createElement('span');
+                statusSpan.className = `status-badge ${isDone ? 'done' : 'pending'}`;
+                statusSpan.innerHTML = isDone ? '<i class="fas fa-check"></i> 完成' : '<i class="fas fa-clock"></i> 待办';
+                if (isNA) {
+                    statusSpan.className = 'status-badge na';
+                    statusSpan.innerHTML = '<i class="fas fa-ban"></i> 不适用';
+                }
+                actions.appendChild(statusSpan);
+
+                const checkBtn = document.createElement('button');
+                checkBtn.className = `check-btn ${isDone ? 'done' : ''}`;
+                checkBtn.innerHTML = isDone ? '<i class="fas fa-check"></i>' : '<i class="far fa-circle"></i>';
+                checkBtn.setAttribute('aria-label', '切换完成状态');
+                checkBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleTask(task.id);
+                });
+                actions.appendChild(checkBtn);
+                row.appendChild(actions);
+                grid.appendChild(row);
+            });
+            updateProgress();
+        }
+
+        // 全屏切换
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert('无法进入全屏模式: ' + err.message);
+                });
+                document.body.classList.add('fullscreen-mode');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    document.body.classList.remove('fullscreen-mode');
+                }
+            }
+        }
+
+        // PDF 导出 (使用 html2pdf)
+        function exportPDF() {
+            const element = document.getElementById('app');
+            const btn = document.getElementById('pdfBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            btn.disabled = true;
+
+            // 临时隐藏交互元素 (check-btn, reset, fullscreen 等) 在PDF中隐藏
+            const checkBtns = document.querySelectorAll('.check-btn');
+            const resetBtn = document.getElementById('resetBtn');
+            const fsBtn = document.getElementById('fullscreenBtn');
+            const pdfBtn = document.getElementById('pdfBtn');
+            // 隐藏交互元素
+            checkBtns.forEach(el => el.style.opacity = '0.3');
+            resetBtn.style.display = 'none';
+            fsBtn.style.display = 'none';
+            pdfBtn.style.display = 'none';
+
+            const opt = {
+                margin:        [0.5, 0.5, 0.5, 0.5],
+                filename:     `Setup_Progress_${outletName.replace(/\s/g,'_')}_${stallName.replace(/\s/g,'_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // 恢复
+                checkBtns.forEach(el => el.style.opacity = '1');
+                resetBtn.style.display = '';
+                fsBtn.style.display = '';
+                pdfBtn.style.display = '';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error(err);
+                checkBtns.forEach(el => el.style.opacity = '1');
+                resetBtn.style.display = '';
+                fsBtn.style.display = '';
+                pdfBtn.style.display = '';
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('PDF 导出失败: ' + err.message);
+            });
+        }
+
+        // 初始化编辑招牌 (点击文字弹出输入)
+        function setupEditableBadge(badgeId, displayId, storageKey, callback) {
+            const badge = document.getElementById(badgeId);
+            const display = document.getElementById(displayId);
+            badge.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const current = display.textContent;
+                const newVal = prompt('编辑招牌名称:', current);
+                if (newVal !== null && newVal.trim() !== '') {
+                    callback(newVal.trim());
+                    display.textContent = callback(newVal.trim());
+                    saveStorage();
+                }
+            });
+        }
+
+        // 初始化
+        function init() {
+            loadStorage();
+            // 确保所有任务有状态
+            TASKS.forEach(t => {
+                if (!(t.id in doneStatus)) {
+                    doneStatus[t.id] = false;
+                }
+            });
+            saveStorage();
+
+            // 设置招牌显示
+            updateBadgeDisplay();
+
+            // 编辑招牌
+            setupEditableBadge('outletBadge', 'outletDisplay', 'outletName', (val) => {
+                outletName = val;
+                return outletName;
+            });
+            setupEditableBadge('stallBadge', 'stallDisplay', 'stallName', (val) => {
+                stallName = val;
+                return stallName;
+            });
+
+            renderTasks();
+            // 全屏按钮
+            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+            // PDF
+            document.getElementById('pdfBtn').addEventListener('click', exportPDF);
+            // reset - 使用新的重置函数
+            document.getElementById('resetBtn').addEventListener('click', resetAllTasks);
+
+            // 监听全屏退出事件
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    document.body.classList.remove('fullscreen-mode');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
+</script>
+</body>
+</html>
