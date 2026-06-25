@@ -1,747 +1,1781 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>档口 Setup · 进度管理</title>
-    <!-- Font Awesome (icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- html2pdf (for PDF export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Setup 进度管理 · 专业版</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    </script>
     <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --bg-body: #f0f4fb;
+            --bg-card: #ffffff;
+            --bg-header: #ffffff;
+            --bg-task: #ffffff;
+            --bg-task-hover: #f8faff;
+            --bg-progress: #ffffff;
+            --bg-footer: #ffffff;
+            --text-primary: #0b2b4a;
+            --text-secondary: #2d4d6e;
+            --text-muted: #6a7e99;
+            --text-light: #8a9bb5;
+            --border-color: #e2e8f0;
+            --shadow-card: 0 8px 28px rgba(0, 20, 50, 0.06);
+            --shadow-task: 0 2px 8px rgba(0, 0, 0, 0.02);
+            --radius-card: 20px;
+            --radius-task: 14px;
+            --color-primary: #0b2b4a;
+            --color-primary-light: #1a4060;
+            --color-accent: #c44536;
+            --color-success: #1f7b4d;
+            --color-success-bg: #d7ede3;
+            --color-pending: #b1642a;
+            --color-pending-bg: #fff1e0;
+            --color-na: #7b8aa0;
+            --color-na-bg: #eef2f8;
+            --transition: 0.2s ease;
+            --font: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+        }
+
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --bg-body: #111827;
+            --bg-card: #1f2937;
+            --bg-header: #1f2937;
+            --bg-task: #1f2937;
+            --bg-task-hover: #2a3a4e;
+            --bg-progress: #1f2937;
+            --bg-footer: #1f2937;
+            --text-primary: #e8edf4;
+            --text-secondary: #b8c9e0;
+            --text-muted: #8a9bb5;
+            --text-light: #6a7e99;
+            --border-color: #374151;
+            --shadow-card: 0 8px 28px rgba(0, 0, 0, 0.3);
+            --shadow-task: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --color-primary: #2a5a7a;
+            --color-primary-light: #3a7a9a;
+            --color-success: #3a9a6a;
+            --color-success-bg: #1a3a2a;
+            --color-pending: #d48a4a;
+            --color-pending-bg: #3a2a1a;
+            --color-na: #6a7e99;
+            --color-na-bg: #2a3a4a;
+        }
+
+        /* ===== Reset & Base ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
         }
         body {
-            background: #f4f7fc;
-            padding: 24px;
-            color: #1e2b3c;
-            transition: background 0.2s;
+            background: var(--bg-body);
+            padding: 20px;
+            color: var(--text-primary);
+            font-family: var(--font);
+            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
         }
         .app-container {
             max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* header */
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        /* ===== Header ===== */
         .header-card {
-            background: white;
-            border-radius: 24px;
-            padding: 20px 28px;
-            box-shadow: 0 8px 20px rgba(0,20,50,0.04);
+            background: var(--bg-header);
+            border-radius: var(--radius-card);
+            padding: 18px 24px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 28px;
-            border: 1px solid #e9edf4;
             gap: 12px 20px;
+            margin-bottom: 24px;
+            transition: background 0.3s, border-color 0.3s;
         }
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px 16px;
             flex-wrap: wrap;
-            flex: 1 1 300px;
+            gap: 10px 16px;
+            flex: 1 1 260px;
         }
         .header-left h1 {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
             display: flex;
             align-items: center;
             gap: 10px;
+            color: var(--text-primary);
         }
-        .badge-outlet {
-            background: #0b2b4a;
-            color: white;
-            padding: 6px 16px;
+        .header-left h1 i {
+            color: var(--color-accent);
+        }
+        .badge-editable {
+            background: var(--color-primary);
+            color: #fff;
+            padding: 4px 14px 4px 18px;
             border-radius: 40px;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .badge-outlet i {
             font-size: 13px;
-            opacity: 0.8;
-        }
-        .editable-badge {
-            background: #0b2b4a;
-            color: white;
-            padding: 4px 12px 4px 16px;
-            border-radius: 40px;
-            font-size: 14px;
             font-weight: 500;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             border: none;
             cursor: pointer;
-            transition: 0.1s;
+            transition: 0.15s;
+            white-space: nowrap;
         }
-        .editable-badge:hover {
-            background: #1a4060;
+        .badge-editable:hover {
+            background: var(--color-primary-light);
+            transform: translateY(-1px);
         }
-        .editable-badge i {
+        .badge-editable i {
             font-size: 12px;
             opacity: 0.7;
         }
-        .editable-badge-input {
-            background: transparent;
-            border: none;
-            border-bottom: 1px dashed rgba(255,255,255,0.5);
-            color: white;
-            font-weight: 500;
-            font-size: 14px;
-            padding: 2px 4px;
-            min-width: 80px;
-            outline: none;
+        .badge-editable .label {
+            opacity: 0.6;
+            font-weight: 400;
+            margin-right: 2px;
         }
-        .editable-badge-input::placeholder {
-            color: rgba(255,255,255,0.6);
+        .badge-editable.stall {
+            background: #1f4b6e;
+        }
+        .badge-editable.stall:hover {
+            background: #2a5a7a;
+        }
+        .badge-editable.date {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 4px 14px 4px 18px;
+        }
+        .badge-editable.date:hover {
+            background: var(--bg-task-hover);
+            border-color: var(--text-light);
+        }
+        .badge-editable.date i {
+            color: var(--color-accent);
         }
 
-        .target-date {
-            background: #eef3fa;
-            padding: 6px 18px;
-            border-radius: 40px;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #1a3a5e;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: 0.1s;
-            border: 1px solid transparent;
-        }
-        .target-date:hover {
-            background: #e2ebf5;
-            border-color: #b0c8dd;
-        }
-        .target-date i {
-            color: #c44536;
-        }
-        .target-date .edit-hint {
-            font-size: 11px;
-            opacity: 0.5;
-            margin-left: 2px;
-        }
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         .btn-icon {
-            background: white;
-            border: 1px solid #d0d9e6;
-            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 7px 14px;
             border-radius: 40px;
             font-weight: 500;
             font-size: 13px;
-            color: #1e3a5f;
+            color: var(--text-secondary);
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             transition: 0.15s;
-            background: #f8faff;
+            white-space: nowrap;
         }
         .btn-icon:hover {
-            background: #e6eefa;
-            border-color: #a0b6d0;
+            background: var(--bg-task-hover);
+            border-color: var(--text-light);
+        }
+        .btn-icon.primary {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+        }
+        .btn-icon.primary:hover {
+            background: var(--color-primary-light);
+            border-color: var(--color-primary-light);
         }
         .btn-icon i {
             font-size: 14px;
         }
-        .btn-primary {
-            background: #0b2b4a;
-            border-color: #0b2b4a;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #1a4060;
-            border-color: #1a4060;
+        .btn-icon .badge-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0 8px;
+            border-radius: 20px;
+            font-size: 11px;
         }
 
-        /* progress */
+        /* ===== Progress ===== */
         .progress-strip {
-            background: white;
-            border-radius: 20px;
-            padding: 14px 24px;
-            margin-bottom: 28px;
-            border: 1px solid #e9edf4;
+            background: var(--bg-progress);
+            border-radius: 16px;
+            padding: 14px 22px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 18px 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            gap: 14px 28px;
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s, border-color 0.3s;
         }
         .progress-strip .stat {
             display: flex;
             align-items: baseline;
-            gap: 6px;
+            gap: 5px;
         }
         .stat .num {
             font-weight: 700;
-            font-size: 22px;
-            color: #0b2b4a;
+            font-size: 24px;
+            color: var(--text-primary);
         }
         .stat .label {
-            color: #5e6f88;
+            color: var(--text-muted);
             font-size: 14px;
         }
         .progress-bar-bg {
             flex: 1;
-            min-width: 140px;
+            min-width: 120px;
             height: 8px;
-            background: #e1e8f0;
+            background: var(--border-color);
             border-radius: 20px;
             overflow: hidden;
         }
         .progress-fill {
             height: 100%;
             width: 0%;
-            background: #1f7b4d;
+            background: linear-gradient(90deg, var(--color-success), #2e9a6a);
             border-radius: 20px;
-            transition: width 0.2s;
+            transition: width 0.4s ease;
+        }
+        .progress-strip .stats-mini {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .progress-strip .stats-mini span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .stats-mini .dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 10px;
+        }
+        .dot.green {
+            background: var(--color-success);
+        }
+        .dot.orange {
+            background: var(--color-pending);
+        }
+        .dot.gray {
+            background: var(--color-na);
         }
 
-        /* task grid */
-        .task-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-        .task-row {
-            background: white;
-            border-radius: 18px;
-            padding: 14px 20px 14px 24px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px 16px;
-            border: 1px solid #eaedf3;
-            transition: 0.12s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.01);
-        }
-        .task-row:hover {
-            border-color: #bccbde;
-            background: #fafcff;
-        }
-        .task-index {
-            font-weight: 600;
-            color: #7b8aa0;
-            font-size: 14px;
-            min-width: 32px;
-        }
-        .task-content {
-            flex: 3;
-            min-width: 200px;
-        }
-        .task-title {
-            font-weight: 500;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px 10px;
-        }
-        .task-title .en {
-            color: #1c2f44;
-        }
-        .task-title .zh {
-            color: #5e6f88;
-            font-weight: 400;
-            font-size: 14px;
-        }
-        .task-meta {
+        /* ===== Toolbar ===== */
+        .toolbar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 8px 20px;
-            margin-top: 4px;
-            font-size: 13px;
-            color: #3e5a77;
+            gap: 10px 16px;
+            margin-bottom: 20px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 10px 18px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s, border-color 0.3s;
         }
-        .task-meta i {
-            width: 16px;
-            color: #6f87a3;
-        }
-        .no-required {
-            background: #f1f4f9;
-            color: #6e7f96;
-            font-size: 12px;
-            padding: 2px 12px;
+        .toolbar .search-wrap {
+            flex: 1 1 200px;
+            display: flex;
+            align-items: center;
+            background: var(--bg-body);
             border-radius: 40px;
+            padding: 0 14px;
+            border: 1px solid var(--border-color);
+            transition: 0.15s;
         }
-        .task-actions {
+        .toolbar .search-wrap:focus-within {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(11, 43, 74, 0.08);
+        }
+        .search-wrap i {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+        .search-wrap input {
+            border: none;
+            background: transparent;
+            padding: 8px 10px;
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+            color: var(--text-primary);
+        }
+        .search-wrap input::placeholder {
+            color: var(--text-light);
+        }
+        .toolbar .filter-group {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-left: auto;
+            gap: 6px;
             flex-wrap: wrap;
         }
-        .status-badge {
-            font-size: 13px;
-            font-weight: 500;
+        .filter-group .filter-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
             padding: 4px 14px;
             border-radius: 40px;
-            background: #eef2f8;
-            color: #2a405b;
-            white-space: nowrap;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: 0.15s;
+            font-weight: 500;
         }
-        .status-badge.done {
-            background: #d7ede3;
-            color: #0d5a34;
+        .filter-group .filter-btn:hover {
+            border-color: var(--text-light);
+            color: var(--text-primary);
         }
-        .status-badge.pending {
-            background: #fff1e0;
-            color: #a6572a;
+        .filter-group .filter-btn.active {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
         }
-        .status-badge.na {
-            background: #e9eef4;
-            color: #6a7e99;
+        .filter-group .filter-btn.active:hover {
+            background: var(--color-primary-light);
         }
-        .check-btn {
+        .toolbar .group-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
             background: transparent;
-            border: 2px solid #cbd6e5;
-            width: 34px;
-            height: 34px;
+            transition: 0.15s;
+        }
+        .group-toggle:hover {
+            border-color: var(--text-light);
+            color: var(--text-primary);
+        }
+        .group-toggle i {
+            font-size: 14px;
+        }
+        .group-toggle .toggle-track {
+            width: 32px;
+            height: 18px;
+            background: var(--border-color);
+            border-radius: 20px;
+            position: relative;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        .group-toggle .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .group-toggle.active .toggle-track {
+            background: var(--color-primary);
+        }
+        .group-toggle.active .toggle-track::after {
+            left: 16px;
+        }
+
+        /* ===== Task Grid ===== */
+        .task-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* ===== Group ===== */
+        .group-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: var(--shadow-task);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            cursor: pointer;
+            gap: 12px;
+            transition: 0.15s;
+            user-select: none;
+            border-bottom: 1px solid transparent;
+        }
+        .group-header:hover {
+            background: var(--bg-task-hover);
+        }
+        .group-header .group-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .group-header .group-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+        .group-header .group-count {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+        .group-header .group-progress {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .group-header .group-progress .mini-bar {
+            width: 60px;
+            height: 4px;
+            background: var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .group-header .group-progress .mini-bar .fill {
+            height: 100%;
+            background: var(--color-success);
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+        .group-header .group-arrow {
+            color: var(--text-light);
+            transition: transform 0.25s;
+            font-size: 13px;
+        }
+        .group-header.collapsed .group-arrow {
+            transform: rotate(-90deg);
+        }
+        .group-header.collapsed {
+            border-bottom-color: transparent;
+        }
+        .group-body {
+            overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.3s ease;
+            max-height: 9999px;
+            padding: 4px 6px 6px 6px;
+        }
+        .group-body.collapsed {
+            max-height: 0;
+            padding: 0 6px;
+        }
+
+        /* ===== Task Row ===== */
+        .task-row {
+            background: var(--bg-task);
+            border-radius: var(--radius-task);
+            padding: 12px 16px 12px 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            border: 1px solid transparent;
+            transition: 0.15s;
+            margin-bottom: 4px;
+            position: relative;
+        }
+        .task-row:hover {
+            background: var(--bg-task-hover);
+            border-color: var(--border-color);
+        }
+        .task-row .task-index {
+            font-weight: 600;
+            color: var(--text-light);
+            font-size: 13px;
+            min-width: 28px;
+            font-variant-numeric: tabular-nums;
+        }
+        .task-row .task-content {
+            flex: 1;
+            min-width: 180px;
+        }
+        .task-row .task-title {
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 10px;
+            color: var(--text-primary);
+        }
+        .task-row .task-title .en {
+            font-weight: 500;
+        }
+        .task-row .task-title .zh {
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 13px;
+        }
+        .task-row .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 16px;
+            margin-top: 3px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .task-row .task-meta i {
+            width: 14px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+        .task-row .task-meta .dept-tag {
+            background: var(--border-color);
+            padding: 1px 10px;
+            border-radius: 40px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .task-row .task-meta .not-required {
+            background: var(--color-na-bg);
+            color: var(--color-na);
+            padding: 1px 10px;
+            border-radius: 40px;
+            font-size: 11px;
+        }
+        .task-row .task-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .task-row .status-badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 3px 12px;
+            border-radius: 40px;
+            white-space: nowrap;
+            background: var(--color-na-bg);
+            color: var(--text-muted);
+        }
+        .task-row .status-badge.done {
+            background: var(--color-success-bg);
+            color: var(--color-success);
+        }
+        .task-row .status-badge.pending {
+            background: var(--color-pending-bg);
+            color: var(--color-pending);
+        }
+        .task-row .status-badge.na {
+            background: var(--color-na-bg);
+            color: var(--color-na);
+        }
+        .task-row .check-btn {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            width: 32px;
+            height: 32px;
             border-radius: 40px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: #7b8fa8;
-            font-size: 16px;
-            transition: 0.1s;
+            color: var(--text-light);
+            font-size: 15px;
+            transition: 0.15s;
+            flex-shrink: 0;
         }
-        .check-btn:hover {
-            border-color: #1f7b4d;
-            background: #eafff2;
-            color: #1f7b4d;
+        .task-row .check-btn:hover {
+            border-color: var(--color-success);
+            background: var(--color-success-bg);
+            color: var(--color-success);
         }
-        .check-btn.done {
-            background: #1f7b4d;
-            border-color: #1f7b4d;
-            color: white;
+        .task-row .check-btn.done {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: #fff;
         }
-        .check-btn.done:hover {
+        .task-row .check-btn.done:hover {
             background: #14633b;
+            border-color: #14633b;
+        }
+        .task-row .task-time {
+            font-size: 11px;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        .task-row .task-time i {
+            font-size: 11px;
+            margin-right: 3px;
         }
 
-        /* responsive */
-        @media (max-width: 700px) {
-            .task-row {
-                flex-direction: column;
-                align-items: stretch;
-                padding: 16px;
-            }
-            .task-actions {
-                margin-left: 0;
-                justify-content: flex-start;
-            }
-            .header-left {
-                width: 100%;
-            }
-            .header-actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
+        /* ===== Empty State ===== */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border-radius: var(--radius-card);
+            border: 1px solid var(--border-color);
+        }
+        .empty-state i {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+        .empty-state p {
+            font-size: 15px;
         }
 
+        /* ===== Footer ===== */
         .footer-note {
-            margin-top: 28px;
+            margin-top: 24px;
             font-size: 13px;
-            color: #5f748d;
-            background: white;
-            padding: 16px 24px;
+            color: var(--text-muted);
+            background: var(--bg-footer);
+            padding: 14px 22px;
             border-radius: 40px;
-            border: 1px solid #e2e9f2;
+            border: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
+            transition: background 0.3s, border-color 0.3s;
         }
-        .reset-btn {
+        .footer-note .left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .footer-note .right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .footer-note .reset-btn {
             background: none;
             border: none;
-            color: #4f6f8f;
+            color: var(--text-muted);
             text-decoration: underline dotted;
             cursor: pointer;
             font-size: 13px;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 20px;
             transition: 0.1s;
         }
-        .reset-btn:hover {
-            background: #f0f4fa;
-            color: #1a3a5e;
+        .footer-note .reset-btn:hover {
+            background: var(--bg-task-hover);
+            color: var(--text-primary);
+        }
+        .footer-note .key-hint {
+            opacity: 0.5;
+            font-size: 11px;
         }
 
-        /* fullscreen class */
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--color-primary);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: 0.3s ease;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 820px) {
+            body {
+                padding: 12px;
+            }
+            .header-card {
+                padding: 14px 16px;
+            }
+            .header-left h1 {
+                font-size: 18px;
+            }
+            .badge-editable {
+                font-size: 12px;
+                padding: 3px 10px 3px 14px;
+            }
+            .progress-strip {
+                padding: 12px 16px;
+                gap: 10px 16px;
+            }
+            .stat .num {
+                font-size: 20px;
+            }
+            .toolbar {
+                padding: 8px 14px;
+                gap: 8px;
+            }
+            .toolbar .search-wrap {
+                flex: 1 1 140px;
+            }
+            .task-row {
+                padding: 10px 14px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .task-row .task-actions {
+                margin-left: 0;
+                justify-content: flex-start;
+                padding-top: 4px;
+            }
+            .task-row .task-index {
+                min-width: 20px;
+                font-size: 12px;
+            }
+            .group-header {
+                padding: 10px 14px;
+                flex-wrap: wrap;
+            }
+            .group-header .group-progress {
+                margin-left: 0;
+                width: 100%;
+                justify-content: flex-start;
+                padding-top: 4px;
+            }
+            .header-actions .btn-icon span.btn-label {
+                display: none;
+            }
+            .footer-note {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 12px 16px;
+            }
+        }
+        @media (max-width: 480px) {
+            .header-left h1 {
+                font-size: 16px;
+            }
+            .badge-editable {
+                font-size: 11px;
+                padding: 2px 8px 2px 12px;
+            }
+            .progress-strip .stat .num {
+                font-size: 18px;
+            }
+            .filter-group .filter-btn {
+                font-size: 12px;
+                padding: 3px 10px;
+            }
+            .task-row .task-title {
+                font-size: 13px;
+            }
+        }
+
+        /* ===== Fullscreen ===== */
         body.fullscreen-mode {
-            padding: 12px;
-            background: #f0f4fa;
+            padding: 8px;
         }
         body.fullscreen-mode .app-container {
             max-width: 100%;
         }
-        /* PDF export quality */
+
+        /* ===== Print ===== */
         @media print {
-            body { padding: 0.3in; }
-            .header-card { box-shadow: none; border: 1px solid #ccc; }
-            .task-row { break-inside: avoid; }
-            .btn-icon, .check-btn, .reset-btn { display: none !important; }
-            .header-actions .btn-icon { display: none !important; }
-            .editable-badge i { display: none; }
-            .no-required { background: #eee; }
+            body {
+                padding: 0.2in;
+                background: #fff !important;
+            }
+            .header-card,
+            .progress-strip,
+            .task-row,
+            .group-section,
+            .footer-note,
+            .toolbar {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                background: #fff !important;
+            }
+            .btn-icon,
+            .check-btn,
+            .reset-btn,
+            .group-toggle,
+            .filter-btn,
+            .search-wrap {
+                display: none !important;
+            }
+            .group-header .group-arrow {
+                display: none !important;
+            }
+            .group-body {
+                max-height: 9999px !important;
+                padding: 4px 6px 6px 6px !important;
+            }
+            .group-header.collapsed .group-body {
+                max-height: 9999px !important;
+            }
+            .badge-editable i {
+                display: none !important;
+            }
+            .task-row .task-time {
+                display: none !important;
+            }
+            .task-row {
+                break-inside: avoid;
+                border-bottom: 1px solid #eee;
+            }
+            .group-section {
+                break-inside: avoid;
+                margin-bottom: 8px;
+            }
+        }
+
+        /* ===== Animations ===== */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .task-row {
+            animation: fadeInUp 0.25s ease both;
+        }
+        .task-row:nth-child(1) {
+            animation-delay: 0.01s;
+        }
+        .task-row:nth-child(2) {
+            animation-delay: 0.02s;
+        }
+        .task-row:nth-child(3) {
+            animation-delay: 0.03s;
+        }
+        .task-row:nth-child(4) {
+            animation-delay: 0.04s;
+        }
+        .task-row:nth-child(5) {
+            animation-delay: 0.05s;
+        }
+        .task-row:nth-child(6) {
+            animation-delay: 0.06s;
+        }
+        .task-row:nth-child(7) {
+            animation-delay: 0.07s;
+        }
+        .task-row:nth-child(8) {
+            animation-delay: 0.08s;
+        }
+        .task-row:nth-child(9) {
+            animation-delay: 0.09s;
+        }
+        .task-row:nth-child(10) {
+            animation-delay: 0.10s;
+        }
+        .task-row:nth-child(11) {
+            animation-delay: 0.11s;
+        }
+        .task-row:nth-child(12) {
+            animation-delay: 0.12s;
+        }
+        .task-row:nth-child(13) {
+            animation-delay: 0.13s;
+        }
+        .task-row:nth-child(14) {
+            animation-delay: 0.14s;
+        }
+        .task-row:nth-child(15) {
+            animation-delay: 0.15s;
+        }
+        .task-row:nth-child(16) {
+            animation-delay: 0.16s;
+        }
+        .task-row:nth-child(17) {
+            animation-delay: 0.17s;
+        }
+        .task-row:nth-child(18) {
+            animation-delay: 0.18s;
+        }
+        .task-row:nth-child(19) {
+            animation-delay: 0.19s;
+        }
+        .task-row:nth-child(20) {
+            animation-delay: 0.20s;
+        }
+        .task-row:nth-child(21) {
+            animation-delay: 0.21s;
+        }
+        .task-row:nth-child(22) {
+            animation-delay: 0.22s;
+        }
+        .task-row:nth-child(23) {
+            animation-delay: 0.23s;
+        }
+        .task-row:nth-child(24) {
+            animation-delay: 0.24s;
+        }
+        .task-row:nth-child(25) {
+            animation-delay: 0.25s;
         }
     </style>
 </head>
 <body>
-<div class="app-container" id="app">
-    <!-- header -->
-    <div class="header-card" id="headerCard">
-        <div class="header-left">
-            <h1><i class="fas fa-utensils" style="color: #c44536; margin-right: 6px;"></i>Setup 看板</h1>
-            <!-- 可编辑招牌：Vivo City -->
-            <span class="editable-badge" id="outletBadge" title="点击编辑商场名称">
-                <i class="fas fa-store"></i>
-                <span id="outletDisplay">FR · Vivo City</span>
-                <i class="fas fa-pen" style="font-size: 11px; opacity:0.6;"></i>
-            </span>
-            <!-- 可编辑 stall name -->
-            <span class="editable-badge" id="stallBadge" title="点击编辑档口名称" style="background:#1f4b6e;">
-                <i class="fas fa-tag"></i>
-                <span id="stallDisplay">#R04 Koe Koe Ang</span>
-                <i class="fas fa-pen" style="font-size: 11px; opacity:0.6;"></i>
-            </span>
+
+    <div class="app-container" id="app">
+        <!-- ===== HEADER ===== -->
+        <header class="header-card" id="headerCard">
+            <div class="header-left">
+                <h1><i class="fas fa-utensils"></i>Setup 看板</h1>
+                <span class="badge-editable" id="outletBadge" title="点击编辑商场">
+                    <i class="fas fa-store"></i>
+                    <span id="outletDisplay">FR · Vivo City</span>
+                    <i class="fas fa-pen" style="font-size:10px;opacity:0.5;"></i>
+                </span>
+                <span class="badge-editable stall" id="stallBadge" title="点击编辑档口">
+                    <i class="fas fa-tag"></i>
+                    <span id="stallDisplay">#R04 Koe Koe Ang</span>
+                    <i class="fas fa-pen" style="font-size:10px;opacity:0.5;"></i>
+                </span>
+                <span class="badge-editable date" id="targetDateBadge" title="点击编辑目标日期">
+                    <i class="fas fa-calendar-check"></i>
+                    <span id="targetDisplay">Target 1 Dec 2025</span>
+                    <i class="fas fa-pen" style="font-size:10px;opacity:0.3;"></i>
+                </span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" id="themeToggle" title="切换主题">
+                    <i class="fas fa-moon"></i>
+                    <span class="btn-label">主题</span>
+                </button>
+                <button class="btn-icon" id="fullscreenBtn" title="全屏">
+                    <i class="fas fa-expand"></i>
+                    <span class="btn-label">全屏</span>
+                </button>
+                <button class="btn-icon" id="exportDataBtn" title="导出数据备份">
+                    <i class="fas fa-download"></i>
+                    <span class="btn-label">导出</span>
+                </button>
+                <button class="btn-icon" id="importDataBtn" title="导入数据备份">
+                    <i class="fas fa-upload"></i>
+                    <span class="btn-label">导入</span>
+                </button>
+                <button class="btn-icon primary" id="pdfBtn" title="导出PDF">
+                    <i class="fas fa-file-pdf"></i>
+                    <span class="btn-label">PDF</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ===== PROGRESS ===== -->
+        <div class="progress-strip">
+            <div class="stat">
+                <span class="num" id="doneCount">0</span>
+                <span class="label">/ <span id="totalCount">25</span> 完成</span>
+            </div>
+            <div class="stat">
+                <span class="num" id="progressPercent">0</span>
+                <span class="label">%</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-fill" id="progressFill" style="width:0%"></div>
+            </div>
+            <div class="stats-mini">
+                <span><span class="dot green"></span> 完成</span>
+                <span><span class="dot orange"></span> 待办</span>
+                <span><span class="dot gray"></span> 不适用</span>
+            </div>
         </div>
-        <div class="header-actions">
-            <!-- 可编辑 Target 日期 -->
-            <span class="target-date" id="targetDateBadge" title="点击编辑目标日期">
-                <i class="fas fa-calendar-check"></i>
-                <span id="targetDisplay">Target 1 Dec 2025</span>
-                <i class="fas fa-pen" style="font-size: 10px; opacity:0.4; margin-left:2px;"></i>
-            </span>
-            <button class="btn-icon" id="fullscreenBtn"><i class="fas fa-expand"></i> 全屏</button>
-            <button class="btn-icon btn-primary" id="pdfBtn"><i class="fas fa-file-pdf"></i> 下载PDF</button>
+
+        <!-- ===== TOOLBAR ===== -->
+        <div class="toolbar" id="toolbar">
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="搜索任务..." />
+            </div>
+            <div class="filter-group" id="filterGroup">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="done">完成</button>
+                <button class="filter-btn" data-filter="pending">待办</button>
+                <button class="filter-btn" data-filter="na">不适用</button>
+            </div>
+            <button class="group-toggle active" id="groupToggle" title="按部门分组">
+                <i class="fas fa-layer-group"></i>
+                <span>分组</span>
+                <span class="toggle-track"></span>
+            </button>
         </div>
+
+        <!-- ===== TASK LIST ===== -->
+        <div class="task-grid" id="taskGrid"></div>
+
+        <!-- ===== FOOTER ===== -->
+        <div class="footer-note">
+            <div class="left">
+                <span><i class="fas fa-sync-alt"></i> 点击 <strong>⭕</strong> 切换完成状态</span>
+                <span><i class="far fa-clock"></i> 自动保存 (localStorage)</span>
+                <span class="key-hint"><kbd>Ctrl+F</kbd> 搜索 · <kbd>Ctrl+D</kbd> 切换主题</span>
+            </div>
+            <div class="right">
+                <button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> 重置所有任务</button>
+            </div>
+        </div>
+
+        <!-- ===== TOAST ===== -->
+        <div class="toast" id="toast"></div>
     </div>
 
-    <!-- progress -->
-    <div class="progress-strip">
-        <div class="stat"><span class="num" id="doneCount">0</span> <span class="label">/ 25 完成</span></div>
-        <div class="stat"><span class="num" id="progressPercent">0</span><span class="label">%</span></div>
-        <div class="progress-bar-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-        <div style="display: flex; gap: 12px; font-size:13px; color:#2d4d6e;">
-            <span><i class="fas fa-check-circle" style="color:#1f7b4d;"></i> 完成</span>
-            <span><i class="fas fa-hourglass-half" style="color:#b1642a;"></i> 待办</span>
-        </div>
-    </div>
+    <!-- ===== Hidden file input ===== -->
+    <input type="file" id="fileInput" accept=".json" style="display:none;" />
 
-    <!-- task list -->
-    <div class="task-grid" id="taskGrid"></div>
+    <script>
+        (function() {
+            'use strict';
 
-    <!-- footer -->
-    <div class="footer-note">
-        <span><i class="fas fa-sync-alt"></i> 点击 <strong>⭕</strong> 切换完成状态 · 基于 FR Vivo City R04 流程</span>
-        <span><i class="far fa-clock"></i> 自动保存进度 (localStorage)</span>
-        <button class="reset-btn" id="resetBtn"><i class="fas fa-undo-alt"></i> 重置所有任务</button>
-    </div>
-</div>
+            // =============================================
+            //  DATA
+            // =============================================
+            const TASKS = [
+                { id: 1, en: 'Booking Form Approved / Set up Group chat', zh: '预订表格批准 / 建立群聊', dept: 'Leasing' },
+                { id: 2, en: 'Prepare LA', zh: '准备租赁协议', dept: 'Admin' },
+                { id: 3, en: 'Collection of Balance SD/ Upfront Entrance Fee', zh: '收取剩余保证金 / 预付入场费', dept: 'Leasing' },
+                { id: 4, en: 'Signing of LA', zh: '签署租赁协议', dept: 'Leasing' },
+                { id: 5, en: 'JRF - Compile Proposed Menu, 5 items photoshooting, Logo', zh: '整理菜单、拍摄、标志', dept: 'Ops' },
+                { id: 6, en: 'Arrange Kitchen Layout / M&E drawing', zh: '安排厨房布局 / 机电图纸', dept: 'Ops' },
+                { id: 7, en: 'Approval Kitchen Layout / M&E / Exhaust / Equip Spec', zh: '审批厨房布局/机电/排风', dept: 'Project' },
+                { id: 8, en: 'Photoshooting Arrangement', zh: '安排拍摄', dept: 'Branding' },
+                { id: 9, en: 'Prepare of Signage Artwork', zh: '准备招牌设计稿', dept: 'Branding' },
+                { id: 10, en: 'Prepare of Menu / TM/ Media Clipping Artwork', zh: '准备菜单/商标/媒体稿', dept: 'Branding' },
+                { id: 11, en: 'Tenant to review Menu / TM / Signage Artwork', zh: '租户审核菜单/商标/招牌', dept: 'Tenant/Ops' },
+                { id: 12, en: 'Melamine/ Takeaway packaging order', zh: '订购密胺餐具 / 外带包装', dept: 'Ops/Tenant' },
+                { id: 13, en: 'Equipment Fabrication (Overseas)', zh: '设备制作（海外）', dept: 'Tenant' },
+                { id: 14, en: 'SFA / Gas/ Stamp Duty Application', zh: '申请 SFA / 燃气 / 印花税', dept: 'Tenant' },
+                { id: 15, en: 'SFA Approval', zh: 'SFA 审批通过', dept: 'Tenant' },
+                { id: 16, en: 'Installation 安装工程', zh: '安装工程', dept: 'Install' },
+                { id: 17, en: 'Touch Up/ Reinstatement work', zh: '修补 / 复原工程', dept: 'Project/Ops', notRequired: true },
+                { id: 18, en: 'Equipment Shift In', zh: '设备进场', dept: 'Tenant/Ops' },
+                { id: 19, en: 'Electrical 电力工程', zh: '电力工程', dept: 'Project/Ops' },
+                { id: 20, en: 'Gas Meter / Gas Pipe Connection', zh: '燃气表 / 燃气管道', dept: 'Project/Ops', notRequired: true },
+                { id: 21, en: 'Plumbing work', zh: '给排水工程', dept: 'Project/Ops/Tenant' },
+                { id: 22, en: 'Additional Exhaust Hood/ Grille or Power Upgrade', zh: '额外排风罩/格栅/电力升级', dept: 'Project/Ops',
+                    notRequired: true },
+                { id: 23, en: 'Signage 招牌安装', zh: '招牌安装', dept: 'Branding' },
+                { id: 24, en: 'Menu / Table Menu/ Media clipping', zh: '菜单 / 桌面菜单 / 媒体', dept: 'Branding' },
+                { id: 25, en: 'POS Programing', zh: 'POS 系统编程', dept: 'Ops' }
+            ];
 
-<script>
-    (function() {
-        // ----- 原始任务数据 (从excel提取, 共25项, 含安装) -----
-        const TASKS = [
-            { id: 1, en: 'Booking Form Approved / Set up Group chat', zh: '预订表格批准 / 建立群聊', pic: 'Leasing' },
-            { id: 2, en: 'Prepare LA', zh: '准备租赁协议', pic: 'Admin' },
-            { id: 3, en: 'Collection of Balance SD/ Upfront Entrance Fee', zh: '收取剩余保证金 / 预付入场费', pic: 'Leasing' },
-            { id: 4, en: 'Signing of LA', zh: '签署租赁协议', pic: 'Leasing' },
-            { id: 5, en: 'JRF - Compile Proposed Menu, 5 items photoshooting, Logo', zh: '整理菜单、拍摄、标志', pic: 'Ops' },
-            { id: 6, en: 'Arrange Kitchen Layout / M&E drawing', zh: '安排厨房布局 / 机电图纸', pic: 'Ops' },
-            { id: 7, en: 'Approval Kitchen Layout / M&E / Exhaust / Equip Spec', zh: '审批厨房布局/机电/排风', pic: 'Project' },
-            { id: 8, en: 'Photoshooting Arrangement', zh: '安排拍摄', pic: 'Branding' },
-            { id: 9, en: 'Prepare of Signage Artwork', zh: '准备招牌设计稿', pic: 'Branding' },
-            { id: 10, en: 'Prepare of Menu / TM/ Media Clipping Artwork', zh: '准备菜单/商标/媒体稿', pic: 'Branding' },
-            { id: 11, en: 'Tenant to review Menu / TM / Signage Artwork', zh: '租户审核菜单/商标/招牌', pic: 'Tenant/Ops' },
-            { id: 12, en: 'Melamine/ Takeaway packaging order', zh: '订购密胺餐具 / 外带包装', pic: 'Ops/Tenant' },
-            { id: 13, en: 'Equipment Fabrication (Overseas)', zh: '设备制作（海外）', pic: 'Tenant' },
-            { id: 14, en: 'SFA / Gas/ Stamp Duty Application', zh: '申请 SFA / 燃气 / 印花税', pic: 'Tenant' },
-            { id: 15, en: 'SFA Approval', zh: 'SFA 审批通过', pic: 'Tenant' },
-            { id: 16, en: 'Installation 安装工程', zh: '安装工程', pic: 'Install' },
-            { id: 17, en: 'Touch Up/ Reinstatement work', zh: '修补 / 复原工程', pic: 'Project/Ops', notRequired: true },
-            { id: 18, en: 'Equipment Shift In', zh: '设备进场', pic: 'Tenant/Ops' },
-            { id: 19, en: 'Electrical 电力工程', zh: '电力工程', pic: 'Project/Ops' },
-            { id: 20, en: 'Gas Meter / Gas Pipe Connection', zh: '燃气表 / 燃气管道', pic: 'Project/Ops', notRequired: true },
-            { id: 21, en: 'Plumbing work', zh: '给排水工程', pic: 'Project/Ops/Tenant' },
-            { id: 22, en: 'Additional Exhaust Hood/ Grille or Power Upgrade', zh: '额外排风罩/格栅/电力升级', pic: 'Project/Ops', notRequired: true },
-            { id: 23, en: 'Signage 招牌安装', zh: '招牌安装', pic: 'Branding' },
-            { id: 24, en: 'Menu / Table Menu/ Media clipping', zh: '菜单 / 桌面菜单 / 媒体', pic: 'Branding' },
-            { id: 25, en: 'POS Programing', zh: 'POS 系统编程', pic: 'Ops' }
-        ];
-
-        // 状态存储
-        let doneStatus = {};
-
-        // 可编辑字段
-        let outletName = 'FR · Vivo City';
-        let stallName = '#R04 Koe Koe Ang';
-        let targetDate = 'Target 1 Dec 2025';
-
-        // ----- 存储/加载 -----
-        function loadStorage() {
-            try {
-                const raw = localStorage.getItem('setupProgress_FR_R04');
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    if (typeof parsed === 'object' && parsed !== null) {
-                        doneStatus = parsed;
-                    }
-                }
-                const savedOutlet = localStorage.getItem('setupOutletName');
-                if (savedOutlet) outletName = savedOutlet;
-                const savedStall = localStorage.getItem('setupStallName');
-                if (savedStall) stallName = savedStall;
-                const savedTarget = localStorage.getItem('setupTargetDate');
-                if (savedTarget) targetDate = savedTarget;
-            } catch (e) { /* ignore */ }
-            TASKS.forEach(t => {
-                if (!(t.id in doneStatus)) {
-                    doneStatus[t.id] = false;
-                }
-            });
-        }
-
-        function saveStorage() {
-            localStorage.setItem('setupProgress_FR_R04', JSON.stringify(doneStatus));
-            localStorage.setItem('setupOutletName', outletName);
-            localStorage.setItem('setupStallName', stallName);
-            localStorage.setItem('setupTargetDate', targetDate);
-        }
-
-        // 更新显示
-        function updateBadgeDisplay() {
-            document.getElementById('outletDisplay').textContent = outletName;
-            document.getElementById('stallDisplay').textContent = stallName;
-            document.getElementById('targetDisplay').textContent = targetDate;
-        }
-
-        // 切换任务
-        function toggleTask(id) {
-            doneStatus[id] = !doneStatus[id];
-            saveStorage();
-            renderTasks();
-            updateProgress();
-        }
-
-        // 重置所有任务为未完成 (保留招牌名称和目标日期)
-        function resetAllTasks() {
-            if (confirm('确认重置所有任务为“未完成”吗？\n（招牌名称和目标日期不会被重置）')) {
-                TASKS.forEach(t => { doneStatus[t.id] = false; });
-                saveStorage();
-                renderTasks();
-                updateProgress();
-            }
-        }
-
-        // 进度
-        function updateProgress() {
-            const total = TASKS.length;
-            let doneCount = 0;
-            TASKS.forEach(t => {
-                if (doneStatus[t.id] === true) doneCount++;
-            });
-            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-            document.getElementById('doneCount').innerText = doneCount;
-            document.getElementById('progressPercent').innerText = pct;
-            document.getElementById('progressFill').style.width = pct + '%';
-        }
-
-        // 渲染任务
-        function renderTasks() {
-            const grid = document.getElementById('taskGrid');
-            grid.innerHTML = '';
-            TASKS.forEach((task, idx) => {
-                const isDone = doneStatus[task.id] === true;
-                const isNA = task.notRequired || false;
-
-                const row = document.createElement('div');
-                row.className = 'task-row';
-
-                const idxSpan = document.createElement('span');
-                idxSpan.className = 'task-index';
-                idxSpan.textContent = (idx+1).toString().padStart(2, '0');
-                row.appendChild(idxSpan);
-
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'task-content';
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'task-title';
-                titleDiv.innerHTML = `<span class="en">${task.en}</span> <span class="zh">${task.zh}</span>`;
-                contentDiv.appendChild(titleDiv);
-
-                const metaDiv = document.createElement('div');
-                metaDiv.className = 'task-meta';
-                metaDiv.innerHTML = `<i class="fas fa-user-circle"></i> ${task.pic}`;
-                if (isNA) {
-                    metaDiv.innerHTML += ` <span class="no-required"><i class="fas fa-minus-circle"></i> Not Required</span>`;
-                }
-                contentDiv.appendChild(metaDiv);
-                row.appendChild(contentDiv);
-
-                const actions = document.createElement('div');
-                actions.className = 'task-actions';
-
-                const statusSpan = document.createElement('span');
-                statusSpan.className = `status-badge ${isDone ? 'done' : 'pending'}`;
-                statusSpan.innerHTML = isDone ? '<i class="fas fa-check"></i> 完成' : '<i class="fas fa-clock"></i> 待办';
-                if (isNA) {
-                    statusSpan.className = 'status-badge na';
-                    statusSpan.innerHTML = '<i class="fas fa-ban"></i> 不适用';
-                }
-                actions.appendChild(statusSpan);
-
-                const checkBtn = document.createElement('button');
-                checkBtn.className = `check-btn ${isDone ? 'done' : ''}`;
-                checkBtn.innerHTML = isDone ? '<i class="fas fa-check"></i>' : '<i class="far fa-circle"></i>';
-                checkBtn.setAttribute('aria-label', '切换完成状态');
-                checkBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleTask(task.id);
-                });
-                actions.appendChild(checkBtn);
-                row.appendChild(actions);
-                grid.appendChild(row);
-            });
-            updateProgress();
-        }
-
-        // 全屏切换
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    alert('无法进入全屏模式: ' + err.message);
-                });
-                document.body.classList.add('fullscreen-mode');
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    document.body.classList.remove('fullscreen-mode');
-                }
-            }
-        }
-
-        // PDF 导出 (使用 html2pdf)
-        function exportPDF() {
-            const element = document.getElementById('app');
-            const btn = document.getElementById('pdfBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
-            btn.disabled = true;
-
-            const checkBtns = document.querySelectorAll('.check-btn');
-            const resetBtn = document.getElementById('resetBtn');
-            const fsBtn = document.getElementById('fullscreenBtn');
-            const pdfBtn = document.getElementById('pdfBtn');
-            checkBtns.forEach(el => el.style.opacity = '0.3');
-            resetBtn.style.display = 'none';
-            fsBtn.style.display = 'none';
-            pdfBtn.style.display = 'none';
-
-            const opt = {
-                margin:        [0.5, 0.5, 0.5, 0.5],
-                filename:     `Setup_Progress_${outletName.replace(/\s/g,'_')}_${stallName.replace(/\s/g,'_')}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            const DEPT_COLORS = {
+                'Leasing': '#2a5a7a',
+                'Admin': '#5a6a8a',
+                'Ops': '#7a6a3a',
+                'Project': '#3a6a5a',
+                'Branding': '#8a4a6a',
+                'Tenant': '#4a6a7a',
+                'Install': '#6a4a3a',
+                'Tenant/Ops': '#6a6a4a',
+                'Ops/Tenant': '#6a6a4a',
+                'Project/Ops': '#4a6a5a',
+                'Project/Ops/Tenant': '#4a6a5a',
             };
 
-            html2pdf().set(opt).from(element).save().then(() => {
-                checkBtns.forEach(el => el.style.opacity = '1');
-                resetBtn.style.display = '';
-                fsBtn.style.display = '';
-                pdfBtn.style.display = '';
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }).catch(err => {
-                console.error(err);
-                checkBtns.forEach(el => el.style.opacity = '1');
-                resetBtn.style.display = '';
-                fsBtn.style.display = '';
-                pdfBtn.style.display = '';
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                alert('PDF 导出失败: ' + err.message);
-            });
-        }
+            // =============================================
+            //  STATE
+            // =============================================
+            let doneStatus = {}; // { id: true/false }
+            let doneTimestamps = {}; // { id: '2025-06-26 14:30' }
+            let outletName = 'FR · Vivo City';
+            let stallName = '#R04 Koe Koe Ang';
+            let targetDate = 'Target 1 Dec 2025';
+            let currentFilter = 'all';
+            let searchQuery = '';
+            let groupEnabled = true;
+            let theme = 'light';
 
-        // 通用编辑: 点击弹出输入框修改
-        function setupEditable(elementId, displayId, callback) {
-            const element = document.getElementById(elementId);
-            const display = document.getElementById(displayId);
-            element.addEventListener('click', function(e) {
+            // =============================================
+            //  DOM refs
+            // =============================================
+            const grid = document.getElementById('taskGrid');
+            const doneCountEl = document.getElementById('doneCount');
+            const totalCountEl = document.getElementById('totalCount');
+            const progressPercentEl = document.getElementById('progressPercent');
+            const progressFill = document.getElementById('progressFill');
+            const searchInput = document.getElementById('searchInput');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const groupToggle = document.getElementById('groupToggle');
+            const themeToggle = document.getElementById('themeToggle');
+            const outletDisplay = document.getElementById('outletDisplay');
+            const stallDisplay = document.getElementById('stallDisplay');
+            const targetDisplay = document.getElementById('targetDisplay');
+            const toastEl = document.getElementById('toast');
+            const fileInput = document.getElementById('fileInput');
+
+            // =============================================
+            //  STORAGE
+            // =============================================
+            const STORAGE_KEY = 'setupPro_FR_R04';
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                        const data = JSON.parse(raw);
+                        if (data.doneStatus) doneStatus = data.doneStatus;
+                        if (data.doneTimestamps) doneTimestamps = data.doneTimestamps;
+                        if (data.outletName) outletName = data.outletName;
+                        if (data.stallName) stallName = data.stallName;
+                        if (data.targetDate) targetDate = data.targetDate;
+                        if (data.theme) theme = data.theme;
+                    }
+                } catch (e) { /* ignore */ }
+                // ensure all tasks exist
+                TASKS.forEach(t => {
+                    if (!(t.id in doneStatus)) doneStatus[t.id] = false;
+                    if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
+                });
+                // theme from localStorage or system
+                if (!localStorage.getItem(STORAGE_KEY)) {
+                    // check system preference
+                    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                        theme = 'dark';
+                    }
+                }
+            }
+
+            function saveState() {
+                const data = {
+                    doneStatus,
+                    doneTimestamps,
+                    outletName,
+                    stallName,
+                    targetDate,
+                    theme
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            // =============================================
+            //  TOAST
+            // =============================================
+            let toastTimer = null;
+
+            function showToast(msg, duration = 2200) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toastEl.classList.remove('show');
+                }, duration);
+            }
+
+            // =============================================
+            //  THEME
+            // =============================================
+            function applyTheme(t) {
+                theme = t;
+                document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : '');
+                themeToggle.innerHTML = t === 'dark' ?
+                    '<i class="fas fa-sun"></i><span class="btn-label">亮色</span>' :
+                    '<i class="fas fa-moon"></i><span class="btn-label">暗色</span>';
+                saveState();
+            }
+
+            function toggleTheme() {
+                applyTheme(theme === 'light' ? 'dark' : 'light');
+                showToast(theme === 'light' ? '🌙 暗色模式' : '☀️ 亮色模式');
+            }
+
+            // =============================================
+            //  EDITABLE BADGES
+            // =============================================
+            function setupEditable(elementId, displayId, callback) {
+                const el = document.getElementById(elementId);
+                const display = document.getElementById(displayId);
+                el.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const current = display.textContent;
+                    const newVal = prompt('编辑内容:', current);
+                    if (newVal !== null && newVal.trim() !== '') {
+                        callback(newVal.trim());
+                        display.textContent = callback(newVal.trim());
+                        saveState();
+                        showToast('已更新 ✓');
+                    }
+                });
+            }
+
+            // =============================================
+            //  RENDER
+            // =============================================
+            function getFilteredTasks() {
+                let tasks = [...TASKS];
+                // search
+                if (searchQuery.trim()) {
+                    const q = searchQuery.trim().toLowerCase();
+                    tasks = tasks.filter(t =>
+                        t.en.toLowerCase().includes(q) ||
+                        t.zh.toLowerCase().includes(q) ||
+                        t.dept.toLowerCase().includes(q)
+                    );
+                }
+                // filter
+                if (currentFilter === 'done') {
+                    tasks = tasks.filter(t => doneStatus[t.id] === true);
+                } else if (currentFilter === 'pending') {
+                    tasks = tasks.filter(t => doneStatus[t.id] === false && !t.notRequired);
+                } else if (currentFilter === 'na') {
+                    tasks = tasks.filter(t => t.notRequired === true);
+                }
+                return tasks;
+            }
+
+            function getDeptGroups(tasks) {
+                const groups = {};
+                tasks.forEach(t => {
+                    const dept = t.dept || 'Other';
+                    if (!groups[dept]) groups[dept] = [];
+                    groups[dept].push(t);
+                });
+                // sort dept by first appearance in TASKS
+                const order = [];
+                TASKS.forEach(t => {
+                    const d = t.dept || 'Other';
+                    if (!order.includes(d)) order.push(d);
+                });
+                const sorted = {};
+                order.forEach(d => {
+                    if (groups[d]) sorted[d] = groups[d];
+                });
+                // add any remaining
+                Object.keys(groups).forEach(d => {
+                    if (!sorted[d]) sorted[d] = groups[d];
+                });
+                return sorted;
+            }
+
+            function render() {
+                const tasks = getFilteredTasks();
+                const total = TASKS.length;
+                const doneCount = TASKS.filter(t => doneStatus[t.id] === true).length;
+                const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+                doneCountEl.textContent = doneCount;
+                totalCountEl.textContent = total;
+                progressPercentEl.textContent = pct;
+                progressFill.style.width = pct + '%';
+
+                // update badge displays
+                outletDisplay.textContent = outletName;
+                stallDisplay.textContent = stallName;
+                targetDisplay.textContent = targetDate;
+
+                if (tasks.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <p>没有找到匹配的任务</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (groupEnabled) {
+                    renderGrouped(tasks);
+                } else {
+                    renderFlat(tasks);
+                }
+            }
+
+            function renderFlat(tasks) {
+                let html = '';
+                tasks.forEach((t, idx) => {
+                    html += buildTaskRow(t, idx);
+                });
+                grid.innerHTML = html;
+                attachCheckEvents();
+            }
+
+            function renderGrouped(tasks) {
+                const groups = getDeptGroups(tasks);
+                let html = '';
+                let globalIdx = 0;
+                Object.keys(groups).forEach(dept => {
+                    const items = groups[dept];
+                    const doneInGroup = items.filter(t => doneStatus[t.id] === true).length;
+                    const totalInGroup = items.length;
+                    const pctGroup = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
+                    const color = DEPT_COLORS[dept] || '#5a6a7a';
+                    const icon = getDeptIcon(dept);
+
+                    html += `
+                        <div class="group-section" data-dept="${dept}">
+                            <div class="group-header" data-dept="${dept}">
+                                <div class="group-icon" style="background:${color}">${icon}</div>
+                                <span class="group-name">${dept}</span>
+                                <span class="group-count">(${doneInGroup}/${totalInGroup})</span>
+                                <div class="group-progress">
+                                    <span>${pctGroup}%</span>
+                                    <div class="mini-bar"><div class="fill" style="width:${pctGroup}%"></div></div>
+                                    <span class="group-arrow"><i class="fas fa-chevron-down"></i></span>
+                                </div>
+                            </div>
+                            <div class="group-body">
+                    `;
+                    items.forEach(t => {
+                        html += buildTaskRow(t, globalIdx);
+                        globalIdx++;
+                    });
+                    html += `</div></div>`;
+                });
+                grid.innerHTML = html;
+                attachCheckEvents();
+                attachGroupToggleEvents();
+            }
+
+            function buildTaskRow(t, idx) {
+                const isDone = doneStatus[t.id] === true;
+                const isNA = t.notRequired || false;
+                const timeStr = doneTimestamps[t.id] || '';
+                const statusClass = isDone ? 'done' : (isNA ? 'na' : 'pending');
+                const statusText = isDone ? '完成' : (isNA ? '不适用' : '待办');
+                const statusIcon = isDone ? 'fa-check' : (isNA ? 'fa-ban' : 'fa-clock');
+
+                // department color tag
+                const deptColor = DEPT_COLORS[t.dept] || '#5a6a7a';
+
+                return `
+                    <div class="task-row" data-id="${t.id}">
+                        <span class="task-index">${String(idx+1).padStart(2,'0')}</span>
+                        <div class="task-content">
+                            <div class="task-title">
+                                <span class="en">${t.en}</span>
+                                <span class="zh">${t.zh}</span>
+                            </div>
+                            <div class="task-meta">
+                                <i class="fas fa-user-circle"></i>
+                                <span>${t.dept}</span>
+                                <span class="dept-tag" style="background:${deptColor}20;color:${deptColor}">${t.dept}</span>
+                                ${isNA ? '<span class="not-required"><i class="fas fa-minus-circle"></i> Not Required</span>' : ''}
+                                ${timeStr ? `<span class="task-time"><i class="far fa-clock"></i> ${timeStr}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <span class="status-badge ${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
+                            <button class="check-btn ${isDone ? 'done' : ''}" data-id="${t.id}" aria-label="切换完成状态">
+                                ${isDone ? '<i class="fas fa-check"></i>' : '<i class="far fa-circle"></i>'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function getDeptIcon(dept) {
+                const map = {
+                    'Leasing': '📋',
+                    'Admin': '📁',
+                    'Ops': '⚙️',
+                    'Project': '🏗️',
+                    'Branding': '🎨',
+                    'Tenant': '🏪',
+                    'Install': '🔧',
+                    'Tenant/Ops': '🏪⚙️',
+                    'Ops/Tenant': '⚙️🏪',
+                    'Project/Ops': '🏗️⚙️',
+                    'Project/Ops/Tenant': '🏗️⚙️🏪',
+                };
+                return map[dept] || '📌';
+            }
+
+            // =============================================
+            //  EVENTS: check
+            // =============================================
+            function attachCheckEvents() {
+                document.querySelectorAll('.check-btn').forEach(btn => {
+                    btn.removeEventListener('click', handleCheckClick);
+                    btn.addEventListener('click', handleCheckClick);
+                });
+            }
+
+            function handleCheckClick(e) {
                 e.stopPropagation();
-                const current = display.textContent;
-                const newVal = prompt('编辑内容:', current);
-                if (newVal !== null && newVal.trim() !== '') {
-                    callback(newVal.trim());
-                    display.textContent = callback(newVal.trim());
-                    saveStorage();
-                }
-            });
-        }
+                const btn = e.currentTarget;
+                const id = parseInt(btn.dataset.id);
+                toggleTask(id);
+            }
 
-        // 初始化
-        function init() {
-            loadStorage();
-            TASKS.forEach(t => {
-                if (!(t.id in doneStatus)) {
+            // =============================================
+            //  GROUP TOGGLE (collapsible)
+            // =============================================
+            function attachGroupToggleEvents() {
+                document.querySelectorAll('.group-header').forEach(header => {
+                    header.removeEventListener('click', handleGroupHeaderClick);
+                    header.addEventListener('click', handleGroupHeaderClick);
+                });
+            }
+
+            function handleGroupHeaderClick(e) {
+                const header = e.currentTarget;
+                const body = header.nextElementSibling;
+                if (body && body.classList.contains('group-body')) {
+                    header.classList.toggle('collapsed');
+                    body.classList.toggle('collapsed');
+                }
+            }
+
+            // =============================================
+            //  TOGGLE TASK
+            // =============================================
+            function toggleTask(id) {
+                const wasDone = doneStatus[id] === true;
+                doneStatus[id] = !wasDone;
+                if (doneStatus[id]) {
+                    // set timestamp
+                    const now = new Date();
+                    const ts = now.getFullYear() + '-' +
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') + ' ' +
+                        String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0');
+                    doneTimestamps[id] = ts;
+                } else {
+                    doneTimestamps[id] = null;
+                }
+                saveState();
+                render();
+                // animate the row
+                const row = document.querySelector(`.task-row[data-id="${id}"]`);
+                if (row) {
+                    row.style.transition = 'background 0.15s';
+                    row.style.background = doneStatus[id] ? 'var(--color-success-bg)' : 'var(--bg-task)';
+                    setTimeout(() => { row.style.background = ''; }, 300);
+                }
+                const msg = doneStatus[id] ? '✅ 任务已完成' : '↩️ 已取消完成';
+                showToast(msg, 1200);
+            }
+
+            // =============================================
+            //  RESET
+            // =============================================
+            function resetAll() {
+                if (!confirm('确认重置所有任务为“未完成”吗？\n（招牌名称和目标日期不会被重置）')) return;
+                TASKS.forEach(t => {
                     doneStatus[t.id] = false;
+                    doneTimestamps[t.id] = null;
+                });
+                saveState();
+                render();
+                showToast('🔄 所有任务已重置');
+            }
+
+            // =============================================
+            //  SEARCH / FILTER
+            // =============================================
+            function updateSearchAndFilter() {
+                searchQuery = searchInput.value;
+                render();
+            }
+
+            // =============================================
+            //  DATA EXPORT / IMPORT
+            // =============================================
+            function exportData() {
+                const data = {
+                    version: '1.0',
+                    exportedAt: new Date().toISOString(),
+                    outletName,
+                    stallName,
+                    targetDate,
+                    doneStatus,
+                    doneTimestamps,
+                    theme
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const fname = `setup_backup_${outletName.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.json`;
+                a.download = fname;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('📦 数据已导出');
+            }
+
+            function importData(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (!data.doneStatus || typeof data.doneStatus !== 'object') {
+                            throw new Error('无效的数据格式');
+                        }
+                        // merge
+                        if (data.outletName) outletName = data.outletName;
+                        if (data.stallName) stallName = data.stallName;
+                        if (data.targetDate) targetDate = data.targetDate;
+                        if (data.theme) theme = data.theme;
+                        Object.keys(data.doneStatus).forEach(k => {
+                            const id = parseInt(k);
+                            if (TASKS.some(t => t.id === id)) {
+                                doneStatus[id] = data.doneStatus[k] === true;
+                                if (data.doneTimestamps && data.doneTimestamps[k]) {
+                                    doneTimestamps[id] = data.doneTimestamps[k];
+                                } else {
+                                    doneTimestamps[id] = null;
+                                }
+                            }
+                        });
+                        saveState();
+                        applyTheme(theme);
+                        render();
+                        showToast('📥 数据导入成功！');
+                    } catch (err) {
+                        showToast('❌ 导入失败: ' + err.message, 3000);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            // =============================================
+            //  PDF EXPORT
+            // =============================================
+            function exportPDF() {
+                const el = document.getElementById('app');
+                const btn = document.getElementById('pdfBtn');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+                btn.disabled = true;
+
+                // hide interactive elements for PDF
+                const checkBtns = document.querySelectorAll('.check-btn');
+                const resetBtn = document.getElementById('resetBtn');
+                const fsBtn = document.getElementById('fullscreenBtn');
+                const pdfBtn = document.getElementById('pdfBtn');
+                const themeBtn = document.getElementById('themeToggle');
+                const exportBtn = document.getElementById('exportDataBtn');
+                const importBtn = document.getElementById('importDataBtn');
+                const toolbar = document.getElementById('toolbar');
+                const filterBtnsAll = document.querySelectorAll('.filter-btn');
+                const groupToggleBtn = document.getElementById('groupToggle');
+
+                checkBtns.forEach(el => el.style.opacity = '0.2');
+                resetBtn.style.display = 'none';
+                fsBtn.style.display = 'none';
+                pdfBtn.style.display = 'none';
+                themeBtn.style.display = 'none';
+                exportBtn.style.display = 'none';
+                importBtn.style.display = 'none';
+                toolbar.style.display = 'none';
+                filterBtnsAll.forEach(b => b.style.display = 'none');
+
+                // expand all groups
+                document.querySelectorAll('.group-header.collapsed').forEach(h => {
+                    h.classList.remove('collapsed');
+                    const body = h.nextElementSibling;
+                    if (body) body.classList.remove('collapsed');
+                });
+
+                const opt = {
+                    margin: [0.4, 0.4, 0.4, 0.4],
+                    filename: `Setup_Progress_${outletName.replace(/\s/g,'_')}_${stallName.replace(/\s/g,'_')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, letterRendering: true, useCORS: true, logging: false },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(el).save().then(() => {
+                    restoreUI();
+                }).catch(err => {
+                    console.error(err);
+                    restoreUI();
+                    showToast('❌ PDF导出失败: ' + err.message, 3000);
+                });
+
+                function restoreUI() {
+                    checkBtns.forEach(el => el.style.opacity = '1');
+                    resetBtn.style.display = '';
+                    fsBtn.style.display = '';
+                    pdfBtn.style.display = '';
+                    themeBtn.style.display = '';
+                    exportBtn.style.display = '';
+                    importBtn.style.display = '';
+                    toolbar.style.display = '';
+                    filterBtnsAll.forEach(b => b.style.display = '');
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
                 }
-            });
-            saveStorage();
-            updateBadgeDisplay();
+            }
 
-            // 编辑招牌
-            setupEditable('outletBadge', 'outletDisplay', (val) => {
-                outletName = val;
-                return outletName;
-            });
-            setupEditable('stallBadge', 'stallDisplay', (val) => {
-                stallName = val;
-                return stallName;
-            });
-            // 编辑 Target 日期
-            setupEditable('targetDateBadge', 'targetDisplay', (val) => {
-                targetDate = val;
-                return targetDate;
-            });
-
-            renderTasks();
-            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-            document.getElementById('pdfBtn').addEventListener('click', exportPDF);
-            document.getElementById('resetBtn').addEventListener('click', resetAllTasks);
-
-            document.addEventListener('fullscreenchange', () => {
+            // =============================================
+            //  FULLSCREEN
+            // =============================================
+            function toggleFullscreen() {
                 if (!document.fullscreenElement) {
-                    document.body.classList.remove('fullscreen-mode');
+                    document.documentElement.requestFullscreen().catch(() => {});
+                    document.body.classList.add('fullscreen-mode');
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                        document.body.classList.remove('fullscreen-mode');
+                    }
+                }
+            }
+
+            // =============================================
+            //  KEYBOARD SHORTCUTS
+            // =============================================
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+F: focus search
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    searchInput.focus();
+                    searchInput.select();
+                }
+                // Ctrl+D: toggle theme
+                if (e.ctrlKey && e.key === 'd') {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+                // Escape: blur search
+                if (e.key === 'Escape') {
+                    if (document.activeElement === searchInput) {
+                        searchInput.blur();
+                        searchInput.value = '';
+                        updateSearchAndFilter();
+                    }
                 }
             });
-        }
 
-        document.addEventListener('DOMContentLoaded', init);
-    })();
-</script>
+            // =============================================
+            //  INIT
+            // =============================================
+            function init() {
+                loadState();
+                // ensure all tasks have timestamps
+                TASKS.forEach(t => {
+                    if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
+                });
+
+                // apply theme
+                applyTheme(theme);
+
+                // UI bindings
+                searchInput.addEventListener('input', updateSearchAndFilter);
+
+                filterBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        filterBtns.forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentFilter = this.dataset.filter;
+                        render();
+                    });
+                });
+
+                groupToggle.addEventListener('click', function() {
+                    groupEnabled = !groupEnabled;
+                    this.classList.toggle('active');
+                    render();
+                    showToast(groupEnabled ? '📂 分组视图' : '📋 列表视图');
+                });
+
+                themeToggle.addEventListener('click', toggleTheme);
+
+                document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+                document.getElementById('pdfBtn').addEventListener('click', exportPDF);
+                document.getElementById('resetBtn').addEventListener('click', resetAll);
+                document.getElementById('exportDataBtn').addEventListener('click', exportData);
+                document.getElementById('importDataBtn').addEventListener('click', function() {
+                    fileInput.click();
+                });
+                fileInput.addEventListener('change', function(e) {
+                    if (this.files && this.files[0]) {
+                        importData(this.files[0]);
+                    }
+                    this.value = '';
+                });
+
+                setupEditable('outletBadge', 'outletDisplay', (val) => { outletName = val; return outletName; });
+                setupEditable('stallBadge', 'stallDisplay', (val) => { stallName = val; return stallName; });
+                setupEditable('targetDateBadge', 'targetDisplay', (val) => { targetDate = val; return targetDate; });
+
+                // fullscreen change
+                document.addEventListener('fullscreenchange', () => {
+                    if (!document.fullscreenElement) {
+                        document.body.classList.remove('fullscreen-mode');
+                    }
+                });
+
+                // initial render
+                render();
+                saveState();
+
+                // if group toggle state is active
+                if (groupEnabled) {
+                    groupToggle.classList.add('active');
+                } else {
+                    groupToggle.classList.remove('active');
+                }
+
+                // show welcome
+                setTimeout(() => {
+                    showToast('🚀 专业版已加载 · 快捷键 Ctrl+F 搜索', 2000);
+                }, 400);
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+
+        })();
+    </script>
+
 </body>
 </html>
