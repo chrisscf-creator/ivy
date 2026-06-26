@@ -255,9 +255,9 @@ let currentOrderNo = 1;
 
 // ========== MENU DATA (unchanged) ==========
 const menuData = [
-  {en:"TuTu Kueh (5pcs)Coconut", zh:"嘟嘟糕(5个)椰子", price:6.30},
-  {en:"TuTu Kueh (5pcs)Peanut", zh:"嘟嘟糕(5个)花生", price:6.30},
-  {en:"TuTu Kueh (5pcs)Plain", zh:"嘟嘟糕(5个)原味", price:6.30}
+  {en:"1.TuTu Kueh (5pcs)Coconut", zh:"1.嘟嘟糕(5个)椰子", price:6.30},
+  {en:"2.TuTu Kueh (5pcs)Peanut", zh:"2.嘟嘟糕(5个)花生", price:6.30},
+  {en:"3.TuTu Kueh (5pcs)Plain", zh:"3.嘟嘟糕(5个)原味", price:6.30}
 ];
 
 // Render menu items
@@ -270,7 +270,7 @@ function renderMenu(){
     const label = document.createElement("label");
     label.innerHTML = `
       <input type="checkbox" data-i="${idx}" data-price="${m.price}" onchange="updateTotal()">
-      <span>${idx+1}) ${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
+      <span>${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
     `;
     box.appendChild(label);
   });
