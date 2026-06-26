@@ -255,13 +255,13 @@ let currentOrderNo = 1;
 
 // ========== MENU DATA (unchanged) ==========
 const menuData = [
-  {en:"Curry Chicken with Rice", zh:"咖喱鸡饭", price:17.10},
-  {en:"Laksa Set", zh:"叻沙套餐", price:16.90},
-  {en:"Traditional Kaya Toast Set", zh:"傳統咖椰吐司套裝", price:8.50},
-  {en:"Traditional Butter Toast Set", zh:"傳統奶油吐司套裝", price:8.20},
-  {en:"Ham and Cheese Sandwiches", zh:"火腿和起司三文治", price:10.40},
-  {en:"Peanut Thick Toast Set", zh:"花生厚吐司套裝", price:8.70},
-  {en:"TBOX Butter Suger Thick Toast", zh:"奶油糖厚吐司", price:8.70}
+  {en:"1.Curry Chicken with Rice", zh:"1.咖喱鸡饭", price:17.10},
+  {en:"2.Laksa Set", zh:"2.叻沙套餐", price:16.90},
+  {en:"3.Traditional Kaya Toast Set", zh:"3.傳統咖椰吐司套裝", price:8.50},
+  {en:"4.Traditional Butter Toast Set", zh:"4.傳統奶油吐司套裝", price:8.20},
+  {en:"5.Ham and Cheese Sandwiches", zh:"5.火腿和起司三文治", price:10.40},
+  {en:"6.Peanut Thick Toast Set", zh:"6.花生厚吐司套裝", price:8.70},
+  {en:"7.TBOX Butter Suger Thick Toast", zh:"7.奶油糖厚吐司", price:8.70}
 ];
 
 // Render menu items
@@ -274,7 +274,7 @@ function renderMenu(){
     const label = document.createElement("label");
     label.innerHTML = `
       <input type="checkbox" data-i="${idx}" data-price="${m.price}" onchange="updateTotal()">
-      <span>${idx+1}) ${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
+      <span>${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
     `;
     box.appendChild(label);
   });
