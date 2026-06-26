@@ -255,17 +255,17 @@ let currentOrderNo = 1;
 
 // ========== MENU DATA (unchanged) ==========
 const menuData = [
-  {en:"Hot Kopi", zh:"热咖啡", price:2.30},
-  {en:"Hot Kopi O", zh:"热咖啡乌", price:2.30},
-  {en:"Hot Kopi C", zh:"热咖啡C", price:2.30},
-  {en:"Hot Teh", zh:"热奶茶", price:2.30},
-  {en:"Hot Teh O", zh:"热奶茶O", price:2.30},
-  {en:"Hot Teh C", zh:"热奶茶C", price:2.30},
-  {en:"Ice Kopi", zh:"冰咖啡", price:2.30},
-  {en:"Ice Teh", zh:"冰奶茶", price:2.30},
-  {en:"Ice Teh O", zh:"冰茶O", price:2.30},
-  {en:"Ice Teh C", zh:"冰茶C", price:2.30},
-  {en:"Barley", zh:"薏米水冰", price:2.30}
+  {en:"1.Hot Kopi", zh:"1.热咖啡", price:2.30},
+  {en:"2.Hot Kopi O", zh:"2.热咖啡乌", price:2.30},
+  {en:"3.Hot Kopi C", zh:"3.热咖啡C", price:2.30},
+  {en:"4.Hot Teh", zh:"4.热奶茶", price:2.30},
+  {en:"5.Hot Teh O", zh:"5.热奶茶O", price:2.30},
+  {en:"6.Hot Teh C", zh:"6.热奶茶C", price:2.30},
+  {en:"7.Ice Kopi", zh:"7.冰咖啡", price:2.30},
+  {en:"8.Ice Teh", zh:"8.冰奶茶", price:2.30},
+  {en:"9.Ice Teh O", zh:"9.冰茶O", price:2.30},
+  {en:"10.Ice Teh C", zh:"10.冰茶C", price:2.30},
+  {en:"11.Barley", zh:"11.薏米水冰", price:2.30}
 ];
 
 // Render menu items
@@ -278,7 +278,7 @@ function renderMenu(){
     const label = document.createElement("label");
     label.innerHTML = `
       <input type="checkbox" data-i="${idx}" data-price="${m.price}" onchange="updateTotal()">
-      <span>${idx+1}) ${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
+      <span>${lang === "en" ? m.en : m.zh} - <span style="color:#b45f06;">$${m.price}</span></span>
     `;
     box.appendChild(label);
   });
