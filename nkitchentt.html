@@ -706,10 +706,8 @@
         actionBtn.innerText = "✔️ Complete & Remove";
         actionBtn.className = "done";
         actionBtn.onclick = async () => {
-          if (confirm(`Remove order #${orderNumber} from kitchen?`)) {
             await saveToHistory(orderId, order);
             await database.ref(`orders/${orderId}`).remove();
-          }
         };
         cardDiv.appendChild(actionBtn);
         readyContainer.appendChild(cardDiv);
