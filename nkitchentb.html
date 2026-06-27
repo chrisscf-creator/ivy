@@ -8,6 +8,8 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     * {
@@ -19,21 +21,18 @@
       font-family: 'Segoe UI', Roboto, Arial, sans-serif;
       background: #0f1115;
       color: #f0f2f5;
+      transition: all 0.3s ease;
     }
 
-    /* header with filter badge */
+    /* Header with controls */
     h1 {
       text-align: center;
-      padding: 16px;
+      padding: 16px 140px 16px 16px;
       background: #1c1f26;
       margin: 0;
       font-size: 1.8rem;
       letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      position: relative;
     }
 
     .filter-badge {
@@ -43,6 +42,8 @@
       font-size: 0.9rem;
       font-weight: normal;
       border-left: 3px solid #ffb400;
+      display: inline-block;
+      margin-left: 12px;
     }
 
     .filter-badge span {
@@ -50,6 +51,46 @@
       font-weight: bold;
       font-family: monospace;
       font-size: 1rem;
+    }
+
+    /* Smaller Top-Right Buttons */
+    .control-bar {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .control-btn {
+      background: #2c313e;
+      border: none;
+      color: #f0f2f5;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+    }
+
+    .control-btn:hover {
+      background: #383e4c;
+    }
+
+    .control-btn.primary {
+      background: #ffb400;
+      color: #1e1e1e;
+      font-weight: 500;
+    }
+
+    .control-btn.primary:hover {
+      background: #ffc125;
     }
 
     /* 3 column layout */
@@ -124,14 +165,17 @@
       font-size: 0.9rem;
     }
 
+    /* --- UPDATED: Items list vertical layout --- */
     .items {
       font-size: 0.85rem;
       color: #cfd4e3;
       background: #1e2129;
-      padding: 8px;
+      padding: 10px;
       border-radius: 12px;
       margin: 8px 0;
-      line-height: 1.4;
+      line-height: 1.6;
+      /* Each item on its own line */
+      white-space: pre-line;
     }
 
     button {
@@ -181,8 +225,109 @@
       border-radius: 20px;
     }
 
+    /* History Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      background: #1a1d24;
+      margin: 5% auto;
+      padding: 24px;
+      width: 90%;
+      max-width: 900px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #2c313e;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      color: #ffb400;
+    }
+
+    .close-modal {
+      background: #e53935;
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    .history-table th, .history-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #2c313e;
+    }
+
+    .history-table th {
+      background: #262a35;
+      color: #ffb400;
+      font-weight: bold;
+    }
+
+    .history-table tr:hover {
+      background: #262a35;
+    }
+
+    /* Fullscreen mode */
+    body.fullscreen-mode h1 {
+      padding: 8px 130px 8px 16px;
+      font-size: 1.5rem;
+    }
+
+    body.fullscreen-mode .col {
+      height: calc(100vh - 80px);
+    }
+
+    body.fullscreen-mode .footer-note {
+      display: none;
+    }
+
     /* tablet / mobile adjustment */
     @media (max-width: 780px) {
+      h1 {
+        padding: 12px 70px 12px 12px;
+        font-size: 1.4rem;
+      }
+      .control-bar {
+        top: 6px;
+        right: 8px;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .control-btn {
+        font-size: 0.72rem;
+        padding: 4px 8px;
+      }
       .board {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -191,8 +336,14 @@
         height: auto;
         max-height: 65vh;
       }
-      h1 {
-        font-size: 1.4rem;
+      .modal-content {
+        margin: 10% auto;
+        width: 95%;
+        padding: 16px;
+      }
+      .history-table th, .history-table td {
+        padding: 8px 6px;
+        font-size: 0.85rem;
       }
     }
 
@@ -204,6 +355,22 @@
       border-top: 1px solid #23272f;
       margin-top: 8px;
     }
+
+    /* debug panel - helpful for troubleshooting */
+    .debug-panel {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: #1a1d24cc;
+      backdrop-filter: blur(8px);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #8e8ea0;
+      z-index: 100;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -212,6 +379,17 @@
   🍳 Kitchen Display 
   <div class="filter-badge">
     🔍 Filter: Table <span>TB1</span> only
+  </div>
+  <div class="control-bar">
+    <button class="control-btn" id="fullscreenBtn">
+      <span id="fullscreenIcon">⛶</span> <span id="fullscreenText">Fullscreen</span>
+    </button>
+    <button class="control-btn" id="historyBtn">
+      📜 History
+    </button>
+    <button class="control-btn primary" id="downloadExcelBtn">
+      📥 Excel
+    </button>
   </div>
 </h1>
 
@@ -237,6 +415,22 @@
 <div class="footer-note">
   ⚡ Only orders with <strong>Table = "TB1"</strong> are shown. Other tables are ignored.
 </div>
+<div class="debug-panel" id="debugInfo">
+  🔍 Filter: TB1 | Waiting for orders...
+</div>
+
+<!-- History Modal -->
+<div id="historyModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>📜 Completed Order History</h2>
+      <button class="close-modal" id="closeHistoryBtn">&times;</button>
+    </div>
+    <div id="historyContent">
+      <p style="text-align:center; color:#8e8ea0; padding:20px;">Loading history...</p>
+    </div>
+  </div>
+</div>
 
 <script>
   // ---------- FIREBASE CONFIGURATION ----------
@@ -254,78 +448,57 @@
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
 
-  // Reference to orders node
+  // Reference to orders and history nodes
   const ordersRef = database.ref("orders");
+  const historyRef = database.ref("order_history");
 
-  // ---------- MODIFIED: Target table identifier is "TB1" (without space) ----------
-  // Now matches both "TB1" and "TB 1" for compatibility with the QR order page
-  const TARGET_TABLE_EXACT = "TB1";
-  const TARGET_TABLE_WITH_SPACE = "TB 1";
+  const TARGET_TABLE = "TB1";
 
-  /**
-   * Check if order belongs to table TB1
-   * Supports both "TB1" and "TB 1" formats to ensure compatibility
-   * This ensures orders from the QR page (which sends "TB1") are displayed
-   */
   function isTargetTable(tableValue) {
     if (!tableValue && tableValue !== 0) return false;
-    
-    // Convert to string and clean
-    let tableStr = String(tableValue).trim().replace(/\s+/g, ' ');
-    
-    // Normalize for comparison: uppercase and remove extra spaces
+    let tableStr = String(tableValue).trim();
     const normalized = tableStr.toUpperCase().replace(/\s+/g, '');
-    
-    // Check against both "TB1" and "TB1" (normalized removes spaces)
-    // Also check original string for "TB 1" format
-    const matchesTB1 = normalized === "TB1";
-    const matchesTB1WithSpace = tableStr.toUpperCase() === "TB 1";
-    
-    return matchesTB1 || matchesTB1WithSpace;
+    return normalized === "TB1";
   }
 
   /**
-   * formatItems - handles array, string, object with en/zh fields, etc.
-   * Returns HTML-friendly string with <br> separators.
+   * --- UPDATED: Format items to display vertically ---
    */
   function formatItems(items) {
     if (!items) return "📭 No items";
 
-    // If it's an array
+    // If it's an array → each item on new line
     if (Array.isArray(items)) {
       if (items.length === 0) return "🛒 Empty order";
       const formatted = items.map(item => {
-        if (typeof item === "string") return item;
-        // case: { en: "Burger", zh: "汉堡" } -> show en or zh
+        if (typeof item === "string") return `• ${item.trim()}`;
         if (item && typeof item === "object") {
-          if (item.en) return item.en;
-          if (item.zh) return item.zh;
-          // try name field
-          if (item.name) return item.name;
-          // fallback
-          return JSON.stringify(item);
+          if (item.en) return `• ${item.en.trim()}`;
+          if (item.zh) return `• ${item.zh.trim()}`;
+          if (item.name) return `• ${item.name.trim()}`;
+          return `• ${JSON.stringify(item)}`;
         }
-        return String(item);
-      }).join(" • ");
+        return `• ${String(item).trim()}`;
+      }).join("\n"); // New line between items
       return formatted;
     }
 
-    // If it's a plain string
+    // If it's a comma-separated string → split into lines
     if (typeof items === "string") {
-      return items.replace(/,/g, " • ");
+      return items.split(",").map(i => `• ${i.trim()}`).join("\n");
     }
 
-    // If it's an object but not array
+    // If it's an object
     if (typeof items === "object") {
       try {
         const values = Object.values(items).filter(v => v !== null && v !== undefined);
         if (values.length) {
           return values.map(v => {
-            if (typeof v === "string") return v;
-            if (v && v.en) return v.en;
-            if (v && v.zh) return v.zh;
-            return String(v).substring(0, 30);
-          }).join(" • ");
+            if (typeof v === "string") return `• ${v.trim()}`;
+            if (v && v.en) return `• ${v.en.trim()}`;
+            if (v && v.zh) return `• ${v.zh.trim()}`;
+            return `• ${String(v).trim().substring(0, 30)}`;
+          }).join("\n");
         }
       } catch(e) {}
       return "📋 Custom items";
@@ -334,151 +507,253 @@
     return String(items);
   }
 
-  // Helper: generate safe display time
   function getDisplayTime(order) {
     if (order.timestamp) return new Date(order.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     if (order.time) return order.time;
     return "";
   }
 
-  // RENDER FUNCTION: only orders that match table "TB1"
+  function getFullDateTime(timestamp) {
+    if (!timestamp) return "—";
+    return new Date(timestamp).toLocaleString('en-SG', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+
+  function updateDebugInfo(message) {
+    const debugEl = document.getElementById("debugInfo");
+    if (debugEl) {
+      debugEl.innerHTML = `🔍 Filter: ${TARGET_TABLE} | ${message}`;
+    }
+  }
+
+  function toggleFullscreen() {
+    const docEl = document.documentElement;
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const fullscreenIcon = document.getElementById("fullscreenIcon");
+    const fullscreenText = document.getElementById("fullscreenText");
+
+    if (!document.fullscreenElement) {
+      docEl.requestFullscreen().catch(err => console.warn(`Fullscreen error: ${err.message}`));
+      document.body.classList.add("fullscreen-mode");
+      fullscreenIcon.textContent = "⛶";
+      fullscreenText.textContent = "Exit";
+    } else {
+      document.exitFullscreen();
+      document.body.classList.remove("fullscreen-mode");
+      fullscreenIcon.textContent = "⛶";
+      fullscreenText.textContent = "Fullscreen";
+    }
+  }
+
+  async function saveToHistory(orderId, orderData) {
+    if (!isTargetTable(orderData.table)) return;
+    const historyEntry = {
+      ...orderData,
+      completedAt: firebase.database.ServerValue.TIMESTAMP,
+      completedFrom: "kitchen_display"
+    };
+    try {
+      await historyRef.child(orderId).set(historyEntry);
+    } catch (err) {
+      console.warn(`[History] Save failed:`, err);
+    }
+  }
+
+  async function loadHistory() {
+    const historyContent = document.getElementById("historyContent");
+    historyContent.innerHTML = "<p style='text-align:center; color:#8e8ea0; padding:20px;'>Loading history...</p>";
+    try {
+      const snapshot = await historyRef.orderByChild("completedAt").limitToLast(50).once("value");
+      const historyData = snapshot.val();
+      if (!historyData) {
+        historyContent.innerHTML = "<p style='text-align:center; color:#8e8ea0; padding:20px;'>No completed orders found.</p>";
+        return;
+      }
+      const TB1History = Object.entries(historyData)
+        .filter(([_, order]) => isTargetTable(order.table))
+        .sort((a, b) => (b[1].completedAt || 0) - (a[1].completedAt || 0));
+      if (tb1History.length === 0) {
+        historyContent.innerHTML = "<p style='text-align:center; color:#8e8ea0; padding:20px;'>No TB1 completed orders found.</p>";
+        return;
+      }
+      let tableHTML = `<table class="history-table"><thead><tr><th>Order #</th><th>Table</th><th>Items</th><th>Total</th><th>Completed At</th></tr></thead><tbody>`;
+      tb1History.forEach(([orderId, order]) => {
+        const orderNumber = order.orderNo || orderId.slice(-6) || "N/A";
+        const displayTable = String(order.table).toUpperCase();
+        const items = formatItems(order.items);
+        const total = order.total ? `$${parseFloat(order.total).toFixed(2)}` : "$0.00";
+        const completedAt = getFullDateTime(order.completedAt);
+        tableHTML += `<tr><td>${orderNumber}</td><td>${displayTable}</td><td style="white-space: pre-line;">${items}</td><td>${total}</td><td>${completedAt}</td></tr>`;
+      });
+      tableHTML += "</tbody></table>";
+      historyContent.innerHTML = tableHTML;
+    } catch (err) {
+      console.error("History load error:", err);
+      historyContent.innerHTML = "<p style='color:#e53935; text-align:center;'>⚠️ Failed to load history</p>";
+    }
+  }
+
+  async function downloadExcel() {
+    try {
+      updateDebugInfo("Preparing Excel file...");
+      const activeSnapshot = await ordersRef.once("value");
+      const activeOrders = activeSnapshot.val() || {};
+      const historySnapshot = await historyRef.once("value");
+      const historyOrders = historySnapshot.val() || {};
+      const allTB1Orders = [];
+      Object.entries(activeOrders).forEach(([id, order]) => {
+        if (isTargetTable(order.table)) {
+          allTB1Orders.push({
+            "Order ID": id,
+            "Order Number": order.orderNo || id.slice(-6) || "N/A",
+            "Table": String(order.table).toUpperCase(),
+            "Status": order.status || "New",
+            "Items": Array.isArray(order.items) ? order.items.join(", ") : String(order.items || ""),
+            "Total ($)": order.total ? parseFloat(order.total).toFixed(2) : "0.00",
+            "Created At": getFullDateTime(order.timestamp),
+            "Completed At": "—"
+          });
+        }
+      });
+      Object.entries(historyOrders).forEach(([id, order]) => {
+        if (isTargetTable(order.table)) {
+          allTB1Orders.push({
+            "Order ID": id,
+            "Order Number": order.orderNo || id.slice(-6) || "N/A",
+            "Table": String(order.table).toUpperCase(),
+            "Status": "Completed",
+            "Items": Array.isArray(order.items) ? order.items.join(", ") : String(order.items || ""),
+            "Total ($)": order.total ? parseFloat(order.total).toFixed(2) : "0.00",
+            "Created At": getFullDateTime(order.timestamp),
+            "Completed At": getFullDateTime(order.completedAt)
+          });
+        }
+      });
+      if (allTB1Orders.length === 0) {
+        alert("No TB1 orders found to export!");
+        updateDebugInfo("No orders to export");
+        return;
+      }
+      const worksheet = XLSX.utils.json_to_sheet(allTB1Orders);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "TB1 Orders");
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(workbook, `TB1_Orders_${today}.xlsx`);
+      updateDebugInfo(`✅ Exported ${allTB1Orders.length} orders to Excel`);
+    } catch (err) {
+      console.error("Excel export error:", err);
+      updateDebugInfo("❌ Export failed");
+      alert("Failed to export Excel file. Please try again.");
+    }
+  }
+
   function renderKitchen(snapshot) {
     const ordersData = snapshot.val();
     const newContainer = document.getElementById("newList");
     const prepContainer = document.getElementById("prepList");
     const readyContainer = document.getElementById("readyList");
-
-    // Clear containers
     if (newContainer) newContainer.innerHTML = "";
     if (prepContainer) prepContainer.innerHTML = "";
     if (readyContainer) readyContainer.innerHTML = "";
-
-    // counters to show empty states
     let newCount = 0, prepCount = 0, readyCount = 0;
-
+    let totalOrdersInDB = 0, matchedOrders = 0;
     if (!ordersData) {
-      // show empty messages in all columns
+      updateDebugInfo("No orders in database");
       if (newContainer) newContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
       if (prepContainer) prepContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
       if (readyContainer) readyContainer.innerHTML = "<div class='empty'>✨ No orders for TB1</div>";
       return;
     }
-
-    // iterate through each order ID
+    totalOrdersInDB = Object.keys(ordersData).length;
     for (const [orderId, order] of Object.entries(ordersData)) {
-      // ---- FILTER CORE: only show table = TB1 (supports both "TB1" and "TB 1") ----
-      const tableValue = order.table;
-      if (!isTargetTable(tableValue)) {
-        // Skip any order that does not have table = TB1 (including missing/null/other tables)
-        continue;
-      }
-
-      // Extract order data
+      if (!isTargetTable(order.table)) continue;
+      matchedOrders++;
       const orderNumber = order.orderNo || orderId.slice(-6) || "N/A";
       const status = order.status || "New";
       const total = (order.total !== undefined && order.total !== null) ? parseFloat(order.total).toFixed(2) : "0.00";
       const itemsFormatted = formatItems(order.items);
       const timeString = getDisplayTime(order);
-      
-      // Display table value (show as TB1 for consistency)
-      let displayTable = order.table;
-      if (displayTable && displayTable.toUpperCase().replace(/\s+/g, '') === "TB1") {
-        displayTable = "TB1";
-      }
+      const displayTable = String(order.table).toUpperCase();
 
-      // Create order card div
       const cardDiv = document.createElement("div");
       cardDiv.className = "order";
-
-      // Build inner structure (table displayed prominently)
       cardDiv.innerHTML = `
         <b>🍽️ Order #${orderNumber}</b>
         <div>📌 Table: <strong style="color:#ffb400;">${displayTable}</strong></div>
-        <div class="items">📋 ${itemsFormatted}</div>
+        <div class="items"> ${itemsFormatted}</div>
         <div>💰 Total: $${total}</div>
         ${timeString ? `<div>⏱️ ${timeString}</div>` : ""}
       `;
 
-      // Create dynamic action button based on status
       const actionBtn = document.createElement("button");
-
-      // ---- status handling + assign to column ----
       if (!status || status === "New") {
         actionBtn.innerText = "🔪 Start Cooking";
         actionBtn.className = "prep";
-        actionBtn.onclick = () => {
-          database.ref(`orders/${orderId}`).update({ status: "Preparing" })
-            .catch(err => console.warn("Update failed", err));
-        };
+        actionBtn.onclick = () => database.ref(`orders/${orderId}`).update({ status: "Preparing" });
         cardDiv.appendChild(actionBtn);
-        if (newContainer) newContainer.appendChild(cardDiv);
+        newContainer.appendChild(cardDiv);
         newCount++;
-      } 
-      else if (status === "Preparing") {
+      } else if (status === "Preparing") {
         actionBtn.innerText = "✅ Mark Ready";
         actionBtn.className = "ready";
-        actionBtn.onclick = () => {
-          database.ref(`orders/${orderId}`).update({ status: "Ready" })
-            .catch(err => console.warn("Update failed", err));
-        };
+        actionBtn.onclick = () => database.ref(`orders/${orderId}`).update({ status: "Ready" });
         cardDiv.appendChild(actionBtn);
-        if (prepContainer) prepContainer.appendChild(cardDiv);
+        prepContainer.appendChild(cardDiv);
         prepCount++;
-      }
-      else if (status === "Ready") {
+      } else if (status === "Ready") {
         actionBtn.innerText = "✔️ Complete & Remove";
         actionBtn.className = "done";
-        actionBtn.onclick = () => {
+        actionBtn.onclick = async () => {
           if (confirm(`Remove order #${orderNumber} from kitchen?`)) {
-            database.ref(`orders/${orderId}`).remove()
-              .catch(err => console.warn("Remove error", err));
+            await saveToHistory(orderId, order);
+            await database.ref(`orders/${orderId}`).remove();
           }
         };
         cardDiv.appendChild(actionBtn);
-        if (readyContainer) readyContainer.appendChild(cardDiv);
+        readyContainer.appendChild(cardDiv);
         readyCount++;
-      }
-      else {
-        // any other unknown status – treat as fallback
+      } else {
         actionBtn.innerText = "⚡ Update to Preparing";
         actionBtn.className = "prep";
-        actionBtn.onclick = () => {
-          database.ref(`orders/${orderId}`).update({ status: "Preparing" });
-        };
+        actionBtn.onclick = () => database.ref(`orders/${orderId}`).update({ status: "Preparing" });
         cardDiv.appendChild(actionBtn);
-        if (newContainer) newContainer.appendChild(cardDiv);
+        newContainer.appendChild(cardDiv);
         newCount++;
       }
     }
-
-    // After loop, if any column is empty show friendly message
-    if (newCount === 0 && newContainer) {
-      newContainer.innerHTML = "<div class='empty'>🍽️ No new orders for TB1</div>";
-    }
-    if (prepCount === 0 && prepContainer) {
-      prepContainer.innerHTML = "<div class='empty'>👨‍🍳 No preparing orders (TB1)</div>";
-    }
-    if (readyCount === 0 && readyContainer) {
-      readyContainer.innerHTML = "<div class='empty'>🎉 No ready orders for TB1</div>";
-    }
+    updateDebugInfo(`Total: ${totalOrdersInDB} | TB1: ${matchedOrders} | New:${newCount} Prep:${prepCount} Ready:${readyCount}`);
+    if (newCount === 0) newContainer.innerHTML = "<div class='empty'>🍽️ No new orders for TB1</div>";
+    if (prepCount === 0) prepContainer.innerHTML = "<div class='empty'>👨‍🍳 No preparing orders (TB1)</div>";
+    if (readyCount === 0) readyContainer.innerHTML = "<div class='empty'>🎉 No ready orders for TB1</div>";
   }
 
-  // ---- Real-time listener with filtering ----
-  // Attach value event listener to "orders" node
-  ordersRef.on("value", (snapshot) => {
-    renderKitchen(snapshot);
-  }, (error) => {
-    console.error("Firebase read error:", error);
-    // show error on UI gracefully
-    const containers = ["newList", "prepList", "readyList"];
-    containers.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = "<div class='empty'>⚠️ Connection error. Check console.</div>";
-    });
+  ordersRef.on("value", renderKitchen, (err) => {
+    console.error("Firebase error:", err);
+    updateDebugInfo("⚠️ Connection error");
   });
 
-  // Optional: extra confirmation that filter is active: initial console info
-  console.log("Kitchen display active — ONLY showing table: TB1 (supports both TB1 and TB 1 formats)");
+  const connectedRef = database.ref(".info/connected");
+  connectedRef.on("value", (snap) => {
+    updateDebugInfo(snap.val() ? "✅ Connected to Firebase" : "⚠️ Disconnected from Firebase");
+  });
+
+  document.getElementById("fullscreenBtn").addEventListener("click", toggleFullscreen);
+  document.getElementById("historyBtn").addEventListener("click", () => {
+    document.getElementById("historyModal").style.display = "block";
+    loadHistory();
+  });
+  document.getElementById("closeHistoryBtn").addEventListener("click", () => {
+    document.getElementById("historyModal").style.display = "none";
+  });
+  document.getElementById("downloadExcelBtn").addEventListener("click", downloadExcel);
+  window.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("historyModal")) {
+      document.getElementById("historyModal").style.display = "none";
+    }
+  });
+
 </script>
 
 </body>
