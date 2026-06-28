@@ -63,8 +63,8 @@
 
         .num-key {
             width: 100%;
-            height: 60px;
-            font-size: 22px;
+            height: 54px;
+            font-size: 20px;
             font-weight: bold;
             border-radius: 8px;
             border: none;
@@ -110,7 +110,7 @@
             font-weight: 600;
             letter-spacing: 1px;
         }
-        /* 菜单滚动条美化 */
+
         .menu-scroll::-webkit-scrollbar {
             width: 6px;
         }
@@ -120,6 +120,24 @@
         }
         .menu-scroll::-webkit-scrollbar-track {
             background: #f1f5f9;
+        }
+
+        /* ★★★ 确保底部按钮始终可见 ★★★ */
+        .checkout-footer {
+            flex-shrink: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+        .order-scroll {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            min-height: 80px;
         }
     </style>
 </head>
@@ -156,7 +174,7 @@
     <!-- POS主收银界面 -->
     <div id="posMain" class="hidden h-screen flex flex-col">
         <!-- 顶部工具栏 -->
-        <header class="bg-mainRed text-white px-6 py-3 flex justify-between items-center">
+        <header class="bg-mainRed text-white px-6 py-3 flex justify-between items-center flex-shrink-0">
             <div class="flex gap-6 items-center">
                 <h2 class="text-2xl font-bold" data-i18n="posTitle">吉祥糕点 POS收银 / Ji Xiang Kueh POS</h2>
                 <span id="todaySales" class="bg-white text-mainRed px-3 py-1 rounded" data-i18n="salesTxt">今日营业额 / Today Sales：$0.00</span>
@@ -176,8 +194,8 @@
             </div>
         </header>
 
-        <!-- 优惠横幅（动态显示套餐） -->
-        <div class="bg-mainOrange/10 px-4 py-2 text-center text-sm flex justify-center gap-6 flex-wrap">
+        <!-- 优惠横幅 -->
+        <div class="bg-mainOrange/10 px-4 py-2 text-center text-sm flex justify-center gap-6 flex-wrap flex-shrink-0">
             <span data-i18n="promoTxt">🎉 优惠套餐 / Promo：</span>
             <span class="font-bold text-mainRed">3盒 $10</span>
             <span class="font-bold text-mainRed">4盒 $12</span>
@@ -185,11 +203,10 @@
 
         <!-- 主体左右分栏 -->
         <div class="flex flex-1 overflow-hidden">
-            <!-- 左侧商品菜单 + 快捷套餐 -->
+            <!-- 左侧商品菜单 -->
             <section class="w-[65%] bg-white p-4 overflow-y-auto menu-scroll">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-bold text-darkWood" data-i18n="menuTitle">糕点商品菜单 / Kueh Menu</h3>
-                    <!-- ★★★ 新增：快捷套餐按键组 ★★★ -->
                     <div class="flex gap-3">
                         <button onclick="applyPromo(3, 10)" class="promo-btn px-5 py-2 rounded-lg text-base">
                             🧺 3盒 $10
@@ -202,18 +219,18 @@
                 <div id="goodsGrid" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
             </section>
 
-            <!-- 右侧收银结算面板 -->
-            <section class="w-[35%] bg-stone-100 flex flex-col border-l-2 border-darkWood/20">
-                <div class="p-4 border-b border-darkWood/20">
+            <!-- 右侧收银结算面板（使用flex列保证底部按钮可见） -->
+            <section class="w-[35%] bg-stone-100 border-l-2 border-darkWood/20 right-panel">
+                <div class="p-4 border-b border-darkWood/20 flex-shrink-0">
                     <h3 class="text-xl font-bold text-darkWood" data-i18n="orderTitle">当前订单 / Current Order</h3>
                 </div>
-                <div id="orderList" class="flex-1 overflow-y-auto p-4">
+                <div id="orderList" class="order-scroll p-4">
                     <p class="text-gray-400 text-center mt-20" data-i18n="emptyOrder">暂无商品，请点击左侧糕点 / No items, click kueh on left</p>
                 </div>
 
-                <!-- 金额区域 -->
-                <div class="p-4 border-t bg-white">
-                    <div class="text-lg space-y-2 mb-4">
+                <!-- ★★★ 底部结算区域（固定显示）★★★ -->
+                <div class="checkout-footer p-4">
+                    <div class="text-lg space-y-2 mb-3">
                         <div class="flex justify-between">
                             <span data-i18n="oriTotalTxt">商品原价 / Subtotal：</span>
                             <span id="oriTotal">$0.00</span>
@@ -229,11 +246,11 @@
                     </div>
 
                     <!-- 实收金额 + 数字键盘 -->
-                    <div class="mb-4">
-                        <label class="font-medium" data-i18n="receiveTxt">实收金额 / Received Cash：</label>
+                    <div class="mb-3">
+                        <label class="font-medium text-sm" data-i18n="receiveTxt">实收金额 / Received Cash：</label>
                         <input type="text" id="receiveMoney" readonly
-                        class="w-full border rounded px-3 py-2 text-lg mt-1 bg-gray-50" value="0.00">
-                        <div class="grid grid-cols-3 gap-2 mt-2">
+                        class="w-full border rounded px-3 py-1.5 text-lg mt-1 bg-gray-50" value="0.00">
+                        <div class="grid grid-cols-3 gap-1.5 mt-1.5">
                             <button class="num-key num-key-digit" onclick="inputNum('1')">1</button>
                             <button class="num-key num-key-digit" onclick="inputNum('2')">2</button>
                             <button class="num-key num-key-digit" onclick="inputNum('3')">3</button>
@@ -246,29 +263,29 @@
                             <button class="num-key num-key-clear col-span-2" onclick="clearReceive()" data-i18n="clearKey">C (清除)</button>
                             <button class="num-key num-key-digit" onclick="inputNum('0')">0</button>
                         </div>
-                        <div class="text-lg mt-2 flex justify-between">
+                        <div class="text-base mt-1.5 flex justify-between">
                             <span data-i18n="changeTxt">找零 / Change：</span>
                             <span id="changeMoney" class="text-green-600 font-bold">$0.00</span>
                         </div>
                     </div>
 
-                    <!-- 操作按钮（新增历史与Excel导出） -->
-                    <div class="grid grid-cols-2 gap-3 mb-2">
-                        <button onclick="calcChange()" class="bg-gray-500 text-white py-3 rounded-lg text-lg" data-i18n="calcBtn">计算找零 / Calc</button>
-                        <button onclick="printTicketOnlyBT()" class="bg-mainOrange text-white py-3 rounded-lg text-lg" data-i18n="printOnlyBtn">蓝牙预打印 / BT</button>
-                        <button onclick="checkoutPayBT()" class="bg-mainRed text-white py-3 rounded-lg text-lg col-span-2" data-i18n="payBtn">确认收款蓝牙打印 / Pay & BT</button>
+                    <!-- 操作按钮 + 历史/Excel（确保全部可见） -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="calcChange()" class="bg-gray-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600" data-i18n="calcBtn">计算找零 / Calc</button>
+                        <button onclick="printTicketOnlyBT()" class="bg-mainOrange text-white py-2 rounded-lg text-sm font-medium hover:bg-mainOrange/90" data-i18n="printOnlyBtn">蓝牙预打印 / BT</button>
+                        <button onclick="checkoutPayBT()" class="bg-mainRed text-white py-2 rounded-lg text-sm font-medium col-span-2 hover:bg-mainRed/90" data-i18n="payBtn">✅ 确认收款蓝牙打印 / Pay & BT</button>
                     </div>
-                    <!-- ★★★ 新增：历史与Excel导出快捷按钮 ★★★ -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="openHistory()" class="bg-indigo-600 text-white py-2.5 rounded-lg text-base font-medium hover:bg-indigo-700">
-                            <i class="fa fa-history mr-1"></i> 历史订单
+                    <!-- ★★★ 历史与Excel导出按钮（确保显示）★★★ -->
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <button onclick="openHistory()" class="bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
+                            <i class="fa fa-history mr-1"></i> 📋 历史订单
                         </button>
-                        <button onclick="exportExcel()" class="bg-emerald-600 text-white py-2.5 rounded-lg text-base font-medium hover:bg-emerald-700">
-                            <i class="fa fa-file-excel-o mr-1"></i> 导出Excel
+                        <button onclick="exportExcel()" class="bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700">
+                            <i class="fa fa-file-excel-o mr-1"></i> 📊 导出Excel
                         </button>
                     </div>
-                    <div class="text-sm text-gray-500 text-center mt-3">
-                        打印机 POS-5810DD 58mm Bluetooth Thermal
+                    <div class="text-xs text-gray-500 text-center mt-2">
+                        POS-5810DD 58mm Bluetooth Thermal
                     </div>
                 </div>
             </section>
@@ -278,7 +295,7 @@
     <!-- 历史订单弹窗 -->
     <div id="historyModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center">
         <div class="bg-white w-[95%] max-w-5xl rounded-xl flex flex-col max-h-[90vh]">
-            <div class="bg-mainRed text-white p-4 flex justify-between items-center">
+            <div class="bg-mainRed text-white p-4 flex justify-between items-center flex-shrink-0">
                 <h3 class="text-xl font-bold" data-i18n="historyTitle">📋 订单历史 / Order History</h3>
                 <div class="flex gap-3">
                     <button onclick="exportExcel()" class="bg-white text-mainRed px-4 py-1.5 rounded" data-i18n="exportBtn">
@@ -334,7 +351,7 @@
                 changeTxt: "找零：",
                 calcBtn: "计算找零 / Calc",
                 printOnlyBtn: "蓝牙预打印 / BT",
-                payBtn: "确认收款蓝牙打印 / Pay & BT",
+                payBtn: "✅ 确认收款蓝牙打印 / Pay & BT",
                 historyTitle: "📋 订单历史 / Order History",
                 exportBtn: "导出Excel",
                 emptyHistory: "暂无历史订单 / No order history"
@@ -359,7 +376,7 @@
                 changeTxt: "Change:",
                 calcBtn: "Calc Change",
                 printOnlyBtn: "BT Print",
-                payBtn: "Pay & BT Print",
+                payBtn: "✅ Pay & BT Print",
                 historyTitle: "📋 Order History",
                 exportBtn: "Export Excel",
                 emptyHistory: "No order history"
@@ -407,6 +424,7 @@
         let bluetoothDevice = null;
         let btWriteChar = null;
 
+        // ★★★ POS-5810DD 标准服务与特征 ★★★
         const BT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
         const BT_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
@@ -496,28 +514,18 @@
             refreshOrderPanel();
         }
 
-        // ★★★ 新增：快捷套餐应用（3盒$10 / 4盒$12）★★★
         function applyPromo(boxCount, promoPrice) {
             if (currentOrder.length === 0) {
                 alert(currentLang === "zh" ? "请先添加糕点商品" : "Please add kueh items first");
                 return;
             }
-            // 计算当前总盒数
             let totalBox = 0;
             currentOrder.forEach(i => totalBox += i.qty);
-
             if (totalBox < boxCount) {
                 alert(currentLang === "zh" ? `当前只有 ${totalBox} 盒，至少需要 ${boxCount} 盒才能使用此套餐` :
                     `Only ${totalBox} boxes, need at least ${boxCount} boxes for this promo`);
                 return;
             }
-
-            // 应用套餐逻辑：将最贵的 boxCount 盒按套餐价计算
-            // 实际业务中可复杂处理，这里简单按总价打折：如果总盒数>=boxCount，使用套餐价替代原价
-            // 但更合理的是：将订单中所有商品按原价计，然后统一应用折扣
-            // 我们使用 calcPrice 中的逻辑已经支持：当 totalBox >= 4 时自动优惠，但这里显式调用
-            // 重新计算价格即可（calcPrice 已内置 3盒/4盒优惠逻辑）
-            // 同时给用户反馈
             calcPrice();
             const finalPrice = parseFloat(document.getElementById("finalTotal").innerText.replace("$", ""));
             alert(currentLang === "zh" ? `✅ 已应用 ${boxCount}盒$${promoPrice} 优惠！当前应付 $${finalPrice.toFixed(2)}` :
@@ -552,7 +560,7 @@
             calcPrice();
         }
 
-        // ====================== 7. 优惠价格计算（内置3盒$10 / 4盒$12） ======================
+        // ====================== 7. 优惠价格计算 ======================
         function calcPrice() {
             let oriTotal = 0;
             let totalBox = 0;
@@ -583,39 +591,65 @@
             document.getElementById("changeMoney").innerText = "$" + Math.max(change, 0).toFixed(2);
         }
 
-        // ====================== 9. 蓝牙打印机 ======================
+        // ====================== 9. ★★★ 蓝牙打印机连接（修复版）★★★ ======================
         async function connectBluetooth() {
             try {
+                // 更精确的筛选：匹配 POS-5810DD 或通用热敏打印机
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [
                         { services: [BT_SERVICE_UUID] },
                         { namePrefix: "POS-5810DD" },
                         { namePrefix: "5810DD" },
                         { namePrefix: "BT Printer" },
-                        { namePrefix: "Thermal" }
+                        { namePrefix: "Thermal" },
+                        { namePrefix: "58mm" }
                     ],
-                    acceptAllDevices: false
+                    acceptAllDevices: false,
+                    optionalServices: [BT_SERVICE_UUID]
                 });
+
+                console.log("📡 已选择设备:", device.name, device.id);
                 bluetoothDevice = device;
+
+                // 连接 GATT
                 if (!device.gatt.connected) {
                     await device.gatt.connect();
                 }
+                console.log("🔗 GATT 已连接");
+
+                // 获取服务
                 const service = await device.gatt.getPrimaryService(BT_SERVICE_UUID);
+                console.log("📦 获取到服务:", service.uuid);
+
+                // 获取特征
                 btWriteChar = await service.getCharacteristic(BT_CHAR_UUID);
-                alert(currentLang === "zh" ? "POS-5810DD蓝牙打印机连接成功！" : "POS-5810DD Bluetooth printer connected!");
+                console.log("✏️ 获取到写入特征:", btWriteChar.uuid);
+
+                alert(currentLang === "zh" ?
+                    "✅ POS-5810DD 蓝牙打印机连接成功！\n请先放入58mm热敏纸，再点击打印。" :
+                    "✅ POS-5810DD Bluetooth printer connected! Load 58mm thermal paper.");
+
             } catch (err) {
-                console.error("蓝牙连接失败", err);
+                console.error("❌ 蓝牙连接失败:", err);
                 let msg = err.message;
                 if (err.name === "NotFoundError") {
-                    msg = currentLang === "zh" ? "未找到打印机，请确认开机、蓝牙开启" : "Printer not found, please power on";
+                    msg = currentLang === "zh" ?
+                        "未找到 POS-5810DD 打印机。请确认：\n1. 打印机已开机\n2. 蓝牙已开启\n3. 打印机未被其他设备占用" :
+                        "POS-5810DD not found. Check: power on, Bluetooth enabled, not paired to other device";
                 } else if (err.name === "SecurityError") {
-                    msg = currentLang === "zh" ? "请使用Chrome/Edge浏览器，通过HTTPS或localhost访问" :
+                    msg = currentLang === "zh" ?
+                        "请使用 Chrome/Edge 浏览器，并通过 HTTPS 或 localhost 访问" :
                         "Use Chrome/Edge over HTTPS or localhost";
+                } else if (err.name === "NetworkError") {
+                    msg = currentLang === "zh" ?
+                        "蓝牙连接超时，请靠近打印机重试" :
+                        "Connection timeout, move closer to printer";
                 }
-                alert(currentLang === "zh" ? "蓝牙连接失败：" + msg : "Bluetooth connect failed: " + msg);
+                alert(currentLang === "zh" ? "❌ 蓝牙连接失败：\n" + msg : "❌ Bluetooth failed:\n" + msg);
             }
         }
 
+        // ====================== 10. 打印功能 ======================
         function buildPrintText(receiveVal = "0", changeVal = "0.00") {
             const finalPrice = document.getElementById("finalTotal").innerText;
             const oriPrice = document.getElementById("oriTotal").innerText;
@@ -623,13 +657,15 @@
             const now = new Date().toLocaleString();
 
             let printBuffer = [];
+            // 初始化
             printBuffer.push(new Uint8Array([0x1B, 0x40]));
+            // 居中
             printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
             printBuffer.push(new TextEncoder().encode("JI XIANG 吉祥糕点\n"));
-            printBuffer.push(new TextEncoder().encode("POS-5810DD Thermal Receipt\n"));
+            printBuffer.push(new TextEncoder().encode("POS-5810DD Thermal\n"));
             printBuffer.push(new Uint8Array([0x1B, 0x61, 0x00]));
             printBuffer.push(new TextEncoder().encode("================================\n"));
-            printBuffer.push(new TextEncoder().encode("Order Time: " + now + "\n"));
+            printBuffer.push(new TextEncoder().encode("Time: " + now + "\n"));
             printBuffer.push(new TextEncoder().encode("================================\n"));
             currentOrder.forEach(item => {
                 const name = currentLang === "zh" ? item.name : item.eng;
@@ -643,7 +679,7 @@
             printBuffer.push(new TextEncoder().encode(`Change: $${changeVal}\n`));
             printBuffer.push(new TextEncoder().encode("================================\n"));
             printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
-            printBuffer.push(new TextEncoder().encode("Thank You For Your Visit!\n\n\n\n"));
+            printBuffer.push(new TextEncoder().encode("Thank You! See you again!\n\n\n\n"));
             printBuffer.push(new Uint8Array([0x0A, 0x0A, 0x0A]));
 
             let totalLen = 0;
@@ -659,17 +695,25 @@
 
         async function btPrint(receiveVal = "0", changeVal = "0.00") {
             if (!btWriteChar || !bluetoothDevice?.gatt?.connected) {
-                alert(currentLang === "zh" ? "请先点击顶部蓝牙图标连接POS-5810DD打印机" : "Please connect POS-5810DD printer first");
+                alert(currentLang === "zh" ?
+                    "⚠️ 请先点击顶部蓝牙图标 🔵 连接 POS-5810DD 打印机" :
+                    "⚠️ Please click Bluetooth icon to connect POS-5810DD");
                 return false;
             }
-            const printData = buildPrintText(receiveVal, changeVal);
-            const chunkSize = 64;
-            for (let i = 0; i < printData.length; i += chunkSize) {
-                const chunk = printData.slice(i, i + chunkSize);
-                await btWriteChar.writeValue(chunk);
-                await new Promise(res => setTimeout(res, 50));
+            try {
+                const printData = buildPrintText(receiveVal, changeVal);
+                const chunkSize = 64;
+                for (let i = 0; i < printData.length; i += chunkSize) {
+                    const chunk = printData.slice(i, i + chunkSize);
+                    await btWriteChar.writeValue(chunk);
+                    await new Promise(res => setTimeout(res, 60));
+                }
+                return true;
+            } catch (err) {
+                console.error("打印失败:", err);
+                alert(currentLang === "zh" ? "❌ 打印失败: " + err.message : "❌ Print failed: " + err.message);
+                return false;
             }
-            return true;
         }
 
         async function printTicketOnlyBT() {
@@ -680,7 +724,7 @@
             const receive = getReceiveNumber();
             const change = document.getElementById("changeMoney").innerText.replace("$", "");
             const ok = await btPrint(receive.toString(), change);
-            if (ok) alert(currentLang === "zh" ? "预订单蓝牙打印完成" : "Pre-order printed via Bluetooth");
+            if (ok) alert(currentLang === "zh" ? "✅ 预订单蓝牙打印完成" : "✅ Pre-order printed via Bluetooth");
         }
 
         async function checkoutPayBT() {
@@ -691,7 +735,7 @@
             const final = parseFloat(document.getElementById("finalTotal").innerText.replace("$", ""));
             const receive = getReceiveNumber();
             if (receive < final) {
-                alert(currentLang === "zh" ? "收款金额不足" : "Received cash less than total due");
+                alert(currentLang === "zh" ? "❌ 收款金额不足" : "❌ Received cash less than total due");
                 return;
             }
             const change = receive - final;
@@ -713,8 +757,9 @@
             updateSalesText();
 
             const ok = await btPrint(receive.toString(), change.toFixed(2));
-            if (ok) alert(currentLang === "zh" ? "收款完成，蓝牙小票已打印！" : "Payment completed, receipt printed via Bluetooth");
-
+            if (ok) {
+                alert(currentLang === "zh" ? "✅ 收款完成，蓝牙小票已打印！" : "✅ Payment completed, receipt printed!");
+            }
             clearAllOrder();
         }
 
@@ -723,7 +768,7 @@
             document.getElementById("todaySales").innerText = text;
         }
 
-        // ====================== 10. 历史订单 & Excel导出 ======================
+        // ====================== 11. 历史订单 & Excel导出 ======================
         function openHistory() {
             const listWrap = document.getElementById("historyList");
             if (orderHistory.length === 0) {
@@ -790,7 +835,7 @@
             XLSX.writeFile(wb, "JiXiang_OrderHistory.xlsx");
         }
 
-        // ====================== 11. 全屏、登录、退出 ======================
+        // ====================== 12. 全屏、登录、退出 ======================
         function toggleFull() {
             const doc = document.documentElement;
             const icon = document.getElementById("fullIcon");
