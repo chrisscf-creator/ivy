@@ -46,6 +46,7 @@
             width: 300px;
         }
 
+        /* ★★★ 打印时只显示小票内容，且保持全屏 ★★★ */
         @media print {
             body * {
                 visibility: hidden;
@@ -55,9 +56,33 @@
                 visibility: visible;
             }
             #printTicket {
-                position: absolute;
-                left: 0;
-                top: 0;
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 20px;
+                width: 300px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            }
+            /* 全屏打印时保持全屏状态 */
+            :fullscreen #printTicket {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
+            :-webkit-full-screen #printTicket {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
+            :-moz-full-screen #printTicket {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
             }
         }
 
@@ -139,7 +164,6 @@
             min-height: 80px;
         }
 
-        /* 蓝牙状态指示灯 */
         .bt-status {
             display: inline-block;
             width: 10px;
@@ -159,7 +183,6 @@
             50% { opacity: 0.4; }
         }
 
-        /* 蓝牙状态文字 */
         #bluetoothStatus {
             font-size: 12px;
             margin-left: 4px;
@@ -337,9 +360,9 @@
         </div>
     </div>
 
-    <!-- 网页打印备用容器 -->
+    <!-- ★★★ 打印小票容器 - 全部使用英文 ★★★ -->
     <div id="printTicket" class="hidden print-area p-4 bg-white">
-        <h2 class="text-center font-bold text-base">JI XIANG 吉祥糕点 KUEH</h2>
+        <h2 class="text-center font-bold text-base">JI XIANG KUEH</h2>
         <p class="text-center text-xs">Traditional Nyonya Kueh Shop</p>
         <hr>
         <p>Order Time: <span id="ticketTime"></span></p>
@@ -458,14 +481,13 @@
         let currentOrder = [];
         let totalSales = Number(localStorage.getItem("todaySales")) || 0;
         let orderHistory = JSON.parse(localStorage.getItem("orderHistory")) || [];
-        let bluetoothCharacteristic = null; // ★★★ 统一使用 bluetoothCharacteristic ★★★
+        let bluetoothCharacteristic = null;
         let receiveInputVal = "0";
 
         window.onload = function() {
             renderGoods();
             updateSalesText();
             refreshReceiveInput();
-            // 初始化蓝牙状态显示
             updateBtStatus(false);
         }
 
@@ -624,9 +646,8 @@
             document.getElementById("changeMoney").innerText = "$" + Math.max(change, 0).toFixed(2);
         }
 
-        // ====================== 9. ★★★ 蓝牙打印机（使用您提供的代码）★★★ ======================
+        // ====================== 9. 蓝牙打印机 ======================
 
-        // ESC/POS 指令
         function initPrinter() {
             return '\x1B\x40';
         }
@@ -663,7 +684,6 @@
             return '\x1D\x56\x41\x00';
         }
 
-        // ★★★ 发送打印数据（您提供的函数）★★★
         async function sendPrintData(dataString) {
             if (!bluetoothCharacteristic) return false;
             try {
@@ -686,7 +706,6 @@
             }
         }
 
-        // ★★★ 蓝牙连接（您提供的函数）★★★
         async function connectBluetooth() {
             const statusSpan = document.getElementById('bluetoothStatus');
             if (!navigator.bluetooth) {
@@ -721,7 +740,6 @@
             }
         }
 
-        // 状态提示
         function showStatus(msg, isError) {
             const statusSpan = document.getElementById('bluetoothStatus');
             if (isError) {
@@ -731,7 +749,6 @@
             }
         }
 
-        // 更新蓝牙状态指示灯
         function updateBtStatus(connected) {
             const dot = document.getElementById('btStatusDot');
             if (connected) {
@@ -741,7 +758,7 @@
             }
         }
 
-        // ★★★ 生成收据内容 ★★★
+        // ★★★ 生成收据内容 - 全部使用英文 ★★★
         function generateReceiptText(receiveVal = "0", changeVal = "0.00") {
             const finalPrice = document.getElementById("finalTotal").innerText;
             const oriPrice = document.getElementById("oriTotal").innerText;
@@ -751,7 +768,7 @@
             let content = "";
             content += setAlignCenter();
             content += setFontSizeLarge();
-            content += "JI XIANG 吉祥糕点\n";
+            content += "JI XIANG KUEH\n";
             content += setFontSizeNormal();
             content += "POS-5810DD Thermal\n";
             content += "================================\n";
@@ -759,8 +776,9 @@
             content += "Time: " + now + "\n";
             content += "================================\n";
 
+            // ★★★ 商品名称使用英文 ★★★
             currentOrder.forEach(item => {
-                const name = currentLang === "zh" ? item.name : item.eng;
+                const name = item.eng || item.name;
                 content += `${name} x${item.qty} $${(item.price * item.qty).toFixed(2)}\n`;
             });
 
@@ -781,7 +799,31 @@
             return content;
         }
 
-        // ★★★ 打印函数 ★★★
+        // ★★★ 网页打印小票 - 全部使用英文 ★★★
+        function prepareWebPrintTicket() {
+            const finalPrice = document.getElementById("finalTotal").innerText;
+            const oriPrice = document.getElementById("oriTotal").innerText;
+            const discPrice = document.getElementById("discount").innerText;
+            const receive = getReceiveNumber();
+            const change = document.getElementById("changeMoney").innerText.replace("$", "");
+            const now = new Date().toLocaleString();
+
+            document.getElementById("ticketTime").innerText = now;
+            document.getElementById("ticketOri").innerText = oriPrice;
+            document.getElementById("ticketDiscount").innerText = discPrice;
+            document.getElementById("ticketFinal").innerText = finalPrice;
+            document.getElementById("ticketReceive").innerText = "$" + receive.toFixed(2);
+            document.getElementById("ticketChange").innerText = "$" + change;
+
+            // ★★★ 商品名称使用英文 ★★★
+            let itemsHtml = "";
+            currentOrder.forEach(item => {
+                const name = item.eng || item.name;
+                itemsHtml += `<p>${name} x${item.qty} $${(item.price * item.qty).toFixed(2)}</p>`;
+            });
+            document.getElementById("ticketItems").innerHTML = itemsHtml;
+        }
+
         async function printReceipt(receiveVal = "0", changeVal = "0.00") {
             if (!bluetoothCharacteristic) {
                 showStatus('请先连接打印机', true);
@@ -853,6 +895,19 @@
             clearAllOrder();
         }
 
+        // ★★★ 网页打印功能 - 保持全屏 ★★★
+        function webPrint() {
+            if (currentOrder.length === 0) {
+                alert(currentLang === "zh" ? "订单为空无法打印" : "Empty order cannot print");
+                return;
+            }
+            prepareWebPrintTicket();
+            // ★★★ 打印时保持全屏状态 ★★★
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
         function updateSalesText() {
             const text = langPack[currentLang].salesTxt.replace("$0.00", "$" + totalSales.toFixed(2));
             document.getElementById("todaySales").innerText = text;
@@ -878,7 +933,7 @@
                 orderHistory.forEach(ord => {
                     let itemStr = "";
                     ord.items.forEach(i => {
-                        itemStr += `${currentLang==="zh"?i.name:i.eng}×${i.qty} `;
+                        itemStr += `${i.eng || i.name}×${i.qty} `;
                     })
                     html += `<tr>
                 <td class="border p-2 text-sm">${ord.time}</td>
@@ -908,15 +963,15 @@
             const exportData = [];
             orderHistory.forEach(ord => {
                 let itemNameList = [];
-                ord.items.forEach(i => itemNameList.push(`${currentLang==="zh"?i.name:i.eng}×${i.qty}`));
+                ord.items.forEach(i => itemNameList.push(`${i.eng || i.name}×${i.qty}`));
                 exportData.push({
-                    "订单时间 / Order Time": ord.time,
-                    "商品明细 / Items": itemNameList.join("、"),
-                    "原价 / Subtotal($)": ord.subtotal.toFixed(2),
-                    "优惠 / Discount($)": ord.discount.toFixed(2),
-                    "应付总额 / Total Due($)": ord.total.toFixed(2),
-                    "实收 / Received($)": ord.receive.toFixed(2),
-                    "找零 / Change($)": ord.change.toFixed(2)
+                    "Order Time": ord.time,
+                    "Items": itemNameList.join("、"),
+                    "Subtotal($)": ord.subtotal.toFixed(2),
+                    "Discount($)": ord.discount.toFixed(2),
+                    "Total Due($)": ord.total.toFixed(2),
+                    "Received($)": ord.receive.toFixed(2),
+                    "Change($)": ord.change.toFixed(2)
                 })
             })
             const ws = XLSX.utils.json_to_sheet(exportData);
