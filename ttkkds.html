@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>厨房显示系统 · KDS · 桌号 TTKK3</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js">
+</script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #101820;
+        color: white;
+        font-family: system-ui;
+        padding: 20px;
+        transition: background 0.2s;
+    }
+    body:fullscreen {
+        padding: 12px;
+        background: #0d151c;
+    }
+    body:-webkit-full-screen {
+        padding: 12px;
+        background: #0d151c;
+    }
+    body:-moz-full-screen {
+        padding: 12px;
+        background: #0d151c;
+    }
+
+    .container {
+        max-width: 1600px;
+        margin: auto;
+    }
+
+    .header {
+        background: #1b2a35;
+        padding: 20px;
+        border-radius: 24px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .header h1 {
+        font-size: 2rem;
+        color: #ffd54f;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .stats {
+        display: flex;
+        gap: 20px;
+        font-size: 1rem;
+    }
+
+    .stats span {
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    .btn {
+        background: #2c3e50;
+        color: white;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.2s;
+    }
+    .btn:hover {
+        transform: scale(1.03);
+        background: #3a5068;
+    }
+    .btn-primary {
+        background: #ff9800;
+        color: #1a1a1a;
+    }
+    .btn-primary:hover {
+        background: #ffb74d;
+    }
+    .btn-danger {
+        background: #c62828;
+    }
+    .btn-danger:hover {
+        background: #e53935;
+    }
+    .btn-fullscreen {
+        background: #2c3e50;
+    }
+    .btn-fullscreen.is-fullscreen {
+        background: #e67e22;
+    }
+    .btn-fullscreen.is-fullscreen:hover {
+        background: #d35400;
+    }
+
+    .orders-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 20px;
+    }
+
+    .order-card {
+        background: #1c2c38;
+        border-left: 8px solid #ff9800;
+        border-radius: 24px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .order-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .order-number {
+        background: #ff9800;
+        color: black;
+        padding: 6px 18px;
+        border-radius: 40px;
+        font-size: 1.4rem;
+        font-weight: bold;
+    }
+
+    .table-number {
+        background: #2e7d32;
+        padding: 6px 18px;
+        border-radius: 40px;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .order-time {
+        color: #ccc;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+    }
+
+    .items-list {
+        margin-top: 10px;
+    }
+
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #2f4554;
+    }
+
+    .item-name {
+        font-size: 1rem;
+    }
+
+    .item-qty {
+        color: #ffd54f;
+        font-weight: bold;
+    }
+
+    .total {
+        margin-top: 15px;
+        font-size: 1.2rem;
+        text-align: right;
+        color: #4caf50;
+        font-weight: bold;
+    }
+
+    .payment {
+        margin-top: 10px;
+        color: #90caf9;
+        font-size: 0.95rem;
+    }
+
+    .complete-btn {
+        width: 100%;
+        margin-top: 18px;
+        padding: 14px;
+        border: none;
+        border-radius: 18px;
+        background: #4caf50;
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .complete-btn:hover {
+        background: #66bb6a;
+        transform: scale(1.02);
+    }
+
+    .empty {
+        text-align: center;
+        padding: 80px 20px;
+        background: #1b2a35;
+        border-radius: 30px;
+        color: #8aa0b3;
+        font-size: 1.4rem;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 60px;
+        font-size: 1.3rem;
+        color: #ffd54f;
+    }
+
+    /* ===== 历史记录模态框 ===== */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        overflow: auto;
+        padding: 20px;
+    }
+    .modal-content {
+        background-color: #1c2c38;
+        margin: 20px auto;
+        padding: 24px;
+        border-radius: 32px;
+        width: 95%;
+        max-width: 1300px;
+        position: relative;
+        color: white;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal-close {
+        position: sticky;
+        top: 0;
+        float: right;
+        font-size: 32px;
+        font-weight: bold;
+        cursor: pointer;
+        color: #aaa;
+        background: #1c2c38;
+        padding: 0 10px;
+        z-index: 10;
+    }
+    .modal-close:hover {
+        color: white;
+    }
+    .modal h2 {
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 0.9rem;
+    }
+    .history-table th {
+        background: #2f4554;
+        padding: 10px 8px;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+    }
+    .history-table td {
+        padding: 8px;
+        border-bottom: 1px solid #2f4554;
+    }
+    .history-table tr.completed-row {
+        background: #1e3a2a;
+    }
+    .history-table .badge {
+        background: #2e7d32;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+    .history-table .badge-pending {
+        background: #e67e22;
+    }
+    .history-table .badge-source {
+        background: #1a3a5a;
+    }
+
+    @media(max-width:700px) {
+        body {
+            padding: 10px;
+        }
+        .header {
+            flex-direction: column;
+            text-align: center;
+        }
+        .orders-grid {
+            grid-template-columns: 1fr;
+        }
+        .modal-content {
+            padding: 16px;
+            width: 100%;
+        }
+        .history-table {
+            font-size: 0.75rem;
+        }
+        .history-table th,
+        .history-table td {
+            padding: 4px;
+        }
+    }
+</style>
+</head>
+<body>
+
+    <div class="container">
+
+        <div class="header">
+            <h1>👨‍🍳 厨房显示 · TTKK3</h1>
+            <div class="header-actions">
+                <button id="fullscreenBtn" class="btn btn-fullscreen">⛶ 全屏</button>
+                <button id="historyBtn" class="btn btn-primary">📊 历史记录</button>
+                <div class="stats">
+                    <div>📦 制作中：<span id="orderCount">0</span></div>
+                    <div>🕒 <span id="updateTime">--:--</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ordersGrid" class="orders-grid">
+            <div class="loading">⏳ 正在加载订单...</div>
+        </div>
+
+    </div>
+
+    <!-- ===== 历史记录模态框 ===== -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="modalCloseBtn">&times;</span>
+            <h2>
+                <span>📋 历史订单 (桌号 TTKK3)</span>
+                <div class="modal-actions">
+                    <button id="exportExcelBtn" class="btn btn-primary">📎 导出 Excel</button>
+                    <button id="clearHistoryBtn" class="btn btn-danger">🗑️ 清空历史</button>
+                </div>
+            </h2>
+            <div style="overflow-x:auto; max-height:70vh; overflow-y:auto;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>订单号</th>
+                            <th>桌号</th>
+                            <th>时间</th>
+                            <th>菜品</th>
+                            <th>总价</th>
+                            <th>支付</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTbody">
+                        <tr><td colspan="7">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ Firebase 配置 (与POS一致) ============
+        const firebaseConfig = {
+            apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+            authDomain: "create-for-payment.firebaseapp.com",
+            databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "create-for-payment",
+            storageBucket: "create-for-payment.firebasestorage.app",
+            messagingSenderId: "505063429802",
+            appId: "1:505063429802:web:8ec8cca8c788610bad62d3"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const database = firebase.database();
+        const ordersRef = database.ref('orders');
+
+        const grid = document.getElementById('ordersGrid');
+        const orderCount = document.getElementById('orderCount');
+        const updateTime = document.getElementById('updateTime');
+
+        // ===== 历史记录元素 =====
+        const historyModal = document.getElementById('historyModal');
+        const historyTbody = document.getElementById('historyTbody');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+        // ===== 全屏元素 =====
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // ★★★ 指定只显示桌号 TTKK3 ★★★
+        const TARGET_TABLE = 'TTKK3';
+
+        // ============ 辅助函数 ============
+        function updateClock() {
+            updateTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function formatTime(time) {
+            if (!time) return '--:--';
+            try {
+                return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return '--:--';
+            }
+        }
+
+        function formatDateTime(time) {
+            if (!time) return '--';
+            try {
+                return new Date(time).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit',
+                    month: '2-digit', year: 'numeric' });
+            } catch {
+                return '--';
+            }
+        }
+
+        // ============ 核心：只显示 source === 'counter' 且 桌号 === TTKK3 且未完成 ============
+        function createOrderCard(orderId, data) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+
+            let itemsHtml = '';
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    let displayName = item.name || `Item ${item.id}`;
+                    itemsHtml += `
+                        <div class="item-row">
+                            <div class="item-name">🍽️ ${escapeHtml(displayName)}</div>
+                            <div class="item-qty">×${item.qty || 1}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            const payment = data.payment || data.paymentMethod || '现金';
+
+            card.innerHTML = `
+                <div class="order-top">
+                    <div class="order-number">#${data.orderNumber || '---'}</div>
+                    <div class="table-number">${escapeHtml(data.table || '外带')}</div>
+                </div>
+                <div class="order-time">🕒 ${formatTime(data.time)}</div>
+                <div class="items-list">${itemsHtml}</div>
+                <div class="payment">💳 ${escapeHtml(payment)}</div>
+                <div class="total">💰 $${Number(data.total || 0).toFixed(2)}</div>
+                <button class="complete-btn" onclick="completeOrder('${orderId}')">✅ 完成订单</button>
+            `;
+
+            return card;
+        }
+
+        function renderOrders(allData) {
+            grid.innerHTML = '';
+
+            if (!allData) {
+                grid.innerHTML = `<div class="empty">📭 暂无订单</div>`;
+                orderCount.textContent = 0;
+                return;
+            }
+
+            let count = 0;
+            // ★★★ 过滤条件：source === 'counter' 且 table === TTKK3 且未完成 ★★★
+            const entries = Object.entries(allData)
+                .filter(([key, data]) => {
+                    const table = (data.table || '').toUpperCase().trim();
+                    return data.source === 'counter' &&
+                        table === TARGET_TABLE &&
+                        data.completed !== true;
+                })
+                .sort((a, b) => {
+                    const timeA = a[1].time || 0;
+                    const timeB = b[1].time || 0;
+                    return timeB - timeA;
+                });
+
+            entries.forEach(([key, data]) => {
+                count++;
+                const card = createOrderCard(key, data);
+                grid.appendChild(card);
+            });
+
+            orderCount.textContent = count;
+
+            if (count === 0) {
+                grid.innerHTML = `<div class="empty">🎉 桌号 ${TARGET_TABLE} 当前没有制作中的订单</div>`;
+            }
+
+            updateClock();
+        }
+
+        // ============ 完成订单 ============
+        function completeOrder(orderId) {
+            if (!confirm('确认此订单已完成？')) return;
+
+            database.ref('orders/' + orderId).update({
+                completed: true,
+                completedAt: Date.now()
+            }).then(() => {
+                console.log('✅ 订单完成:', orderId);
+            }).catch(err => {
+                console.error('❌ 更新失败:', err);
+                alert('更新失败，请检查网络');
+            });
+        }
+
+        // ============ 历史记录功能 (仅 TTKK3) ============
+        async function renderHistory() {
+            historyTbody.innerHTML = '<tr><td colspan="7">加载中...</td></tr>';
+            try {
+                // 获取所有 source === 'counter' 的订单，然后在本地过滤 table === TTKK3
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    historyTbody.innerHTML = '<tr><td colspan="7">暂无历史订单</td></tr>';
+                    return;
+                }
+                let list = Object.entries(data)
+                    .map(([id, d]) => ({ id, ...d }))
+                    .filter(o => {
+                        const table = (o.table || '').toUpperCase().trim();
+                        return table === TARGET_TABLE;
+                    });
+                list.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+                if (list.length === 0) {
+                    historyTbody.innerHTML = `<tr><td colspan="7">桌号 ${TARGET_TABLE} 暂无历史订单</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                list.forEach(o => {
+                    const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
+                    const status = o.completed === true ?
+                        '<span class="badge">✅ 已完成</span>' :
+                        '<span class="badge badge-pending">⏳ 制作中</span>';
+                    const payment = o.payment || o.paymentMethod || '现金';
+                    html += `
+                        <tr class="${o.completed ? 'completed-row' : ''}">
+                            <td>#${o.orderNumber || '---'}</td>
+                            <td>${escapeHtml(o.table || '外带')}</td>
+                            <td>${formatDateTime(o.time)}</td>
+                            <td>${escapeHtml(itemsStr)}</td>
+                            <td>$${Number(o.total || 0).toFixed(2)}</td>
+                            <td>${escapeHtml(payment)}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+                });
+                historyTbody.innerHTML = html;
+            } catch (e) {
+                historyTbody.innerHTML = `<tr><td colspan="7">加载失败: ${e.message}</td></tr>`;
+            }
+        }
+
+        function openHistory() {
+            historyModal.style.display = 'block';
+            renderHistory();
+        }
+
+        function closeHistory() {
+            historyModal.style.display = 'none';
+        }
+
+        // ============ 导出Excel (仅 TTKK3) ============
+        async function exportExcel() {
+            try {
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    alert('暂无数据可导出');
+                    return;
+                }
+                let list = Object.entries(data)
+                    .map(([id, d]) => ({ id, ...d }))
+                    .filter(o => {
+                        const table = (o.table || '').toUpperCase().trim();
+                        return table === TARGET_TABLE;
+                    });
+                list.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+                if (list.length === 0) {
+                    alert(`桌号 ${TARGET_TABLE} 暂无数据可导出`);
+                    return;
+                }
+
+                const headers = ['订单号', '桌号', '时间', '菜品', '总价', '支付方式', '状态'];
+                const rows = list.map(o => {
+                    const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
+                    const status = o.completed === true ? '已完成' : '制作中';
+                    return [
+                        o.orderNumber || '---',
+                        o.table || '外带',
+                        o.time ? new Date(o.time).toLocaleString() : '',
+                        itemsStr,
+                        (o.total || 0).toFixed(2),
+                        o.payment || o.paymentMethod || '现金',
+                        status
+                    ];
+                });
+
+                let csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join(
+                '\n');
+                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download =
+                `kds_TTKK3_history_${new Date().toISOString().slice(0,10)}.csv`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            } catch (e) {
+                alert('导出失败: ' + e.message);
+            }
+        }
+
+        // ============ 清空历史（仅删除 TTKK3 已完成的订单） ============
+        async function clearHistory() {
+            if (!confirm(`⚠️ 确定要删除桌号 ${TARGET_TABLE} 的所有已完成订单吗？此操作不可恢复！`)) return;
+            try {
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    alert('没有可清除的历史订单');
+                    return;
+                }
+                const updates = {};
+                let count = 0;
+                for (let key in data) {
+                    const table = (data[key].table || '').toUpperCase().trim();
+                    if (table === TARGET_TABLE && data[key].completed === true) {
+                        updates[key] = null;
+                        count++;
+                    }
+                }
+                if (count === 0) {
+                    alert(`桌号 ${TARGET_TABLE} 没有已完成的订单需要清除`);
+                    return;
+                }
+                if (!confirm(`将删除 ${count} 条已完成订单（桌号 ${TARGET_TABLE}），确认？`)) return;
+                await ordersRef.update(updates);
+                alert(`✅ 已清除 ${count} 条历史订单`);
+                if (historyModal.style.display === 'block') renderHistory();
+            } catch (e) {
+                alert('清除失败: ' + e.message);
+            }
+        }
+
+        // ============ 全屏功能 ============
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement ||
+                document.msFullscreenElement);
+        }
+
+        function toggleFullscreen() {
+            if (isFullscreen()) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+            } else {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+                else if (el.msRequestFullscreen) el.msRequestFullscreen();
+            }
+        }
+
+        function updateFullscreenBtn() {
+            if (isFullscreen()) {
+                fullscreenBtn.classList.add('is-fullscreen');
+                fullscreenBtn.textContent = '⛶ 退出全屏';
+            } else {
+                fullscreenBtn.classList.remove('is-fullscreen');
+                fullscreenBtn.textContent = '⛶ 全屏';
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenBtn);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+        document.addEventListener('mozfullscreenchange', updateFullscreenBtn);
+        document.addEventListener('MSFullscreenChange', updateFullscreenBtn);
+
+        // ============ 事件绑定 ============
+        historyBtn.addEventListener('click', openHistory);
+        modalCloseBtn.addEventListener('click', closeHistory);
+        window.addEventListener('click', (e) => { if (e.target === historyModal) closeHistory(); });
+        exportExcelBtn.addEventListener('click', exportExcel);
+        clearHistoryBtn.addEventListener('click', clearHistory);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // ============ 实时监听 ============
+        ordersRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            renderOrders(data);
+        });
+
+        // 定时更新时钟
+        setInterval(updateClock, 15000);
+        updateClock();
+        updateFullscreenBtn();
+
+        console.log(`👨‍🍳 KDS 已启动，仅显示 source="counter" 且 桌号="${TARGET_TABLE}" 的未完成订单`);
+    </script>
+
+</body>
+</html>
