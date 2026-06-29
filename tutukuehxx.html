@@ -158,6 +158,12 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
         }
+
+        /* 蓝牙状态文字 */
+        #bluetoothStatus {
+            font-size: 12px;
+            margin-left: 4px;
+        }
     </style>
 </head>
 
@@ -206,6 +212,7 @@
                     <i class="fa fa-bluetooth-b"></i>
                     <span class="text-sm">BT</span>
                     <span id="btStatusDot" class="bt-status off"></span>
+                    <span id="bluetoothStatus" class="text-xs">未连接</span>
                 </button>
                 <button onclick="toggleFull()" title="全屏 Fullscreen"><i class="fa fa-expand" id="fullIcon"></i></button>
                 <button onclick="openHistory()" title="订单历史 Order History"><i class="fa fa-history"></i></button>
@@ -374,7 +381,12 @@
                 payBtn: "✅ 确认收款蓝牙打印 / Pay & BT",
                 historyTitle: "📋 订单历史 / Order History",
                 exportBtn: "导出Excel",
-                emptyHistory: "暂无历史订单 / No order history"
+                emptyHistory: "暂无历史订单 / No order history",
+                connecting: "连接中...",
+                bluetoothConnected: "✅ 已连接",
+                bluetoothDisconnected: "❌ 已断开",
+                printSuccess: "✅ 打印成功",
+                printFail: "❌ 打印失败"
             },
             en: {
                 loginSub: "POS Cashier System",
@@ -399,7 +411,12 @@
                 payBtn: "✅ Pay & BT Print",
                 historyTitle: "📋 Order History",
                 exportBtn: "Export Excel",
-                emptyHistory: "No order history"
+                emptyHistory: "No order history",
+                connecting: "Connecting...",
+                bluetoothConnected: "✅ Connected",
+                bluetoothDisconnected: "❌ Disconnected",
+                printSuccess: "✅ Print Success",
+                printFail: "❌ Print Failed"
             }
         };
 
@@ -441,18 +458,15 @@
         let currentOrder = [];
         let totalSales = Number(localStorage.getItem("todaySales")) || 0;
         let orderHistory = JSON.parse(localStorage.getItem("orderHistory")) || [];
-        let bluetoothDevice = null;
-        let btWriteChar = null;
+        let bluetoothCharacteristic = null; // ★★★ 统一使用 bluetoothCharacteristic ★★★
         let receiveInputVal = "0";
-
-        // ★★★ POS-5810DD 标准服务与特征 ★★★
-        const BT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-        const BT_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
 
         window.onload = function() {
             renderGoods();
             updateSalesText();
             refreshReceiveInput();
+            // 初始化蓝牙状态显示
+            updateBtStatus(false);
         }
 
         // ====================== 4. 商品渲染 ======================
@@ -610,7 +624,114 @@
             document.getElementById("changeMoney").innerText = "$" + Math.max(change, 0).toFixed(2);
         }
 
-        // ====================== 9. ★★★ 蓝牙连接（修复版）★★★ ======================
+        // ====================== 9. ★★★ 蓝牙打印机（使用您提供的代码）★★★ ======================
+
+        // ESC/POS 指令
+        function initPrinter() {
+            return '\x1B\x40';
+        }
+
+        function setAlignCenter() {
+            return '\x1B\x61\x01';
+        }
+
+        function setAlignLeft() {
+            return '\x1B\x61\x00';
+        }
+
+        function setBoldOn() {
+            return '\x1B\x45\x01';
+        }
+
+        function setBoldOff() {
+            return '\x1B\x45\x00';
+        }
+
+        function setFontSizeLarge() {
+            return '\x1D\x21\x11';
+        }
+
+        function setFontSizeNormal() {
+            return '\x1D\x21\x00';
+        }
+
+        function feedLines(n) {
+            return '\x1B\x64' + String.fromCharCode(n);
+        }
+
+        function cutPaper() {
+            return '\x1D\x56\x41\x00';
+        }
+
+        // ★★★ 发送打印数据（您提供的函数）★★★
+        async function sendPrintData(dataString) {
+            if (!bluetoothCharacteristic) return false;
+            try {
+                const encoder = new TextEncoder();
+                let fullData = encoder.encode(initPrinter());
+                let contentData = encoder.encode(dataString);
+                let finalData = new Uint8Array(fullData.length + contentData.length);
+                finalData.set(fullData, 0);
+                finalData.set(contentData, fullData.length);
+                const chunkSize = 128;
+                for (let i = 0; i < finalData.length; i += chunkSize) {
+                    const chunk = finalData.slice(i, i + chunkSize);
+                    await bluetoothCharacteristic.writeValue(chunk);
+                    await new Promise(r => setTimeout(r, 30));
+                }
+                return true;
+            } catch (e) {
+                console.error("Send error:", e);
+                return false;
+            }
+        }
+
+        // ★★★ 蓝牙连接（您提供的函数）★★★
+        async function connectBluetooth() {
+            const statusSpan = document.getElementById('bluetoothStatus');
+            if (!navigator.bluetooth) {
+                statusSpan.innerText = '❌ 不支持';
+                showStatus('浏览器不支持Web Bluetooth，请使用Chrome', true);
+                return;
+            }
+            try {
+                statusSpan.innerText = langPack[currentLang].connecting;
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+                const characteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+                bluetoothCharacteristic = characteristic;
+                statusSpan.innerText = langPack[currentLang].bluetoothConnected;
+                updateBtStatus(true);
+                showStatus('✅ 打印机已连接', false);
+                device.addEventListener('gattserverdisconnected', () => {
+                    bluetoothCharacteristic = null;
+                    statusSpan.innerText = langPack[currentLang].bluetoothDisconnected;
+                    updateBtStatus(false);
+                    showStatus('打印机已断开', true);
+                });
+            } catch (e) {
+                console.error("蓝牙连接错误:", e);
+                statusSpan.innerText = '❌ 连接失败';
+                updateBtStatus(false);
+                showStatus('连接失败: ' + e.message, true);
+            }
+        }
+
+        // 状态提示
+        function showStatus(msg, isError) {
+            const statusSpan = document.getElementById('bluetoothStatus');
+            if (isError) {
+                statusSpan.innerText = '❌ ' + msg;
+            } else {
+                statusSpan.innerText = msg;
+            }
+        }
+
+        // 更新蓝牙状态指示灯
         function updateBtStatus(connected) {
             const dot = document.getElementById('btStatusDot');
             if (connected) {
@@ -620,147 +741,69 @@
             }
         }
 
-        async function connectBluetooth() {
-            try {
-                // 更精确的筛选 - 匹配POS-5810DD
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { services: [BT_SERVICE_UUID] },
-                        { namePrefix: "POS-5810DD" },
-                        { namePrefix: "5810DD" },
-                        { namePrefix: "BT Printer" },
-                        { namePrefix: "Thermal" }
-                    ],
-                    acceptAllDevices: false,
-                    optionalServices: [BT_SERVICE_UUID]
-                });
-
-                console.log("📡 已选择设备:", device.name, device.id);
-                bluetoothDevice = device;
-
-                // 连接GATT
-                if (!device.gatt.connected) {
-                    await device.gatt.connect();
-                }
-                console.log("🔗 GATT已连接");
-
-                // 获取服务
-                const service = await device.gatt.getPrimaryService(BT_SERVICE_UUID);
-                console.log("📦 获取到服务:", service.uuid);
-
-                // 获取写入特征
-                btWriteChar = await service.getCharacteristic(BT_CHAR_UUID);
-                console.log("✏️ 获取到写入特征:", btWriteChar.uuid);
-
-                // 更新状态指示灯
-                updateBtStatus(true);
-
-                // 监听断开事件
-                device.addEventListener('gattserverdisconnected', () => {
-                    btWriteChar = null;
-                    updateBtStatus(false);
-                    console.log("🔌 蓝牙已断开");
-                    alert(currentLang === "zh" ? "蓝牙打印机已断开连接" : "Bluetooth printer disconnected");
-                });
-
-                alert(currentLang === "zh" ?
-                    "✅ POS-5810DD 蓝牙打印机连接成功！\n请放入58mm热敏纸，点击打印按钮。" :
-                    "✅ POS-5810DD Bluetooth printer connected! Load 58mm thermal paper.");
-
-            } catch (err) {
-                console.error("❌ 蓝牙连接失败:", err);
-                let msg = err.message;
-                if (err.name === "NotFoundError") {
-                    msg = currentLang === "zh" ?
-                        "未找到 POS-5810DD 打印机。请确认：\n1. 打印机已开机\n2. 蓝牙已开启\n3. 打印机未被其他设备占用\n4. 打印机处于可配对状态" :
-                        "POS-5810DD not found. Check: power on, Bluetooth enabled, not paired to other device";
-                } else if (err.name === "SecurityError") {
-                    msg = currentLang === "zh" ?
-                        "请使用 Chrome/Edge 浏览器，并通过 HTTPS 或 localhost 访问" :
-                        "Use Chrome/Edge over HTTPS or localhost";
-                } else if (err.name === "NetworkError") {
-                    msg = currentLang === "zh" ?
-                        "蓝牙连接超时，请靠近打印机重试" :
-                        "Connection timeout, move closer to printer";
-                }
-                alert(currentLang === "zh" ? "❌ 蓝牙连接失败：\n" + msg : "❌ Bluetooth failed:\n" + msg);
-                updateBtStatus(false);
-            }
-        }
-
-        // ====================== 10. 打印功能 ======================
-        function buildPrintText(receiveVal = "0", changeVal = "0.00") {
+        // ★★★ 生成收据内容 ★★★
+        function generateReceiptText(receiveVal = "0", changeVal = "0.00") {
             const finalPrice = document.getElementById("finalTotal").innerText;
             const oriPrice = document.getElementById("oriTotal").innerText;
             const discPrice = document.getElementById("discount").innerText;
             const now = new Date().toLocaleString();
 
-            let printBuffer = [];
-            // 初始化打印机
-            printBuffer.push(new Uint8Array([0x1B, 0x40]));
-            // 居中
-            printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
-            printBuffer.push(new TextEncoder().encode("JI XIANG 吉祥糕点\n"));
-            printBuffer.push(new TextEncoder().encode("POS-5810DD Thermal\n"));
-            printBuffer.push(new Uint8Array([0x1B, 0x61, 0x00]));
-            printBuffer.push(new TextEncoder().encode("================================\n"));
-            printBuffer.push(new TextEncoder().encode("Time: " + now + "\n"));
-            printBuffer.push(new TextEncoder().encode("================================\n"));
+            let content = "";
+            content += setAlignCenter();
+            content += setFontSizeLarge();
+            content += "JI XIANG 吉祥糕点\n";
+            content += setFontSizeNormal();
+            content += "POS-5810DD Thermal\n";
+            content += "================================\n";
+            content += setAlignLeft();
+            content += "Time: " + now + "\n";
+            content += "================================\n";
+
             currentOrder.forEach(item => {
                 const name = currentLang === "zh" ? item.name : item.eng;
-                printBuffer.push(new TextEncoder().encode(`${name} x${item.qty} $${(item.price * item.qty).toFixed(2)}\n`));
-            })
-            printBuffer.push(new TextEncoder().encode("================================\n"));
-            printBuffer.push(new TextEncoder().encode(`Subtotal: ${oriPrice}\n`));
-            printBuffer.push(new TextEncoder().encode(`Discount: ${discPrice}\n`));
-            printBuffer.push(new TextEncoder().encode(`TOTAL DUE: ${finalPrice}\n`));
-            printBuffer.push(new TextEncoder().encode(`Received: $${receiveVal}\n`));
-            printBuffer.push(new TextEncoder().encode(`Change: $${changeVal}\n`));
-            printBuffer.push(new TextEncoder().encode("================================\n"));
-            printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
-            printBuffer.push(new TextEncoder().encode("Thank You! See you again!\n\n\n\n"));
-            // 切纸
-            printBuffer.push(new Uint8Array([0x1D, 0x56, 0x41, 0x00]));
+                content += `${name} x${item.qty} $${(item.price * item.qty).toFixed(2)}\n`;
+            });
 
-            let totalLen = 0;
-            printBuffer.forEach(buf => totalLen += buf.length);
-            const fullData = new Uint8Array(totalLen);
-            let offset = 0;
-            printBuffer.forEach(buf => {
-                fullData.set(buf, offset);
-                offset += buf.length;
-            })
-            return fullData;
+            content += "================================\n";
+            content += `Subtotal: ${oriPrice}\n`;
+            content += `Discount: ${discPrice}\n`;
+            content += setBoldOn();
+            content += `TOTAL DUE: ${finalPrice}\n`;
+            content += setBoldOff();
+            content += `Received: $${receiveVal}\n`;
+            content += `Change: $${changeVal}\n`;
+            content += "================================\n";
+            content += setAlignCenter();
+            content += "Thank You! See you again!\n";
+            content += feedLines(4);
+            content += cutPaper;
+
+            return content;
         }
 
-        async function btPrint(receiveVal, changeVal) {
-            if (!btWriteChar) {
-                alert(currentLang === "zh" ? "⚠️ 请先点击顶部蓝牙图标连接打印机" : "⚠️ Please connect printer first");
+        // ★★★ 打印函数 ★★★
+        async function printReceipt(receiveVal = "0", changeVal = "0.00") {
+            if (!bluetoothCharacteristic) {
+                showStatus('请先连接打印机', true);
                 return false;
             }
-
             try {
-                const printData = buildPrintText(receiveVal, changeVal);
-                const chunkSize = 64;
-
-                for (let i = 0; i < printData.length; i += chunkSize) {
-                    const chunk = printData.slice(i, i + chunkSize);
-                    // 使用 writeValue 或 writeValueWithoutResponse
-                    if (btWriteChar.properties.writeWithoutResponse) {
-                        await btWriteChar.writeValueWithoutResponse(chunk);
-                    } else {
-                        await btWriteChar.writeValue(chunk);
-                    }
-                    await new Promise(r => setTimeout(r, 30));
+                const receiptText = generateReceiptText(receiveVal, changeVal);
+                const success = await sendPrintData(receiptText);
+                if (success) {
+                    showStatus(langPack[currentLang].printSuccess, false);
+                } else {
+                    showStatus(langPack[currentLang].printFail, true);
                 }
-                return true;
-            } catch (err) {
-                console.error("打印失败:", err);
-                alert(currentLang === "zh" ? "❌ 打印失败: " + err.message : "❌ Print failed: " + err.message);
+                return success;
+            } catch (e) {
+                console.error('打印错误:', e);
+                showStatus(langPack[currentLang].printFail + ': ' + e.message, true);
                 return false;
             }
         }
 
+        // ====================== 10. 打印按钮调用 ======================
         async function printTicketOnlyBT() {
             if (currentOrder.length === 0) {
                 alert(currentLang === "zh" ? "订单为空无法打印" : "Empty order cannot print");
@@ -768,8 +811,10 @@
             }
             const receive = getReceiveNumber();
             const change = document.getElementById("changeMoney").innerText.replace("$", "");
-            const ok = await btPrint(receive.toString(), change);
-            if (ok) alert(currentLang === "zh" ? "✅ 预订单蓝牙打印完成" : "✅ Pre-order printed via Bluetooth");
+            const ok = await printReceipt(receive.toString(), change);
+            if (ok) {
+                alert(currentLang === "zh" ? "✅ 预订单蓝牙打印完成" : "✅ Pre-order printed via Bluetooth");
+            }
         }
 
         async function checkoutPayBT() {
@@ -801,7 +846,7 @@
             localStorage.setItem("todaySales", totalSales);
             updateSalesText();
 
-            const ok = await btPrint(receive.toString(), change.toFixed(2));
+            const ok = await printReceipt(receive.toString(), change.toFixed(2));
             if (ok) {
                 alert(currentLang === "zh" ? "✅ 收款完成，蓝牙小票已打印！" : "✅ Payment completed, receipt printed!");
             }
