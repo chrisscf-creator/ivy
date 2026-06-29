@@ -122,6 +122,7 @@
             background: #f1f5f9;
         }
 
+        /* ★★★ 确保底部按钮始终可见 ★★★ */
         .checkout-footer {
             flex-shrink: 0;
             background: white;
@@ -218,7 +219,7 @@
                 <div id="goodsGrid" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
             </section>
 
-            <!-- 右侧收银结算面板 -->
+            <!-- 右侧收银结算面板（使用flex列保证底部按钮可见） -->
             <section class="w-[35%] bg-stone-100 border-l-2 border-darkWood/20 right-panel">
                 <div class="p-4 border-b border-darkWood/20 flex-shrink-0">
                     <h3 class="text-xl font-bold text-darkWood" data-i18n="orderTitle">当前订单 / Current Order</h3>
@@ -227,7 +228,7 @@
                     <p class="text-gray-400 text-center mt-20" data-i18n="emptyOrder">暂无商品，请点击左侧糕点 / No items, click kueh on left</p>
                 </div>
 
-                <!-- 底部结算区域（固定） -->
+                <!-- ★★★ 底部结算区域（固定显示）★★★ -->
                 <div class="checkout-footer p-4">
                     <div class="text-lg space-y-2 mb-3">
                         <div class="flex justify-between">
@@ -268,12 +269,13 @@
                         </div>
                     </div>
 
-                    <!-- 操作按钮 -->
+                    <!-- 操作按钮 + 历史/Excel（确保全部可见） -->
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="calcChange()" class="bg-gray-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600" data-i18n="calcBtn">计算找零 / Calc</button>
                         <button onclick="printTicketOnlyBT()" class="bg-mainOrange text-white py-2 rounded-lg text-sm font-medium hover:bg-mainOrange/90" data-i18n="printOnlyBtn">蓝牙预打印 / BT</button>
                         <button onclick="checkoutPayBT()" class="bg-mainRed text-white py-2 rounded-lg text-sm font-medium col-span-2 hover:bg-mainRed/90" data-i18n="payBtn">✅ 确认收款蓝牙打印 / Pay & BT</button>
                     </div>
+                    <!-- ★★★ 历史与Excel导出按钮（确保显示）★★★ -->
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <button onclick="openHistory()" class="bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
                             <i class="fa fa-history mr-1"></i> 📋 历史订单
@@ -423,8 +425,7 @@
         let btWriteChar = null;
 
         // ★★★ POS-5810DD 标准服务与特征 ★★★
-        const BT_SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-        const BT_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
+    
 
         let receiveInputVal = "0";
 
@@ -451,7 +452,7 @@
             })
         }
 
-        // ====================== 5. 数字键盘逻辑 ======================
+        // ====================== 5. 数字键盘逻辑（百位数） ======================
         function inputNum(char) {
             if (!/^[0-9]$/.test(char)) return;
             if (receiveInputVal === "0") {
@@ -589,62 +590,96 @@
             document.getElementById("changeMoney").innerText = "$" + Math.max(change, 0).toFixed(2);
         }
 
-        // ====================== 9. ★★★ 蓝牙打印机连接（POS-5810DD 专用）★★★ ======================
-        async function connectBluetooth() {
-            try {
-                // 精确匹配 POS-5810DD 或通用热敏打印机
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { services: [BT_SERVICE_UUID] },
-                        { namePrefix: "POS-5810DD" },
-                        { namePrefix: "5810DD" },
-                        { namePrefix: "BT Printer" },
-                        { namePrefix: "Thermal" },
-                        { namePrefix: "58mm" }
-                    ],
-                    acceptAllDevices: false,
-                    optionalServices: [BT_SERVICE_UUID]
-                });
+        // ====================== 9. ★★★ 蓝牙打印机连接（修复版）★★★ ======================
 
-                console.log("📡 已选择设备:", device.name, device.id);
-                bluetoothDevice = device;
+      async function connectBluetooth() {
 
-                if (!device.gatt.connected) {
-                    await device.gatt.connect();
+    if (!navigator.bluetooth) {
+        alert("当前浏览器不支持 Web Bluetooth");
+        return;
+    }
+
+    try {
+
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [
+                "battery_service"
+            ]
+        });
+
+        const server = await bluetoothDevice.gatt.connect();
+
+       const services = await server.getPrimaryServices();
+
+console.log("Services Count =", services.length);
+
+for (const s of services) {
+    console.log(s.uuid);
+}
+        btWriteChar = null;
+
+        console.log("========== Bluetooth Services ==========");
+
+        for (const service of services) {
+
+            console.log("Service:", service.uuid);
+
+            const chars = await service.getCharacteristics();
+
+            for (const ch of chars) {
+
+                console.log(
+                    "Characteristic:",
+                    ch.uuid,
+                    ch.properties
+                );
+
+                if (
+                    ch.properties.write ||
+                    ch.properties.writeWithoutResponse
+                ) {
+
+                    btWriteChar = ch;
+
+                    console.log("✔ Found Writable Characteristic");
+
+                    break;
                 }
-                console.log("🔗 GATT 已连接");
-
-                const service = await device.gatt.getPrimaryService(BT_SERVICE_UUID);
-                console.log("📦 获取到服务:", service.uuid);
-
-                btWriteChar = await service.getCharacteristic(BT_CHAR_UUID);
-                console.log("✏️ 获取到写入特征:", btWriteChar.uuid);
-
-                alert(currentLang === "zh" ?
-                    "✅ POS-5810DD 蓝牙打印机连接成功！\n请先放入58mm热敏纸，再点击打印。" :
-                    "✅ POS-5810DD Bluetooth printer connected! Load 58mm thermal paper.");
-
-            } catch (err) {
-                console.error("❌ 蓝牙连接失败:", err);
-                let msg = err.message;
-                if (err.name === "NotFoundError") {
-                    msg = currentLang === "zh" ?
-                        "未找到 POS-5810DD 打印机。请确认：\n1. 打印机已开机\n2. 蓝牙已开启\n3. 打印机未被其他设备占用" :
-                        "POS-5810DD not found. Check: power on, Bluetooth enabled, not paired to other device";
-                } else if (err.name === "SecurityError") {
-                    msg = currentLang === "zh" ?
-                        "请使用 Chrome/Edge 浏览器，并通过 HTTPS 或 localhost 访问" :
-                        "Use Chrome/Edge over HTTPS or localhost";
-                } else if (err.name === "NetworkError") {
-                    msg = currentLang === "zh" ?
-                        "蓝牙连接超时，请靠近打印机重试" :
-                        "Connection timeout, move closer to printer";
-                }
-                alert(currentLang === "zh" ? "❌ 蓝牙连接失败：\n" + msg : "❌ Bluetooth failed:\n" + msg);
             }
+
+            if (btWriteChar) break;
         }
 
-        // ====================== 10. ★★★ 打印功能（POS-5810DD 标准ESC/POS）★★★ ======================
+        if (!btWriteChar) {
+
+            throw new Error("找不到可写入 Characteristic");
+
+        }
+
+        bluetoothDevice.addEventListener(
+            "gattserverdisconnected",
+            () => {
+
+                btWriteChar = null;
+
+                alert("蓝牙打印机已断开");
+
+            }
+        );
+
+        alert("✅ 蓝牙打印机连接成功");
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert("连接失败：\n" + err.message);
+
+    }
+
+}						
+        // ====================== 10. 打印功能 ======================
         function buildPrintText(receiveVal = "0", changeVal = "0.00") {
             const finalPrice = document.getElementById("finalTotal").innerText;
             const oriPrice = document.getElementById("oriTotal").innerText;
@@ -652,7 +687,7 @@
             const now = new Date().toLocaleString();
 
             let printBuffer = [];
-            // 初始化打印机
+            // 初始化
             printBuffer.push(new Uint8Array([0x1B, 0x40]));
             // 居中
             printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
@@ -688,28 +723,37 @@
             return fullData;
         }
 
-        async function btPrint(receiveVal = "0", changeVal = "0.00") {
-            if (!btWriteChar || !bluetoothDevice?.gatt?.connected) {
-                alert(currentLang === "zh" ?
-                    "⚠️ 请先点击顶部蓝牙图标 🔵 连接 POS-5810DD 打印机" :
-                    "⚠️ Please click Bluetooth icon to connect POS-5810DD");
-                return false;
-            }
-            try {
-                const printData = buildPrintText(receiveVal, changeVal);
-                const chunkSize = 64;
-                for (let i = 0; i < printData.length; i += chunkSize) {
-                    const chunk = printData.slice(i, i + chunkSize);
-                    await btWriteChar.writeValue(chunk);
-                    await new Promise(res => setTimeout(res, 60));
-                }
-                return true;
-            } catch (err) {
-                console.error("打印失败:", err);
-                alert(currentLang === "zh" ? "❌ 打印失败: " + err.message : "❌ Print failed: " + err.message);
-                return false;
-            }
-        }
+        async function btPrint(receive, change) {
+
+    if (!btWriteChar) {
+        alert("请先连接蓝牙打印机");
+        return false;
+    }
+
+    const data = buildPrintText(receive, change);
+
+    const chunk = 128;
+
+  for (let i = 0; i < data.length; i += 128) {
+
+    const chunk = data.slice(i, i + 128);
+
+    if (btWriteChar.properties.writeWithoutResponse) {
+
+        await btWriteChar.writeValueWithoutResponse(chunk);
+
+    } else {
+
+        await btWriteChar.writeValue(chunk);
+
+    }
+
+    await new Promise(r => setTimeout(r,20));
+
+}
+
+    return true;
+}
 
         async function printTicketOnlyBT() {
             if (currentOrder.length === 0) {
