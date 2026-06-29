@@ -122,7 +122,6 @@
             background: #f1f5f9;
         }
 
-        /* ★★★ 确保底部按钮始终可见 ★★★ */
         .checkout-footer {
             flex-shrink: 0;
             background: white;
@@ -219,7 +218,7 @@
                 <div id="goodsGrid" class="grid grid-cols-3 md:grid-cols-4 gap-3"></div>
             </section>
 
-            <!-- 右侧收银结算面板（使用flex列保证底部按钮可见） -->
+            <!-- 右侧收银结算面板 -->
             <section class="w-[35%] bg-stone-100 border-l-2 border-darkWood/20 right-panel">
                 <div class="p-4 border-b border-darkWood/20 flex-shrink-0">
                     <h3 class="text-xl font-bold text-darkWood" data-i18n="orderTitle">当前订单 / Current Order</h3>
@@ -228,7 +227,7 @@
                     <p class="text-gray-400 text-center mt-20" data-i18n="emptyOrder">暂无商品，请点击左侧糕点 / No items, click kueh on left</p>
                 </div>
 
-                <!-- ★★★ 底部结算区域（固定显示）★★★ -->
+                <!-- 底部结算区域（固定） -->
                 <div class="checkout-footer p-4">
                     <div class="text-lg space-y-2 mb-3">
                         <div class="flex justify-between">
@@ -269,13 +268,12 @@
                         </div>
                     </div>
 
-                    <!-- 操作按钮 + 历史/Excel（确保全部可见） -->
+                    <!-- 操作按钮 -->
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="calcChange()" class="bg-gray-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-600" data-i18n="calcBtn">计算找零 / Calc</button>
                         <button onclick="printTicketOnlyBT()" class="bg-mainOrange text-white py-2 rounded-lg text-sm font-medium hover:bg-mainOrange/90" data-i18n="printOnlyBtn">蓝牙预打印 / BT</button>
                         <button onclick="checkoutPayBT()" class="bg-mainRed text-white py-2 rounded-lg text-sm font-medium col-span-2 hover:bg-mainRed/90" data-i18n="payBtn">✅ 确认收款蓝牙打印 / Pay & BT</button>
                     </div>
-                    <!-- ★★★ 历史与Excel导出按钮（确保显示）★★★ -->
                     <div class="grid grid-cols-2 gap-2 mt-2">
                         <button onclick="openHistory()" class="bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700">
                             <i class="fa fa-history mr-1"></i> 📋 历史订单
@@ -453,7 +451,7 @@
             })
         }
 
-        // ====================== 5. 数字键盘逻辑（百位数） ======================
+        // ====================== 5. 数字键盘逻辑 ======================
         function inputNum(char) {
             if (!/^[0-9]$/.test(char)) return;
             if (receiveInputVal === "0") {
@@ -591,10 +589,10 @@
             document.getElementById("changeMoney").innerText = "$" + Math.max(change, 0).toFixed(2);
         }
 
-        // ====================== 9. ★★★ 蓝牙打印机连接（修复版）★★★ ======================
+        // ====================== 9. ★★★ 蓝牙打印机连接（POS-5810DD 专用）★★★ ======================
         async function connectBluetooth() {
             try {
-                // 更精确的筛选：匹配 POS-5810DD 或通用热敏打印机
+                // 精确匹配 POS-5810DD 或通用热敏打印机
                 const device = await navigator.bluetooth.requestDevice({
                     filters: [
                         { services: [BT_SERVICE_UUID] },
@@ -611,17 +609,14 @@
                 console.log("📡 已选择设备:", device.name, device.id);
                 bluetoothDevice = device;
 
-                // 连接 GATT
                 if (!device.gatt.connected) {
                     await device.gatt.connect();
                 }
                 console.log("🔗 GATT 已连接");
 
-                // 获取服务
                 const service = await device.gatt.getPrimaryService(BT_SERVICE_UUID);
                 console.log("📦 获取到服务:", service.uuid);
 
-                // 获取特征
                 btWriteChar = await service.getCharacteristic(BT_CHAR_UUID);
                 console.log("✏️ 获取到写入特征:", btWriteChar.uuid);
 
@@ -649,7 +644,7 @@
             }
         }
 
-        // ====================== 10. 打印功能 ======================
+        // ====================== 10. ★★★ 打印功能（POS-5810DD 标准ESC/POS）★★★ ======================
         function buildPrintText(receiveVal = "0", changeVal = "0.00") {
             const finalPrice = document.getElementById("finalTotal").innerText;
             const oriPrice = document.getElementById("oriTotal").innerText;
@@ -657,7 +652,7 @@
             const now = new Date().toLocaleString();
 
             let printBuffer = [];
-            // 初始化
+            // 初始化打印机
             printBuffer.push(new Uint8Array([0x1B, 0x40]));
             // 居中
             printBuffer.push(new Uint8Array([0x1B, 0x61, 0x01]));
