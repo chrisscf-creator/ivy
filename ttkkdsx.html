@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>厨房显示 · KDS · 桌号 TTKK3</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js">
+    </script>
+
+    <style>
+        /* ===== 全局重置 & 基础 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #101820;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            transition: background 0.2s;
+            min-height: 100vh;
+        }
+        body:fullscreen {
+            padding: 12px;
+            background: #0d151c;
+        }
+        body:-webkit-full-screen {
+            padding: 12px;
+            background: #0d151c;
+        }
+        body:-moz-full-screen {
+            padding: 12px;
+            background: #0d151c;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: auto;
+        }
+
+        /* ===== 主界面 (默认隐藏，登录后显示) ===== */
+        #mainApp {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        #mainApp.visible {
+            display: block;
+        }
+
+        /* ===== 登录界面 (全屏覆盖) ===== */
+        #loginScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #101820;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        #loginScreen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .login-card {
+            background: #1c2c38;
+            border-radius: 32px;
+            padding: 48px 40px 40px;
+            max-width: 420px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            border: 1px solid #2f4554;
+            text-align: center;
+        }
+        .login-card .logo {
+            font-size: 3.2rem;
+            margin-bottom: 4px;
+        }
+        .login-card h1 {
+            font-size: 1.8rem;
+            color: #ffd54f;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .login-card .subtitle {
+            color: #8aa0b3;
+            font-size: 1rem;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+        }
+        .login-card .subtitle strong {
+            color: #ff9800;
+        }
+
+        .login-card .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .login-card .input-group .icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #8aa0b3;
+        }
+        .login-card input[type="password"] {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            border-radius: 40px;
+            border: 2px solid #2f4554;
+            background: #0f1e26;
+            color: white;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .login-card input[type="password"]:focus {
+            border-color: #ff9800;
+        }
+        .login-card input[type="password"]::placeholder {
+            color: #5a7a8a;
+        }
+
+        .login-card .login-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 40px;
+            background: #ff9800;
+            color: #1a1a1a;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.25s;
+            margin-top: 4px;
+        }
+        .login-card .login-btn:hover {
+            background: #ffb74d;
+            transform: scale(1.02);
+        }
+        .login-card .login-btn:active {
+            transform: scale(0.97);
+        }
+
+        .login-card .error-msg {
+            color: #ef5350;
+            font-size: 0.9rem;
+            min-height: 24px;
+            margin-top: 12px;
+            transition: opacity 0.2s;
+        }
+        .login-card .error-msg.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .login-card .hint {
+            margin-top: 18px;
+            color: #5a7a8a;
+            font-size: 0.85rem;
+            border-top: 1px solid #2f4554;
+            padding-top: 18px;
+        }
+        .login-card .hint code {
+            background: #0f1e26;
+            padding: 2px 14px;
+            border-radius: 20px;
+            color: #ffd54f;
+            font-size: 0.9rem;
+        }
+
+        /* ===== 原有样式 (保持不变) ===== */
+        .header {
+            background: #1b2a35;
+            padding: 20px;
+            border-radius: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #ffd54f;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1rem;
+        }
+        .stats span {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.03);
+            background: #3a5068;
+        }
+        .btn-primary {
+            background: #ff9800;
+            color: #1a1a1a;
+        }
+        .btn-primary:hover {
+            background: #ffb74d;
+        }
+        .btn-danger {
+            background: #c62828;
+        }
+        .btn-danger:hover {
+            background: #e53935;
+        }
+        .btn-fullscreen {
+            background: #2c3e50;
+        }
+        .btn-fullscreen.is-fullscreen {
+            background: #e67e22;
+        }
+        .btn-fullscreen.is-fullscreen:hover {
+            background: #d35400;
+        }
+        .btn-cancel {
+            background: #b71c1c;
+        }
+        .btn-cancel:hover {
+            background: #d32f2f;
+        }
+        .btn-logout {
+            background: #6d4c41;
+        }
+        .btn-logout:hover {
+            background: #8d6e63;
+        }
+
+        .orders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        .order-card {
+            background: #1c2c38;
+            border-left: 8px solid #ff9800;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.3s ease;
+            position: relative;
+        }
+        .order-card.cancelled {
+            opacity: 0.5;
+            border-left-color: #888;
+            filter: grayscale(0.6);
+        }
+        .order-card.cancelled .complete-btn {
+            display: none;
+        }
+        .order-card .cancel-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #b71c1c;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .order-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .order-number {
+            background: #ff9800;
+            color: black;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+        .table-number {
+            background: #2e7d32;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .order-time {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        .items-list {
+            margin-top: 10px;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2f4554;
+        }
+        .item-name {
+            font-size: 1rem;
+        }
+        .item-qty {
+            color: #ffd54f;
+            font-weight: bold;
+        }
+        .total {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            text-align: right;
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .payment {
+            margin-top: 10px;
+            color: #90caf9;
+            font-size: 0.95rem;
+        }
+
+        .complete-btn {
+            width: 100%;
+            margin-top: 18px;
+            padding: 14px;
+            border: none;
+            border-radius: 18px;
+            background: #4caf50;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .complete-btn:hover {
+            background: #66bb6a;
+            transform: scale(1.02);
+        }
+
+        .cancel-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 18px;
+            background: #b71c1c;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cancel-btn:hover {
+            background: #d32f2f;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 80px 20px;
+            background: #1b2a35;
+            border-radius: 30px;
+            color: #8aa0b3;
+            font-size: 1.4rem;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.3rem;
+            color: #ffd54f;
+        }
+
+        /* ===== 历史记录模态框 ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+            padding: 20px;
+        }
+        .modal-content {
+            background-color: #1c2c38;
+            margin: 20px auto;
+            padding: 24px;
+            border-radius: 32px;
+            width: 95%;
+            max-width: 1300px;
+            position: relative;
+            color: white;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-close {
+            position: sticky;
+            top: 0;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+            background: #1c2c38;
+            padding: 0 10px;
+            z-index: 10;
+        }
+        .modal-close:hover {
+            color: white;
+        }
+        .modal h2 {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+        .history-table th {
+            background: #2f4554;
+            padding: 10px 8px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .history-table td {
+            padding: 8px;
+            border-bottom: 1px solid #2f4554;
+        }
+        .history-table tr.completed-row {
+            background: #1e3a2a;
+        }
+        .history-table tr.cancelled-row {
+            background: #2a1a1a;
+            opacity: 0.7;
+        }
+        .history-table .badge {
+            background: #2e7d32;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+        .history-table .badge-pending {
+            background: #e67e22;
+        }
+        .history-table .badge-cancelled {
+            background: #b71c1c;
+        }
+        .history-table .badge-source {
+            background: #1a3a5a;
+        }
+
+        .summary-cards {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            background: #0f1e26;
+            padding: 16px 24px;
+            border-radius: 30px;
+            margin-bottom: 24px;
+            border: 1px solid #2f4554;
+        }
+        .summary-item {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 1.1rem;
+        }
+        .summary-item strong {
+            color: #ffd54f;
+            font-size: 1.3rem;
+        }
+        .summary-item .amount {
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:700px) {
+            body {
+                padding: 10px;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-content {
+                padding: 16px;
+                width: 100%;
+            }
+            .history-table {
+                font-size: 0.75rem;
+            }
+            .history-table th,
+            .history-table td {
+                padding: 4px;
+            }
+            .summary-cards {
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px 16px;
+            }
+            .login-card {
+                padding: 32px 20px 28px;
+            }
+            .login-card h1 {
+                font-size: 1.4rem;
+            }
+            .login-card .logo {
+                font-size: 2.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- 登录界面 -->
+    <!-- ============================================================ -->
+    <div id="loginScreen">
+        <div class="login-card">
+            <div class="logo">👨‍🍳</div>
+            <h1>厨房显示系统</h1>
+            <div class="subtitle">桌号 <strong>TTKK3</strong> · 请验证身份</div>
+
+            <div class="input-group">
+                <span class="icon">🔒</span>
+                <input type="password" id="passwordInput" placeholder="请输入登录密码" autofocus />
+            </div>
+
+            <button class="login-btn" id="loginBtn">🔑 登 录</button>
+
+            <div class="error-msg hidden" id="loginError">❌ 密码错误，请重试</div>
+
+            <div class="hint">
+                默认密码：<code>123456</code>
+                <span style="display:block; margin-top:6px; font-size:0.75rem; color:#4a6a7a;">
+                    可在代码中修改 <code>APP_PASSWORD</code>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 主应用 (登录后可见) -->
+    <!-- ============================================================ -->
+    <div id="mainApp">
+        <div class="container">
+
+            <!-- ===== Header ===== -->
+            <div class="header">
+                <h1>👨‍🍳 厨房显示 · TTKK3</h1>
+                <div class="header-actions">
+                    <button id="fullscreenBtn" class="btn btn-fullscreen">⛶ 全屏</button>
+                    <button id="historyBtn" class="btn btn-primary">📊 历史记录</button>
+                    <button id="logoutBtn" class="btn btn-logout">🚪 退出</button>
+                    <div class="stats">
+                        <div>📦 制作中：<span id="orderCount">0</span></div>
+                        <div>🕒 <span id="updateTime">--:--</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 订单网格 ===== -->
+            <div id="ordersGrid" class="orders-grid">
+                <div class="loading">⏳ 正在加载订单...</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 历史记录模态框 -->
+    <!-- ============================================================ -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" id="modalCloseBtn">&times;</span>
+            <h2>
+                <span>📋 历史订单 (桌号 TTKK3)</span>
+                <div class="modal-actions">
+                    <button id="exportExcelBtn" class="btn btn-primary">📎 导出 Excel</button>
+                    <button id="clearHistoryBtn" class="btn btn-danger">🗑️ 清空历史</button>
+                </div>
+            </h2>
+
+            <div id="summaryContainer" class="summary-cards">
+                <div class="summary-item">📆 今天总额：<span class="amount" id="todayTotal">$0.00</span></div>
+                <div class="summary-item">📅 昨天总额：<span class="amount" id="yesterdayTotal">$0.00</span></div>
+                <div class="summary-item">💰 全部有效总额：<span class="amount" id="allValidTotal">$0.00</span></div>
+            </div>
+
+            <div style="overflow-x:auto; max-height:65vh; overflow-y:auto;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>订单号</th>
+                            <th>桌号</th>
+                            <th>时间</th>
+                            <th>菜品</th>
+                            <th>总价</th>
+                            <th>支付</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTbody">
+                        <tr><td colspan="7">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- JavaScript -->
+    <!-- ============================================================ -->
+    <script>
+        // ====================================================================
+        //  🔐 密码配置 (修改此值即可更改登录密码)
+        // ====================================================================
+        const APP_PASSWORD = '123456';
+
+        // ====================================================================
+        //  Firebase 配置
+        // ====================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+            authDomain: "create-for-payment.firebaseapp.com",
+            databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "create-for-payment",
+            storageBucket: "create-for-payment.firebasestorage.app",
+            messagingSenderId: "505063429802",
+            appId: "1:505063429802:web:8ec8cca8c788610bad62d3"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const database = firebase.database();
+        const ordersRef = database.ref('orders');
+
+        // ====================================================================
+        //  DOM 引用
+        // ====================================================================
+        const loginScreen = document.getElementById('loginScreen');
+        const mainApp = document.getElementById('mainApp');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        const grid = document.getElementById('ordersGrid');
+        const orderCount = document.getElementById('orderCount');
+        const updateTime = document.getElementById('updateTime');
+
+        const historyModal = document.getElementById('historyModal');
+        const historyTbody = document.getElementById('historyTbody');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+        const todayTotalEl = document.getElementById('todayTotal');
+        const yesterdayTotalEl = document.getElementById('yesterdayTotal');
+        const allValidTotalEl = document.getElementById('allValidTotal');
+
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        const TARGET_TABLE = 'TTKK3';
+
+        // ====================================================================
+        //  登录 / 退出 逻辑
+        // ====================================================================
+
+        /** 检查是否已登录 */
+        function isLoggedIn() {
+            return sessionStorage.getItem('kds_auth') === 'true';
+        }
+
+        /** 执行登录 */
+        function doLogin() {
+            const pwd = passwordInput.value.trim();
+            if (pwd === APP_PASSWORD) {
+                // 成功
+                sessionStorage.setItem('kds_auth', 'true');
+                loginError.classList.add('hidden');
+                showMainApp();
+                // 清空输入框
+                passwordInput.value = '';
+                // 触发订单刷新 (如果之前未加载)
+                if (typeof loadOrders === 'function') loadOrders();
+            } else {
+                // 失败
+                loginError.classList.remove('hidden');
+                passwordInput.value = '';
+                passwordInput.focus();
+                // 抖动效果 (可选)
+                loginError.style.animation = 'none';
+                setTimeout(() => { loginError.style.animation = 'fadeIn 0.2s ease'; }, 10);
+            }
+        }
+
+        /** 显示主界面，隐藏登录界面 */
+        function showMainApp() {
+            loginScreen.classList.add('hidden');
+            mainApp.classList.add('visible');
+            // 聚焦到全屏按钮（不抢焦点）
+            setTimeout(() => fullscreenBtn.focus(), 100);
+        }
+
+        /** 显示登录界面，隐藏主界面 */
+        function showLoginScreen() {
+            loginScreen.classList.remove('hidden');
+            mainApp.classList.remove('visible');
+            // 清空密码框和错误
+            passwordInput.value = '';
+            loginError.classList.add('hidden');
+            setTimeout(() => passwordInput.focus(), 200);
+        }
+
+        /** 退出登录 */
+        function doLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                sessionStorage.removeItem('kds_auth');
+                showLoginScreen();
+            }
+        }
+
+        // ====================================================================
+        //  页面初始化 — 检查登录状态
+        // ====================================================================
+        (function init() {
+            if (isLoggedIn()) {
+                showMainApp();
+            } else {
+                showLoginScreen();
+            }
+        })();
+
+        // ====================================================================
+        //  事件绑定：登录
+        // ====================================================================
+        loginBtn.addEventListener('click', doLogin);
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                doLogin();
+            }
+        });
+
+        // 自动聚焦
+        if (!isLoggedIn()) {
+            setTimeout(() => passwordInput.focus(), 300);
+        }
+
+        // ====================================================================
+        //  事件绑定：退出
+        // ====================================================================
+        logoutBtn.addEventListener('click', doLogout);
+
+        // ====================================================================
+        //  原有功能 (全部保持不变)
+        // ====================================================================
+
+        // ---- 辅助函数 ----
+        function updateClock() {
+            updateTime.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function formatTime(time) {
+            if (!time) return '--:--';
+            try {
+                return new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return '--:--';
+            }
+        }
+
+        function formatDateTime(time) {
+            if (!time) return '--';
+            try {
+                return new Date(time).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit',
+                    month: '2-digit', year: 'numeric' });
+            } catch {
+                return '--';
+            }
+        }
+
+        // ---- 汇总计算 ----
+        function calcTotals(ordersList) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+            const yesterdayEnd = todayStart - 1;
+
+            let todaySum = 0;
+            let yesterdaySum = 0;
+            let allValidSum = 0;
+
+            ordersList.forEach(o => {
+                const table = (o.table || '').toUpperCase().trim();
+                if (table !== TARGET_TABLE) return;
+                if (o.cancelled === true) return;
+                const total = Number(o.total || 0);
+                const time = o.time || 0;
+
+                allValidSum += total;
+
+                if (o.completed === true) {
+                    if (time >= todayStart) {
+                        todaySum += total;
+                    } else if (time >= yesterdayStart && time <= yesterdayEnd) {
+                        yesterdaySum += total;
+                    }
+                }
+            });
+
+            return { todaySum, yesterdaySum, allValidSum };
+        }
+
+        // ---- 创建订单卡片 ----
+        function createOrderCard(orderId, data) {
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            if (data.cancelled === true) {
+                card.classList.add('cancelled');
+            }
+
+            let itemsHtml = '';
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    let displayName = item.name || `Item ${item.id}`;
+                    itemsHtml += `
+                            <div class="item-row">
+                                <div class="item-name">🍽️ ${escapeHtml(displayName)}</div>
+                                <div class="item-qty">×${item.qty || 1}</div>
+                            </div>
+                        `;
+                });
+            }
+
+            const payment = data.payment || data.paymentMethod || '现金';
+            const isCancelled = data.cancelled === true;
+
+            let cancelBadge = '';
+            if (isCancelled) {
+                cancelBadge = `<div class="cancel-badge">❌ 已取消</div>`;
+            }
+
+            let completeBtnHtml = '';
+            if (!isCancelled && data.completed !== true) {
+                completeBtnHtml = `<button class="complete-btn" data-orderid="${orderId}">✅ 完成订单</button>`;
+            }
+
+            let cancelBtnHtml = '';
+            if (!isCancelled && data.completed !== true) {
+                cancelBtnHtml = `<button class="cancel-btn" data-orderid="${orderId}">❌ 取消订单</button>`;
+            }
+
+            card.innerHTML = `
+                    ${cancelBadge}
+                    <div class="order-top">
+                        <div class="order-number">#${data.orderNumber || '---'}</div>
+                        <div class="table-number">${escapeHtml(data.table || '外带')}</div>
+                    </div>
+                    <div class="order-time">🕒 ${formatTime(data.time)}</div>
+                    <div class="items-list">${itemsHtml}</div>
+                    <div class="payment">💳 ${escapeHtml(payment)}</div>
+                    <div class="total">💰 $${Number(data.total || 0).toFixed(2)}</div>
+                    ${completeBtnHtml}
+                    ${cancelBtnHtml}
+                `;
+
+            const completeBtn = card.querySelector('.complete-btn');
+            if (completeBtn) {
+                completeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.dataset.orderid;
+                    database.ref('orders/' + id).update({
+                        completed: true,
+                        completedAt: Date.now()
+                    }).catch(err => {
+                        console.error('❌ 完成失败:', err);
+                        alert('操作失败，请检查网络');
+                    });
+                });
+            }
+
+            const cancelBtn = card.querySelector('.cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!confirm('确定要取消此订单吗？')) return;
+                    const id = this.dataset.orderid;
+                    database.ref('orders/' + id).update({
+                        cancelled: true,
+                        cancelledAt: Date.now()
+                    }).catch(err => {
+                        console.error('❌ 取消失败:', err);
+                        alert('操作失败，请检查网络');
+                    });
+                });
+            }
+
+            return card;
+        }
+
+        // ---- 渲染订单 ----
+        function renderOrders(allData) {
+            grid.innerHTML = '';
+
+            if (!allData) {
+                grid.innerHTML = `<div class="empty">📭 暂无订单</div>`;
+                orderCount.textContent = 0;
+                return;
+            }
+
+            let count = 0;
+            const entries = Object.entries(allData)
+                .filter(([key, data]) => {
+                    const table = (data.table || '').toUpperCase().trim();
+                    return data.source === 'counter' &&
+                        table === TARGET_TABLE &&
+                        data.completed !== true &&
+                        data.cancelled !== true;
+                })
+                .sort((a, b) => {
+                    const timeA = a[1].time || 0;
+                    const timeB = b[1].time || 0;
+                    return timeB - timeA;
+                });
+
+            entries.forEach(([key, data]) => {
+                count++;
+                const card = createOrderCard(key, data);
+                grid.appendChild(card);
+            });
+
+            orderCount.textContent = count;
+
+            if (count === 0) {
+                grid.innerHTML = `<div class="empty">🎉 桌号 ${TARGET_TABLE} 当前没有制作中的订单</div>`;
+            }
+
+            updateClock();
+        }
+
+        // ---- 加载订单 (供登录后调用) ----
+        function loadOrders() {
+            ordersRef.once('value', (snapshot) => {
+                const data = snapshot.val();
+                renderOrders(data);
+            }).catch(err => {
+                console.error('加载订单失败:', err);
+                grid.innerHTML = `<div class="empty">⚠️ 加载失败，请刷新页面</div>`;
+            });
+        }
+
+        // ---- 历史记录 ----
+        async function renderHistory() {
+            historyTbody.innerHTML = '<tr><td colspan="7">加载中...</td></tr>';
+            try {
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    historyTbody.innerHTML = '<tr><td colspan="7">暂无历史订单</td></tr>';
+                    todayTotalEl.textContent = '$0.00';
+                    yesterdayTotalEl.textContent = '$0.00';
+                    allValidTotalEl.textContent = '$0.00';
+                    return;
+                }
+                let list = Object.entries(data)
+                    .map(([id, d]) => ({ id, ...d }))
+                    .filter(o => {
+                        const table = (o.table || '').toUpperCase().trim();
+                        return table === TARGET_TABLE;
+                    });
+                list.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+                if (list.length === 0) {
+                    historyTbody.innerHTML = `<tr><td colspan="7">桌号 ${TARGET_TABLE} 暂无历史订单</td></tr>`;
+                    todayTotalEl.textContent = '$0.00';
+                    yesterdayTotalEl.textContent = '$0.00';
+                    allValidTotalEl.textContent = '$0.00';
+                    return;
+                }
+
+                const { todaySum, yesterdaySum, allValidSum } = calcTotals(list);
+                todayTotalEl.textContent = `$${todaySum.toFixed(2)}`;
+                yesterdayTotalEl.textContent = `$${yesterdaySum.toFixed(2)}`;
+                allValidTotalEl.textContent = `$${allValidSum.toFixed(2)}`;
+
+                let html = '';
+                list.forEach(o => {
+                    const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
+                    let status = '';
+                    if (o.cancelled === true) {
+                        status = '<span class="badge badge-cancelled">❌ 已取消</span>';
+                    } else if (o.completed === true) {
+                        status = '<span class="badge">✅ 已完成</span>';
+                    } else {
+                        status = '<span class="badge badge-pending">⏳ 制作中</span>';
+                    }
+                    const payment = o.payment || o.paymentMethod || '现金';
+                    const rowClass = o.cancelled ? 'cancelled-row' : (o.completed ? 'completed-row' : '');
+                    html += `
+                            <tr class="${rowClass}">
+                                <td>#${o.orderNumber || '---'}</td>
+                                <td>${escapeHtml(o.table || '外带')}</td>
+                                <td>${formatDateTime(o.time)}</td>
+                                <td>${escapeHtml(itemsStr)}</td>
+                                <td>$${Number(o.total || 0).toFixed(2)}</td>
+                                <td>${escapeHtml(payment)}</td>
+                                <td>${status}</td>
+                            </tr>
+                        `;
+                });
+                historyTbody.innerHTML = html;
+            } catch (e) {
+                historyTbody.innerHTML = `<tr><td colspan="7">加载失败: ${e.message}</td></tr>`;
+                todayTotalEl.textContent = '$0.00';
+                yesterdayTotalEl.textContent = '$0.00';
+                allValidTotalEl.textContent = '$0.00';
+            }
+        }
+
+        function openHistory() {
+            historyModal.style.display = 'block';
+            renderHistory();
+        }
+
+        function closeHistory() {
+            historyModal.style.display = 'none';
+        }
+
+        // ---- 导出 Excel ----
+        async function exportExcel() {
+            try {
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    alert('暂无数据可导出');
+                    return;
+                }
+                let list = Object.entries(data)
+                    .map(([id, d]) => ({ id, ...d }))
+                    .filter(o => {
+                        const table = (o.table || '').toUpperCase().trim();
+                        return table === TARGET_TABLE;
+                    });
+                list.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+                if (list.length === 0) {
+                    alert(`桌号 ${TARGET_TABLE} 暂无数据可导出`);
+                    return;
+                }
+
+                const headers = ['订单号', '桌号', '时间', '菜品', '总价', '支付方式', '状态'];
+                const rows = list.map(o => {
+                    const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
+                    let status = '';
+                    if (o.cancelled === true) status = '已取消';
+                    else if (o.completed === true) status = '已完成';
+                    else status = '制作中';
+                    return [
+                        o.orderNumber || '---',
+                        o.table || '外带',
+                        o.time ? new Date(o.time).toLocaleString() : '',
+                        itemsStr,
+                        (o.total || 0).toFixed(2),
+                        o.payment || o.paymentMethod || '现金',
+                        status
+                    ];
+                });
+
+                let csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join(
+                '\n');
+                const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download =
+                    `kds_TTKK3_history_${new Date().toISOString().slice(0,10)}.csv`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            } catch (e) {
+                alert('导出失败: ' + e.message);
+            }
+        }
+
+        // ---- 清空历史 ----
+        async function clearHistory() {
+            if (!confirm(`⚠️ 确定要删除桌号 ${TARGET_TABLE} 的所有已完成订单吗？取消订单不会被删除。此操作不可恢复！`)) return;
+            try {
+                const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
+                const data = snap.val();
+                if (!data) {
+                    alert('没有可清除的历史订单');
+                    return;
+                }
+                const updates = {};
+                let count = 0;
+                for (let key in data) {
+                    const table = (data[key].table || '').toUpperCase().trim();
+                    if (table === TARGET_TABLE && data[key].completed === true && data[key].cancelled !== true) {
+                        updates[key] = null;
+                        count++;
+                    }
+                }
+                if (count === 0) {
+                    alert(`桌号 ${TARGET_TABLE} 没有已完成的订单需要清除`);
+                    return;
+                }
+                if (!confirm(`将删除 ${count} 条已完成订单（桌号 ${TARGET_TABLE}），确认？`)) return;
+                await ordersRef.update(updates);
+                alert(`✅ 已清除 ${count} 条历史订单`);
+                if (historyModal.style.display === 'block') renderHistory();
+            } catch (e) {
+                alert('清除失败: ' + e.message);
+            }
+        }
+
+        // ---- 全屏 ----
+        function isFullscreen() {
+            return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement ||
+                document.msFullscreenElement);
+        }
+
+        function toggleFullscreen() {
+            if (isFullscreen()) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
+            } else {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+                else if (el.msRequestFullscreen) el.msRequestFullscreen();
+            }
+        }
+
+        function updateFullscreenBtn() {
+            if (isFullscreen()) {
+                fullscreenBtn.classList.add('is-fullscreen');
+                fullscreenBtn.textContent = '⛶ 退出全屏';
+            } else {
+                fullscreenBtn.classList.remove('is-fullscreen');
+                fullscreenBtn.textContent = '⛶ 全屏';
+            }
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenBtn);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenBtn);
+        document.addEventListener('mozfullscreenchange', updateFullscreenBtn);
+        document.addEventListener('MSFullscreenChange', updateFullscreenBtn);
+
+        // ---- 事件绑定（历史、导出、清空、全屏） ----
+        historyBtn.addEventListener('click', openHistory);
+        modalCloseBtn.addEventListener('click', closeHistory);
+        window.addEventListener('click', (e) => { if (e.target === historyModal) closeHistory(); });
+        exportExcelBtn.addEventListener('click', exportExcel);
+        clearHistoryBtn.addEventListener('click', clearHistory);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        // ---- 实时监听 (仅当已登录时有效) ----
+        ordersRef.on('value', (snapshot) => {
+            // 只有登录后才更新界面
+            if (isLoggedIn()) {
+                const data = snapshot.val();
+                renderOrders(data);
+            }
+        });
+
+        // ---- 时钟 ----
+        setInterval(updateClock, 15000);
+        updateClock();
+        updateFullscreenBtn();
+
+        // ---- 初始加载（如果已登录，加载数据） ----
+        if (isLoggedIn()) {
+            loadOrders();
+        }
+
+        console.log(`👨‍🍳 KDS 已启动，仅显示 source="counter" 且 桌号="${TARGET_TABLE}" 的未完成且未取消订单`);
+        console.log(`🔐 登录密码可在代码顶部 APP_PASSWORD 变量修改`);
+    </script>
+</body>
+</html>
