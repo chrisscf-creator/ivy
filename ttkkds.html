@@ -1,364 +1,445 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>厨房显示系统 · KDS · 桌号 TTKK3</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>厨房显示 · KDS · 桌号 TTKK3</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
-</script>
-<script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js">
-</script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js">
+    </script>
 
-<style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        background: #101820;
-        color: white;
-        font-family: system-ui;
-        padding: 20px;
-        transition: background 0.2s;
-    }
-    body:fullscreen {
-        padding: 12px;
-        background: #0d151c;
-    }
-    body:-webkit-full-screen {
-        padding: 12px;
-        background: #0d151c;
-    }
-    body:-moz-full-screen {
-        padding: 12px;
-        background: #0d151c;
-    }
-
-    .container {
-        max-width: 1600px;
-        margin: auto;
-    }
-
-    .header {
-        background: #1b2a35;
-        padding: 20px;
-        border-radius: 24px;
-        margin-bottom: 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    .header h1 {
-        font-size: 2rem;
-        color: #ffd54f;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .stats {
-        display: flex;
-        gap: 20px;
-        font-size: 1rem;
-    }
-
-    .stats span {
-        color: #4caf50;
-        font-weight: bold;
-    }
-
-    .btn {
-        background: #2c3e50;
-        color: white;
-        border: none;
-        padding: 8px 18px;
-        border-radius: 40px;
-        font-weight: bold;
-        cursor: pointer;
-        font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: 0.2s;
-    }
-    .btn:hover {
-        transform: scale(1.03);
-        background: #3a5068;
-    }
-    .btn-primary {
-        background: #ff9800;
-        color: #1a1a1a;
-    }
-    .btn-primary:hover {
-        background: #ffb74d;
-    }
-    .btn-danger {
-        background: #c62828;
-    }
-    .btn-danger:hover {
-        background: #e53935;
-    }
-    .btn-fullscreen {
-        background: #2c3e50;
-    }
-    .btn-fullscreen.is-fullscreen {
-        background: #e67e22;
-    }
-    .btn-fullscreen.is-fullscreen:hover {
-        background: #d35400;
-    }
-
-    .orders-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-        gap: 20px;
-    }
-
-    .order-card {
-        background: #1c2c38;
-        border-left: 8px solid #ff9800;
-        border-radius: 24px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
 
-    .order-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .order-number {
-        background: #ff9800;
-        color: black;
-        padding: 6px 18px;
-        border-radius: 40px;
-        font-size: 1.4rem;
-        font-weight: bold;
-    }
-
-    .table-number {
-        background: #2e7d32;
-        padding: 6px 18px;
-        border-radius: 40px;
-        font-size: 1.2rem;
-        font-weight: bold;
-    }
-
-    .order-time {
-        color: #ccc;
-        font-size: 0.9rem;
-        margin-bottom: 15px;
-    }
-
-    .items-list {
-        margin-top: 10px;
-    }
-
-    .item-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #2f4554;
-    }
-
-    .item-name {
-        font-size: 1rem;
-    }
-
-    .item-qty {
-        color: #ffd54f;
-        font-weight: bold;
-    }
-
-    .total {
-        margin-top: 15px;
-        font-size: 1.2rem;
-        text-align: right;
-        color: #4caf50;
-        font-weight: bold;
-    }
-
-    .payment {
-        margin-top: 10px;
-        color: #90caf9;
-        font-size: 0.95rem;
-    }
-
-    .complete-btn {
-        width: 100%;
-        margin-top: 18px;
-        padding: 14px;
-        border: none;
-        border-radius: 18px;
-        background: #4caf50;
-        color: white;
-        font-size: 1rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-    }
-
-    .complete-btn:hover {
-        background: #66bb6a;
-        transform: scale(1.02);
-    }
-
-    .empty {
-        text-align: center;
-        padding: 80px 20px;
-        background: #1b2a35;
-        border-radius: 30px;
-        color: #8aa0b3;
-        font-size: 1.4rem;
-    }
-
-    .loading {
-        text-align: center;
-        padding: 60px;
-        font-size: 1.3rem;
-        color: #ffd54f;
-    }
-
-    /* ===== 历史记录模态框 ===== */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        overflow: auto;
-        padding: 20px;
-    }
-    .modal-content {
-        background-color: #1c2c38;
-        margin: 20px auto;
-        padding: 24px;
-        border-radius: 32px;
-        width: 95%;
-        max-width: 1300px;
-        position: relative;
-        color: white;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    .modal-close {
-        position: sticky;
-        top: 0;
-        float: right;
-        font-size: 32px;
-        font-weight: bold;
-        cursor: pointer;
-        color: #aaa;
-        background: #1c2c38;
-        padding: 0 10px;
-        z-index: 10;
-    }
-    .modal-close:hover {
-        color: white;
-    }
-    .modal h2 {
-        margin-bottom: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .modal-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-    .history-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-        font-size: 0.9rem;
-    }
-    .history-table th {
-        background: #2f4554;
-        padding: 10px 8px;
-        text-align: left;
-        position: sticky;
-        top: 0;
-        z-index: 5;
-    }
-    .history-table td {
-        padding: 8px;
-        border-bottom: 1px solid #2f4554;
-    }
-    .history-table tr.completed-row {
-        background: #1e3a2a;
-    }
-    .history-table .badge {
-        background: #2e7d32;
-        padding: 2px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-    }
-    .history-table .badge-pending {
-        background: #e67e22;
-    }
-    .history-table .badge-source {
-        background: #1a3a5a;
-    }
-
-    @media(max-width:700px) {
         body {
-            padding: 10px;
+            background: #101820;
+            color: white;
+            font-family: system-ui;
+            padding: 20px;
+            transition: background 0.2s;
         }
+        body:fullscreen {
+            padding: 12px;
+            background: #0d151c;
+        }
+        body:-webkit-full-screen {
+            padding: 12px;
+            background: #0d151c;
+        }
+        body:-moz-full-screen {
+            padding: 12px;
+            background: #0d151c;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: auto;
+        }
+
         .header {
-            flex-direction: column;
-            text-align: center;
+            background: #1b2a35;
+            padding: 20px;
+            border-radius: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #ffd54f;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1rem;
+        }
+
+        .stats span {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.03);
+            background: #3a5068;
+        }
+        .btn-primary {
+            background: #ff9800;
+            color: #1a1a1a;
+        }
+        .btn-primary:hover {
+            background: #ffb74d;
+        }
+        .btn-danger {
+            background: #c62828;
+        }
+        .btn-danger:hover {
+            background: #e53935;
+        }
+        .btn-fullscreen {
+            background: #2c3e50;
+        }
+        .btn-fullscreen.is-fullscreen {
+            background: #e67e22;
+        }
+        .btn-fullscreen.is-fullscreen:hover {
+            background: #d35400;
+        }
+        .btn-cancel {
+            background: #b71c1c;
+        }
+        .btn-cancel:hover {
+            background: #d32f2f;
+        }
+
         .orders-grid {
-            grid-template-columns: 1fr;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        .order-card {
+            background: #1c2c38;
+            border-left: 8px solid #ff9800;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.3s ease;
+            position: relative;
+        }
+        .order-card.cancelled {
+            opacity: 0.5;
+            border-left-color: #888;
+            filter: grayscale(0.6);
+        }
+        .order-card.cancelled .complete-btn {
+            display: none;
+        }
+        .order-card .cancel-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #b71c1c;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .order-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .order-number {
+            background: #ff9800;
+            color: black;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .table-number {
+            background: #2e7d32;
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .order-time {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .items-list {
+            margin-top: 10px;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2f4554;
+        }
+
+        .item-name {
+            font-size: 1rem;
+        }
+
+        .item-qty {
+            color: #ffd54f;
+            font-weight: bold;
+        }
+
+        .total {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            text-align: right;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .payment {
+            margin-top: 10px;
+            color: #90caf9;
+            font-size: 0.95rem;
+        }
+
+        .complete-btn {
+            width: 100%;
+            margin-top: 18px;
+            padding: 14px;
+            border: none;
+            border-radius: 18px;
+            background: #4caf50;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .complete-btn:hover {
+            background: #66bb6a;
+            transform: scale(1.02);
+        }
+
+        .cancel-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 18px;
+            background: #b71c1c;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .cancel-btn:hover {
+            background: #d32f2f;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 80px 20px;
+            background: #1b2a35;
+            border-radius: 30px;
+            color: #8aa0b3;
+            font-size: 1.4rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.3rem;
+            color: #ffd54f;
+        }
+
+        /* ===== 历史记录模态框 ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+            padding: 20px;
         }
         .modal-content {
-            padding: 16px;
-            width: 100%;
+            background-color: #1c2c38;
+            margin: 20px auto;
+            padding: 24px;
+            border-radius: 32px;
+            width: 95%;
+            max-width: 1300px;
+            position: relative;
+            color: white;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-close {
+            position: sticky;
+            top: 0;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+            background: #1c2c38;
+            padding: 0 10px;
+            z-index: 10;
+        }
+        .modal-close:hover {
+            color: white;
+        }
+        .modal h2 {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+        .history-table th {
+            background: #2f4554;
+            padding: 10px 8px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .history-table td {
+            padding: 8px;
+            border-bottom: 1px solid #2f4554;
+        }
+        .history-table tr.completed-row {
+            background: #1e3a2a;
+        }
+        .history-table tr.cancelled-row {
+            background: #2a1a1a;
+            opacity: 0.7;
+        }
+        .history-table .badge {
+            background: #2e7d32;
+            padding: 2px 12px;
+            border-radius: 20px;
             font-size: 0.75rem;
         }
-        .history-table th,
-        .history-table td {
-            padding: 4px;
+        .history-table .badge-pending {
+            background: #e67e22;
         }
-    }
-</style>
+        .history-table .badge-cancelled {
+            background: #b71c1c;
+        }
+        .history-table .badge-source {
+            background: #1a3a5a;
+        }
+        /* 销售总额汇总卡片 */
+        .summary-cards {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            background: #0f1e26;
+            padding: 16px 24px;
+            border-radius: 30px;
+            margin-bottom: 24px;
+            border: 1px solid #2f4554;
+        }
+        .summary-item {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 1.1rem;
+        }
+        .summary-item strong {
+            color: #ffd54f;
+            font-size: 1.3rem;
+        }
+        .summary-item .amount {
+            color: #4caf50;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        @media(max-width:700px) {
+            body {
+                padding: 10px;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .orders-grid {
+                grid-template-columns: 1fr;
+            }
+            .modal-content {
+                padding: 16px;
+                width: 100%;
+            }
+            .history-table {
+                font-size: 0.75rem;
+            }
+            .history-table th,
+            .history-table td {
+                padding: 4px;
+            }
+            .summary-cards {
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px 16px;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -393,7 +474,15 @@
                     <button id="clearHistoryBtn" class="btn btn-danger">🗑️ 清空历史</button>
                 </div>
             </h2>
-            <div style="overflow-x:auto; max-height:70vh; overflow-y:auto;">
+
+            <!-- 汇总卡片：今天总额 / 昨天总额 / 全部有效总额（制作中+已完成，排除取消） -->
+            <div id="summaryContainer" class="summary-cards">
+                <div class="summary-item">📆 今天总额：<span class="amount" id="todayTotal">$0.00</span></div>
+                <div class="summary-item">📅 昨天总额：<span class="amount" id="yesterdayTotal">$0.00</span></div>
+                <div class="summary-item">💰 全部有效总额：<span class="amount" id="allValidTotal">$0.00</span></div>
+            </div>
+
+            <div style="overflow-x:auto; max-height:65vh; overflow-y:auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
@@ -415,7 +504,7 @@
     </div>
 
     <script>
-        // ============ Firebase 配置 (与POS一致) ============
+        // ============ Firebase 配置 ============
         const firebaseConfig = {
             apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
             authDomain: "create-for-payment.firebaseapp.com",
@@ -444,6 +533,10 @@
         const historyBtn = document.getElementById('historyBtn');
         const exportExcelBtn = document.getElementById('exportExcelBtn');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        // 汇总显示
+        const todayTotalEl = document.getElementById('todayTotal');
+        const yesterdayTotalEl = document.getElementById('yesterdayTotal');
+        const allValidTotalEl = document.getElementById('allValidTotal');
 
         // ===== 全屏元素 =====
         const fullscreenBtn = document.getElementById('fullscreenBtn');
@@ -483,10 +576,48 @@
             }
         }
 
-        // ============ 核心：只显示 source === 'counter' 且 桌号 === TTKK3 且未完成 ============
+        // ============ 计算汇总：今天/昨天/全部有效（排除取消） ============
+        function calcTotals(ordersList) {
+            const now = new Date();
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+            const yesterdayEnd = todayStart - 1;
+
+            let todaySum = 0;
+            let yesterdaySum = 0;
+            let allValidSum = 0;
+
+            ordersList.forEach(o => {
+                const table = (o.table || '').toUpperCase().trim();
+                if (table !== TARGET_TABLE) return;
+                // 排除取消的订单
+                if (o.cancelled === true) return;
+                const total = Number(o.total || 0);
+                const time = o.time || 0;
+
+                // 全部有效（制作中+已完成，排除取消）
+                allValidSum += total;
+
+                // 今日 / 昨日（只统计已完成，且未被取消）
+                if (o.completed === true) {
+                    if (time >= todayStart) {
+                        todaySum += total;
+                    } else if (time >= yesterdayStart && time <= yesterdayEnd) {
+                        yesterdaySum += total;
+                    }
+                }
+            });
+
+            return { todaySum, yesterdaySum, allValidSum };
+        }
+
+        // ============ 核心：显示 source==='counter' 且 桌号===TTKK3，未完成且未取消 ============
         function createOrderCard(orderId, data) {
             const card = document.createElement('div');
             card.className = 'order-card';
+            if (data.cancelled === true) {
+                card.classList.add('cancelled');
+            }
 
             let itemsHtml = '';
             if (data.items && Array.isArray(data.items)) {
@@ -502,8 +633,25 @@
             }
 
             const payment = data.payment || data.paymentMethod || '现金';
+            const isCancelled = data.cancelled === true;
+
+            let cancelBadge = '';
+            if (isCancelled) {
+                cancelBadge = `<div class="cancel-badge">❌ 已取消</div>`;
+            }
+
+            let completeBtnHtml = '';
+            if (!isCancelled && data.completed !== true) {
+                completeBtnHtml = `<button class="complete-btn" data-orderid="${orderId}">✅ 完成订单</button>`;
+            }
+
+            let cancelBtnHtml = '';
+            if (!isCancelled && data.completed !== true) {
+                cancelBtnHtml = `<button class="cancel-btn" data-orderid="${orderId}">❌ 取消订单</button>`;
+            }
 
             card.innerHTML = `
+                ${cancelBadge}
                 <div class="order-top">
                     <div class="order-number">#${data.orderNumber || '---'}</div>
                     <div class="table-number">${escapeHtml(data.table || '外带')}</div>
@@ -512,8 +660,42 @@
                 <div class="items-list">${itemsHtml}</div>
                 <div class="payment">💳 ${escapeHtml(payment)}</div>
                 <div class="total">💰 $${Number(data.total || 0).toFixed(2)}</div>
-                <button class="complete-btn" onclick="completeOrder('${orderId}')">✅ 完成订单</button>
+                ${completeBtnHtml}
+                ${cancelBtnHtml}
             `;
+
+            // 完成订单（无确认）
+            const completeBtn = card.querySelector('.complete-btn');
+            if (completeBtn) {
+                completeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.dataset.orderid;
+                    database.ref('orders/' + id).update({
+                        completed: true,
+                        completedAt: Date.now()
+                    }).catch(err => {
+                        console.error('❌ 完成失败:', err);
+                        alert('操作失败，请检查网络');
+                    });
+                });
+            }
+
+            // 取消订单
+            const cancelBtn = card.querySelector('.cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!confirm('确定要取消此订单吗？')) return;
+                    const id = this.dataset.orderid;
+                    database.ref('orders/' + id).update({
+                        cancelled: true,
+                        cancelledAt: Date.now()
+                    }).catch(err => {
+                        console.error('❌ 取消失败:', err);
+                        alert('操作失败，请检查网络');
+                    });
+                });
+            }
 
             return card;
         }
@@ -528,13 +710,14 @@
             }
 
             let count = 0;
-            // ★★★ 过滤条件：source === 'counter' 且 table === TTKK3 且未完成 ★★★
+            // 显示未完成且未取消的订单
             const entries = Object.entries(allData)
                 .filter(([key, data]) => {
                     const table = (data.table || '').toUpperCase().trim();
                     return data.source === 'counter' &&
                         table === TARGET_TABLE &&
-                        data.completed !== true;
+                        data.completed !== true &&
+                        data.cancelled !== true;
                 })
                 .sort((a, b) => {
                     const timeA = a[1].time || 0;
@@ -557,30 +740,17 @@
             updateClock();
         }
 
-        // ============ 完成订单 ============
-        function completeOrder(orderId) {
-            if (!confirm('确认此订单已完成？')) return;
-
-            database.ref('orders/' + orderId).update({
-                completed: true,
-                completedAt: Date.now()
-            }).then(() => {
-                console.log('✅ 订单完成:', orderId);
-            }).catch(err => {
-                console.error('❌ 更新失败:', err);
-                alert('更新失败，请检查网络');
-            });
-        }
-
-        // ============ 历史记录功能 (仅 TTKK3) ============
+        // ============ 历史记录（包含取消订单，显示全部） ============
         async function renderHistory() {
             historyTbody.innerHTML = '<tr><td colspan="7">加载中...</td></tr>';
             try {
-                // 获取所有 source === 'counter' 的订单，然后在本地过滤 table === TTKK3
                 const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
                 const data = snap.val();
                 if (!data) {
                     historyTbody.innerHTML = '<tr><td colspan="7">暂无历史订单</td></tr>';
+                    todayTotalEl.textContent = '$0.00';
+                    yesterdayTotalEl.textContent = '$0.00';
+                    allValidTotalEl.textContent = '$0.00';
                     return;
                 }
                 let list = Object.entries(data)
@@ -593,18 +763,33 @@
 
                 if (list.length === 0) {
                     historyTbody.innerHTML = `<tr><td colspan="7">桌号 ${TARGET_TABLE} 暂无历史订单</td></tr>`;
+                    todayTotalEl.textContent = '$0.00';
+                    yesterdayTotalEl.textContent = '$0.00';
+                    allValidTotalEl.textContent = '$0.00';
                     return;
                 }
+
+                // 计算汇总（排除取消）
+                const { todaySum, yesterdaySum, allValidSum } = calcTotals(list);
+                todayTotalEl.textContent = `$${todaySum.toFixed(2)}`;
+                yesterdayTotalEl.textContent = `$${yesterdaySum.toFixed(2)}`;
+                allValidTotalEl.textContent = `$${allValidSum.toFixed(2)}`;
 
                 let html = '';
                 list.forEach(o => {
                     const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
-                    const status = o.completed === true ?
-                        '<span class="badge">✅ 已完成</span>' :
-                        '<span class="badge badge-pending">⏳ 制作中</span>';
+                    let status = '';
+                    if (o.cancelled === true) {
+                        status = '<span class="badge badge-cancelled">❌ 已取消</span>';
+                    } else if (o.completed === true) {
+                        status = '<span class="badge">✅ 已完成</span>';
+                    } else {
+                        status = '<span class="badge badge-pending">⏳ 制作中</span>';
+                    }
                     const payment = o.payment || o.paymentMethod || '现金';
+                    const rowClass = o.cancelled ? 'cancelled-row' : (o.completed ? 'completed-row' : '');
                     html += `
-                        <tr class="${o.completed ? 'completed-row' : ''}">
+                        <tr class="${rowClass}">
                             <td>#${o.orderNumber || '---'}</td>
                             <td>${escapeHtml(o.table || '外带')}</td>
                             <td>${formatDateTime(o.time)}</td>
@@ -618,6 +803,9 @@
                 historyTbody.innerHTML = html;
             } catch (e) {
                 historyTbody.innerHTML = `<tr><td colspan="7">加载失败: ${e.message}</td></tr>`;
+                todayTotalEl.textContent = '$0.00';
+                yesterdayTotalEl.textContent = '$0.00';
+                allValidTotalEl.textContent = '$0.00';
             }
         }
 
@@ -630,7 +818,7 @@
             historyModal.style.display = 'none';
         }
 
-        // ============ 导出Excel (仅 TTKK3) ============
+        // ============ 导出Excel（含取消状态） ============
         async function exportExcel() {
             try {
                 const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
@@ -655,7 +843,10 @@
                 const headers = ['订单号', '桌号', '时间', '菜品', '总价', '支付方式', '状态'];
                 const rows = list.map(o => {
                     const itemsStr = o.items ? o.items.map(i => `${i.name} x${i.qty}`).join('; ') : '';
-                    const status = o.completed === true ? '已完成' : '制作中';
+                    let status = '';
+                    if (o.cancelled === true) status = '已取消';
+                    else if (o.completed === true) status = '已完成';
+                    else status = '制作中';
                     return [
                         o.orderNumber || '---',
                         o.table || '外带',
@@ -681,9 +872,9 @@
             }
         }
 
-        // ============ 清空历史（仅删除 TTKK3 已完成的订单） ============
+        // ============ 清空历史（仅删除 TTKK3 已完成的订单，取消订单保留） ============
         async function clearHistory() {
-            if (!confirm(`⚠️ 确定要删除桌号 ${TARGET_TABLE} 的所有已完成订单吗？此操作不可恢复！`)) return;
+            if (!confirm(`⚠️ 确定要删除桌号 ${TARGET_TABLE} 的所有已完成订单吗？取消订单不会被删除。此操作不可恢复！`)) return;
             try {
                 const snap = await ordersRef.orderByChild('source').equalTo('counter').once('value');
                 const data = snap.val();
@@ -695,7 +886,7 @@
                 let count = 0;
                 for (let key in data) {
                     const table = (data[key].table || '').toUpperCase().trim();
-                    if (table === TARGET_TABLE && data[key].completed === true) {
+                    if (table === TARGET_TABLE && data[key].completed === true && data[key].cancelled !== true) {
                         updates[key] = null;
                         count++;
                     }
@@ -763,12 +954,11 @@
             renderOrders(data);
         });
 
-        // 定时更新时钟
         setInterval(updateClock, 15000);
         updateClock();
         updateFullscreenBtn();
 
-        console.log(`👨‍🍳 KDS 已启动，仅显示 source="counter" 且 桌号="${TARGET_TABLE}" 的未完成订单`);
+        console.log(`👨‍🍳 KDS 已启动，仅显示 source="counter" 且 桌号="${TARGET_TABLE}" 的未完成且未取消订单`);
     </script>
 
 </body>
