@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>厨房显示 · Counter POS 专版</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --cooking-color: #f39c12; /* 制作中：橙色 */
+            --ready-color: #2ecc71;   /* 可领取：绿色 */
+            --danger-color: #e74c3c;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部控制栏 */
+        header {
+            background: #fff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #34495e;
+        }
+        .title span { color: var(--ready-color); }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .stat-item { display: flex; align-items: center; gap: 5px; }
+        .stat-cooking { color: var(--cooking-color); }
+        .stat-ready { color: var(--ready-color); }
+        .stat-sales { color: #3498db; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        button:hover { background: #f8f9fa; border-color: #bbb; }
+        button.active { background: #34495e; color: #fff; border-color: #34495e; }
+        .btn-danger { color: var(--danger-color); border-color: #f8d7da; }
+        .btn-primary { background: #3498db; color: #fff; border-color: #3498db; }
+        .btn-primary:hover { background: #2980b9; }
+
+        /* 主体订单区 */
+        main {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 100px 20px;
+            color: var(--text-sub);
+            font-size: 1.5rem;
+        }
+
+        /* 订单卡片 */
+        .order-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .order-card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+
+        .card-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+
+        .order-number { font-size: 1.4rem; font-weight: bold; }
+        .order-time { font-size: 0.9rem; color: var(--text-sub); }
+        .order-source { font-size: 0.8rem; background: #e0e0e0; padding: 2px 8px; border-radius: 10px; margin-left: 10px;}
+
+        .card-body {
+            padding: 15px;
+            flex: 1;
+        }
+
+        .item-list { list-style: none; }
+        .item-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+        }
+        .item-list li:last-child { border-bottom: none; }
+        .item-qty { font-weight: bold; color: var(--cooking-color); margin-right: 10px;}
+
+        .card-footer {
+            padding: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        /* 状态：制作中 */
+        .status-cooking .card-header { background: #fff3e0; color: #e65100; }
+        .status-cooking .btn-action { background: var(--cooking-color); color: #fff; }
+        .status-cooking .btn-action:hover { background: #d35400; }
+
+        /* 状态：可领取食物 */
+        .status-ready {
+            border-color: var(--ready-color);
+            animation: pulse-border 2s infinite;
+        }
+        .status-ready .card-header { background: #e8f5e9; color: #1b5e20; }
+        
+        .ready-banner {
+            background: var(--ready-color);
+            color: #fff;
+            text-align: center;
+            padding: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            animation: pulse-bg 2s infinite;
+        }
+
+        .status-ready .btn-action { background: #95a5a6; color: #fff; margin-top: 10px;}
+        .status-ready .btn-action:hover { background: #7f8c8d; }
+
+        /* 动画 */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+        @keyframes pulse-bg {
+            0% { background-color: #2ecc71; }
+            50% { background-color: #27ae60; }
+            100% { background-color: #2ecc71; }
+        }
+
+        /* 响应式 */
+        @media (max-width: 600px) {
+            .stats { font-size: 0.9rem; gap: 10px; }
+            .controls { width: 100%; }
+            .controls button { flex: 1; font-size: 0.8rem; padding: 6px 10px;}
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <div class="title">厨房显示 · <span>Counter POS</span> 专版</div>
+        <div class="stats">
+            <div class="stat-item stat-cooking">⏳ 制作中 <span id="count-cooking">0</span></div>
+            <div class="stat-item stat-ready">✅ 可领取 <span id="count-ready">0</span></div>
+            <div class="stat-item stat-sales">📅 今日销售 $<span id="total-sales">0.00</span></div>
+        </div>
+    </div>
+    <div class="controls">
+        <button onclick="refreshData()">🔄 刷新</button>
+        <button class="btn-danger" onclick="clearReady()">🗑️ 清除已领取</button>
+        <button id="btn-filter-all" class="active" onclick="setFilter('all')">显示全部</button>
+        <button id="btn-filter-counter" onclick="setFilter('counter')">仅 Counter POS</button>
+        <button class="btn-primary" onclick="addMockOrder()">+ 模拟新订单</button>
+    </div>
+</header>
+
+<main id="order-container">
+    <!-- 订单卡片将由 JS 动态渲染 -->
+</main>
+
+<script>
+    // 模拟数据库
+    let orders = [];
+    let currentFilter = 'all';
+    let orderCounter = 100;
+    let totalSales = 0;
+
+    // 初始化一些测试数据
+    function initMockData() {
+        orders = [
+            {
+                id: 101,
+                source: 'counter',
+                time: '10:23',
+                items: [{name: '经典牛肉汉堡', qty: 2}, {name: '大份薯条', qty: 1}, {name: '可乐', qty: 2}],
+                status: 'cooking',
+                price: 45.50
+            },
+            {
+                id: 102,
+                source: 'delivery', // 非 counter 订单，用于测试过滤
+                time: '10:25',
+                items: [{name: '鸡肉卷', qty: 1}, {name: '洋葱圈', qty: 1}],
+                status: 'cooking',
+                price: 28.00
+            }
+        ];
+        orderCounter = 102;
+        totalSales = 73.50;
+        render();
+    }
+
+    // 渲染主函数
+    function render() {
+        const container = document.getElementById('order-container');
+        container.innerHTML = '';
+
+        // 过滤逻辑
+        let filteredOrders = orders.filter(o => {
+            if (currentFilter === 'counter') return o.source === 'counter';
+            return true;
+        });
+
+        if (filteredOrders.length === 0) {
+            container.innerHTML = '<div class="empty-state">🕒 等待订单 ...</div>';
+        } else {
+            // 排序：制作中的在前面，可领取的在后面（或者按时间）
+            filteredOrders.sort((a, b) => {
+                if (a.status === 'cooking' && b.status === 'ready') return -1;
+                if (a.status === 'ready' && b.status === 'cooking') return 1;
+                return 0; 
+            });
+
+            filteredOrders.forEach(order => {
+                container.appendChild(createOrderCard(order));
+            });
+        }
+
+        updateStats();
+    }
+
+    // 创建订单卡片 DOM
+    function createOrderCard(order) {
+        const card = document.createElement('div');
+        card.className = `order-card status-${order.status}`;
+        
+        const sourceLabel = order.source === 'counter' ? '堂食' : '外卖';
+        
+        let itemsHtml = order.items.map(item => 
+            `<li><span><span class="item-qty">x${item.qty}</span>${item.name}</span></li>`
+        ).join('');
+
+        let footerHtml = '';
+        let bannerHtml = '';
+
+        if (order.status === 'cooking') {
+            footerHtml = `<button class="btn-action" onclick="markAsReady(${order.id})">✅ 制作完成 (通知取餐)</button>`;
+        } else {
+            bannerHtml = `<div class="ready-banner">🟢 可领取食物</div>`;
+            footerHtml = `<button class="btn-action" onclick="markAsPickedUp(${order.id})">🛍️ 顾客已取走</button>`;
+        }
+
+        card.innerHTML = `
+            ${bannerHtml}
+            <div class="card-header">
+                <div>
+                    <span class="order-number">#${order.id}</span>
+                    <span class="order-source">${sourceLabel}</span>
+                </div>
+                <div class="order-time">🕒 ${order.time}</div>
+            </div>
+            <div class="card-body">
+                <ul class="item-list">${itemsHtml}</ul>
+            </div>
+            <div class="card-footer">
+                ${footerHtml}
+            </div>
+        `;
+        return card;
+    }
+
+    // 核心交互：标记为可领取
+    function markAsReady(id) {
+        const order = orders.find(o => o.id === id);
+        if (order) {
+            order.status = 'ready';
+            // 这里可以加入语音播报或提示音
+            // new Audio('ding.mp3').play(); 
+            render();
+        }
+    }
+
+    // 核心交互：顾客取走，清除订单
+    function markAsPickedUp(id) {
+        orders = orders.filter(o => o.id !== id);
+        render();
+    }
+
+    // 清除所有已领取（已完成）的订单
+    function clearReady() {
+        orders = orders.filter(o => o.status !== 'ready');
+        render();
+    }
+
+    // 更新顶部统计
+    function updateStats() {
+        const cookingCount = orders.filter(o => o.status === 'cooking').length;
+        const readyCount = orders.filter(o => o.status === 'ready').length;
+        
+        document.getElementById('count-cooking').innerText = cookingCount;
+        document.getElementById('count-ready').innerText = readyCount;
+        document.getElementById('total-sales').innerText = totalSales.toFixed(2);
+    }
+
+    // 过滤切换
+    function setFilter(filter) {
+        currentFilter = filter;
+        document.getElementById('btn-filter-all').classList.toggle('active', filter === 'all');
+        document.getElementById('btn-filter-counter').classList.toggle('active', filter === 'counter');
+        render();
+    }
+
+    // 模拟新订单进入
+    function addMockOrder() {
+        orderCounter++;
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        
+        const mockItems = [
+            [{name: '招牌炸鸡套餐', qty: 1}],
+            [{name: '双层芝士牛堡', qty: 1}, {name: '奶昔', qty: 1}],
+            [{name: '海鲜意面', qty: 1}, {name: '沙拉', qty: 1}]
+        ];
+        
+        const randomItems = mockItems[Math.floor(Math.random() * mockItems.length)];
+        const randomPrice = (Math.random() * 50 + 20).toFixed(2);
+        
+        orders.push({
+            id: orderCounter,
+            source: Math.random() > 0.5 ? 'counter' : 'delivery',
+            time: timeStr,
+            items: randomItems,
+            status: 'cooking',
+            price: parseFloat(randomPrice)
+        });
+        
+        totalSales += parseFloat(randomPrice);
+        render();
+    }
+
+    function refreshData() {
+        // 模拟刷新数据
+        render();
+    }
+
+    // 启动
+    initMockData();
+</script>
+
+</body>
+</html>
