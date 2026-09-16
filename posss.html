@@ -9,17 +9,6 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js">
     </script>
-       const newOrderRef = database.ref('orders').push();
-   newOrderRef.set({
-       orderNumber: "1001",
-       total: 50.00,
-       items: [{name: "铜锅", qty: 1}],
-       source: "counter",       // <--- 这一行至关重要！没有它，KDS端会过滤掉这个订单
-       completed: true,         // <--- 如果是直接送到厨房，通常设为 true
-       pickedUp: false,
-       time: new Date().toISOString()
-       // ... 其他数据
-   });
     <style>
         * {
             box-sizing: border-box;
