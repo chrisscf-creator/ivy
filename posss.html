@@ -1529,7 +1529,7 @@
             }
         }
 
-        // ========== 登录 ==========
+                // ========== 登录 ==========
         const LOGIN_PASSWORD = "123456";
         const loginOverlay = document.getElementById('loginOverlay');
         const mainContentDiv = document.getElementById('mainContent');
@@ -1549,6 +1549,6 @@
         }
         loginBtnDom.addEventListener('click', doLogin);
         passwordInputLogin.addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
-    </>
+    </script>  <--- ✅ 必须改成这个
 </body>
 </html>
