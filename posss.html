@@ -1147,7 +1147,7 @@
         // ============================================================
         // 核心修改: 提交订单时添加 source: 'counter'
         // ============================================================
-        async function submitOrder() {
+                async function submitOrder() {
             if (cart.length === 0) { showStatus(translations[currentLang].cartEmptyError, true); return; }
             let tableNo = tableInput.value.trim() || "1";
             let itemsForOrder = cart.map(item => ({
@@ -1156,14 +1156,18 @@
                 qty: item.qty,
                 price: item.price
             }));
+            
+            // ✅ 修改这里：
             let orderData = {
                 table: tableNo,
                 items: itemsForOrder,
                 total: calcTotal(),
                 time: new Date().toISOString(),
-                completed: false,
-                source: 'counter' // ★★★ 关键: 标记来源为 counter，供 KDS 过滤
+                completed: true,             // ← 必须改为 true！取餐屏只接收已完成的订单
+                completedTime: new Date().toISOString(), // ← 新增：记录完成时间，供取餐屏排序
+                source: 'counter'            // ← 保持不变：标记来源
             };
+            
             submitBtn.disabled = true;
             let originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = translations[currentLang].gettingOrderNo;
@@ -1171,12 +1175,12 @@
                 let orderNumber = await getNextOrderNumber();
                 orderData.orderNumber = orderNumber;
                 submitBtn.innerHTML = translations[currentLang].sending;
+                
+                // 写入数据库
                 await ordersRef.push(orderData);
-                await printReceipt(orderNumber, tableNo, cart.map(c => ({ id: c.id, name: c.name, qty: c.qty,
-                    price: c.price })), calcTotal());
-                showStatus(
-                    `${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`
-                    );
+                
+                await printReceipt(orderNumber, tableNo, cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })), calcTotal());
+                showStatus(`${translations[currentLang].orderSuccess}${orderNumber}${translations[currentLang].orderSent}${tableNo}${translations[currentLang].orderTotal}${calcTotal().toFixed(2)}`);
                 updateLastOrderDisplay(orderNumber, tableNo);
                 cart = [];
                 renderCart();
