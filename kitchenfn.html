@@ -172,7 +172,7 @@
 
     <script>
         // ============================================================
-        // Firebase 配置 (与厨房端完全一致)
+        // 1. Firebase 配置 (与 POS 端完全一致)
         // ============================================================
         const firebaseConfig = {
             apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
@@ -183,12 +183,16 @@
             messagingSenderId: "505063429802",
             appId: "1:505063429802:web:8ec8cca8c788610bad62d3"
         };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        
+        // 初始化 Firebase (Compat 模式)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const database = firebase.database();
-        const ordersRef = database.ref('orders');
+        const ordersRef = database.ref('orders'); // 确保这里的路径与 POS 端写入的路径完全一致
 
         // ============================================================
-        // 全局状态
+        // 2. 全局状态
         // ============================================================
         let allOrders = [];
         let currentTab = 'ready';
@@ -201,7 +205,7 @@
         const toastEl = document.getElementById('toast');
 
         // ============================================================
-        // 工具函数
+        // 3. 工具函数
         // ============================================================
         function escapeHtml(str) {
             if (!str) return '';
@@ -229,17 +233,17 @@
         }
 
         // ============================================================
-        // 核心渲染逻辑
+        // 4. 核心渲染逻辑
         // ============================================================
         function render() {
-            // 仅处理 counter 来源的订单
+            // 仅处理 counter 来源的订单 (KDS 过滤核心)
             const counterOrders = allOrders.filter(o => o.source === 'counter');
             
-            // 分类
+            // 分类：已完成但未取走 为 "待取餐"，已取走 为 "历史记录"
             const readyOrders = counterOrders.filter(o => o.completed === true && o.pickedUp !== true);
             const pickedOrders = counterOrders.filter(o => o.pickedUp === true);
 
-            // 更新统计
+            // 更新统计数字
             readyCountEl.textContent = readyOrders.length;
             historyCountEl.textContent = pickedOrders.length;
 
@@ -257,7 +261,7 @@
             }
 
             // 按完成时间降序（最新的在上面）
-            orders.sort((a, b) => new Date(b.time) - new Date(a.time));
+            orders.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
 
             readyGrid.innerHTML = orders.map(order => {
                 const itemsStr = (order.items || []).map(i => `${i.name || '菜品'} ×${i.qty || 1}`).join('<br>');
@@ -288,7 +292,7 @@
             filtered.sort((a, b) => new Date(b.pickedUpTime || 0) - new Date(a.pickedUpTime || 0));
 
             historyBody.innerHTML = filtered.map(order => {
-                const itemsStr = (order.items || []).map(i => `${i.name}×${i.qty}`).join(', ');
+                const itemsStr = (order.items || []).map(i => `${i.name || '菜品'}×${i.qty || 1}`).join(', ');
                 return `
                     <tr>
                         <td><strong>#${order.orderNumber || '--'}</strong></td>
@@ -304,7 +308,7 @@
         }
 
         // ============================================================
-        // Firebase 操作
+        // 5. Firebase 操作
         // ============================================================
         async function markAsPickedUp(id) {
             try {
@@ -349,7 +353,7 @@
         }
 
         // ============================================================
-        // 导出 Excel (CSV 格式)
+        // 6. 导出 Excel (CSV 格式)
         // ============================================================
         function exportExcel() {
             const pickedOrders = allOrders.filter(o => o.source === 'counter' && o.pickedUp === true);
@@ -358,12 +362,10 @@
                 return;
             }
 
-            // 添加 BOM 头 \uFEFF 防止 Excel 打开中文乱码
             let csvContent = "\uFEFF订单号,桌号/类型,商品明细,总金额,完成时间,取餐时间\n";
             
             pickedOrders.forEach(order => {
-                const itemsStr = (order.items || []).map(i => `${i.name}x${i.qty}`).join('; ');
-                // 用双引号包裹包含逗号的字段，防止 CSV 格式错乱
+                const itemsStr = (order.items || []).map(i => `${i.name || '菜品'}x${i.qty || 1}`).join('; ');
                 const row = [
                     order.orderNumber || '',
                     order.table || '外带',
@@ -389,39 +391,44 @@
         }
 
         // ============================================================
-        // UI 交互
+        // 7. UI 交互
         // ============================================================
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
             
-            event.target.classList.add('active');
+            // 兼容直接点击和代码调用
+            const targetBtn = event ? event.target : document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
+            if(targetBtn) targetBtn.classList.add('active');
+            
             document.getElementById(`view-${tab}`).classList.add('active');
             render();
         }
 
         // ============================================================
-        // 实时监听 (与厨房端共享同一数据源)
+        // 8. 实时监听 (核心：只要数据库变化，这里就会自动触发)
         // ============================================================
         function startListening() {
+            // 监听 'orders' 节点，并在前端过滤出 source === 'counter' 的数据
             const query = ordersRef.orderByChild('source').equalTo('counter');
+            
             query.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) {
                     allOrders = [];
                 } else {
+                    // 将 Firebase 对象转换为数组，并保留 Firebase 的 key 作为 id
                     allOrders = Object.entries(data).map(([id, value]) => ({ id, ...value }));
                 }
-                render();
+                console.log("✅ 收到实时数据更新，当前订单数:", allOrders.length);
+                render(); // 触发页面重新渲染
             }, (error) => {
-                console.error('监听失败:', error);
+                console.error('❌ 监听失败:', error);
                 showToast('❌ 数据库连接异常', true);
             });
         }
 
-        // 启动
+        // 启动监听
         startListening();
     </script>
-</body>
-</html>
