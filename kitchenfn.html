@@ -393,18 +393,33 @@
         // ============================================================
         // 7. UI 交互
         // ============================================================
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-            
-            // 兼容直接点击和代码调用
-            const targetBtn = event ? event.target : document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
-            if(targetBtn) targetBtn.classList.add('active');
-            
-            document.getElementById(`view-${tab}`).classList.add('active');
-            render();
-        }
+      function switchTab(tab) {
+
+    currentTab = tab;
+
+    document
+        .querySelectorAll('.tab-btn')
+        .forEach(btn => btn.classList.remove('active'));
+
+    document
+        .querySelectorAll('.view')
+        .forEach(view => view.classList.remove('active'));
+
+    const buttons =
+        document.querySelectorAll('.tab-btn');
+
+    if (tab === 'ready') {
+        buttons[0].classList.add('active');
+    } else {
+        buttons[1].classList.add('active');
+    }
+
+    document
+        .getElementById(`view-${tab}`)
+        .classList.add('active');
+
+    render();
+}
 
         // ============================================================
         // 8. 实时监听 (核心：只要数据库变化，这里就会自动触发)
