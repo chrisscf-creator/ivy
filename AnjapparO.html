@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Anjappar - QR Food Order</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f0e8;
+  color: #2c2c2c;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #1a5c2e 0%, #2d8a4e 50%, #1a5c2e 100%);
+  color: white;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.back-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.search-bar {
+  flex: 1;
+  margin: 0 12px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-bar input {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+}
+.search-bar input::placeholder { color: rgba(255,255,255,0.7); }
+.menu-dots {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+.header-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.table-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.table-selector select {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.table-selector select option { color: #333; }
+.lang-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 3px;
+}
+.lang-btn {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255,255,255,0.7);
+  transition: all 0.3s;
+}
+.lang-btn.active {
+  background: white;
+  color: #1a5c2e;
+  font-weight: bold;
+}
+
+/* Category Tabs */
+.category-tabs {
+  display: flex;
+  overflow-x: auto;
+  background: white;
+  border-bottom: 2px solid #e8e0d0;
+  position: sticky;
+  top: 95px;
+  z-index: 99;
+  scrollbar-width: none;
+}
+.category-tabs::-webkit-scrollbar { display: none; }
+.cat-tab {
+  padding: 12px 18px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+.cat-tab.active {
+  color: #1a5c2e;
+  border-bottom-color: #1a5c2e;
+}
+.cat-tab:hover { color: #1a5c2e; }
+
+/* Section Title */
+.section-title {
+  padding: 16px 16px 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a5c2e;
+}
+
+/* Menu Items */
+.menu-list { padding: 0 12px; }
+.menu-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  margin: 10px 0;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.2s;
+}
+.menu-item:active { transform: scale(0.98); }
+.menu-item-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f0e6d3, #e8dcc8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  position: relative;
+  overflow: hidden;
+}
+.menu-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.menu-item-info {
+  flex: 1;
+  margin-left: 12px;
+  min-width: 0;
+}
+.menu-item-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin-bottom: 4px;
+}
+.menu-item-name-cn {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+  display: none;
+}
+body.cn .menu-item-name-cn { display: block; }
+body.cn .menu-item-name-en { display: none; }
+.menu-item-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e91e63;
+}
+.menu-item-price .original {
+  font-size: 13px;
+  color: #aaa;
+  text-decoration: line-through;
+  margin-left: 6px;
+  font-weight: 400;
+}
+.menu-item-discount {
+  font-size: 11px;
+  color: #e91e63;
+  margin-top: 2px;
+}
+.menu-item-desc {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #1a5c2e;
+  background: white;
+  color: #1a5c2e;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+  transition: all 0.3s;
+}
+.add-btn:hover {
+  background: #1a5c2e;
+  color: white;
+}
+.add-btn.added {
+  background: #1a5c2e;
+  color: white;
+}
+
+/* Combo special styling */
+.combo-badge {
+  display: inline-block;
+  background: #1a5c2e;
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+
+/* Bottom Cart Bar */
+.cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 12px 16px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+}
+.cart-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c2c2c;
+}
+.cart-total span { color: #e91e63; }
+.cart-count {
+  font-size: 12px;
+  color: #888;
+}
+.submit-btn {
+  background: linear-gradient(135deg, #1a5c2e, #2d8a4e);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.submit-btn:hover { transform: scale(1.05); }
+.submit-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Discount Banner */
+.discount-banner {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border: 1px solid #ffb74d;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e65100;
+  font-weight: 600;
+}
+.discount-banner .icon { font-size: 20px; }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal h2 {
+  color: #1a5c2e;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+}
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+.order-item .qty {
+  color: #1a5c2e;
+  font-weight: 600;
+}
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 18px;
+  font-weight: 700;
+  border-top: 2px solid #1a5c2e;
+  margin-top: 8px;
+}
+
+/* Success Screen */
+.success-screen {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: white;
+  z-index: 300;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.success-screen.show { display: flex; }
+.success-icon {
+  font-size: 80px;
+  margin-bottom: 16px;
+}
+.success-screen h2 {
+  color: #1a5c2e;
+  margin-bottom: 8px;
+}
+.success-screen p {
+  color: #666;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+.success-screen .order-no {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a5c2e;
+  margin: 12px 0;
+}
+.success-btn {
+  margin-top: 20px;
+  background: #1a5c2e;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Kitchen View */
+.kitchen-view {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #f5f0e8;
+  z-index: 250;
+  overflow-y: auto;
+  padding: 16px;
+}
+.kitchen-view.show { display: block; }
+.kitchen-header {
+  background: #1a5c2e;
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.kitchen-order {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.kitchen-order h3 {
+  color: #1a5c2e;
+  margin-bottom: 8px;
+}
+.kitchen-back {
+  background: none;
+  border: 2px solid white;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* QR Section */
+.qr-section {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: white;
+  z-index: 250;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.qr-section.show { display: flex; }
+.qr-code {
+  width: 200px;
+  height: 200px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  font-size: 14px;
+  color: #666;
+  border: 2px dashed #ccc;
+}
+.qr-close {
+  margin-top: 20px;
+  background: #1a5c2e;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Nav buttons */
+.nav-buttons {
+  position: fixed;
+  bottom: 70px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 90;
+}
+.nav-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #1a5c2e;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Category header image */
+.cat-hero {
+  margin: 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 120px;
+  background: linear-gradient(135deg, #1a5c2e, #2d8a4e);
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  color: white;
+}
+.cat-hero h2 { font-size: 22px; margin-bottom: 4px; }
+.cat-hero p { font-size: 13px; opacity: 0.9; }
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.menu-item { animation: slideUp 0.3s ease; }
+
+/* Responsive */
+@media (max-width: 360px) {
+  .menu-item-img { width: 75px; height: 75px; }
+  .menu-item-name { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Search Anjappar (Vivocity)" id="searchInput" oninput="filterMenu()">
+    </div>
+    <button class="menu-dots" onclick="showMenu()">⋮</button>
+  </div>
+  <div class="header-info">
+    <div class="table-selector">
+       <span data-en="Table:" data-cn="桌号:">Table:</span>
+      <select id="tableSelect" onchange="updateTable()">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+      </select>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" onclick="setLang('en')">🇬🇧 EN</button>
+      <button class="lang-btn" onclick="setLang('cn')">🇨🇳 中文</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Tabs -->
+<div class="category-tabs" id="categoryTabs">
+  <button class="cat-tab active" data-cat="combos" onclick="switchCategory('combos')">Combos</button>
+  <button class="cat-tab" data-cat="setmeals" onclick="switchCategory('setmeals')">Set Meals</button>
+  <button class="cat-tab" data-cat="kids" onclick="switchCategory('kids')">Kids' Combos</button>
+  <button class="cat-tab" data-cat="rice" onclick="switchCategory('rice')">Rice & Noodles</button>
+  <button class="cat-tab" data-cat="aromatic" onclick="switchCategory('aromatic')">Aromatic Rice</button>
+  <button class="cat-tab" data-cat="appetizers" onclick="switchCategory('appetizers')">Appetizers</button>
+  <button class="cat-tab" data-cat="drinks" onclick="switchCategory('drinks')">Soft Drinks</button>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent">
+  <!-- Content will be rendered by JS -->
+</div>
+
+<!-- Discount Banner -->
+<div class="discount-banner">
+  <span class="icon">🎟️</span>
+  <span data-en="Add S$ 30.00 for 15% off your order" data-cn="消费满 S$30.00 可享 15% 折扣">Add S$ 30.00 for 15% off your order</span>
+</div>
+
+<!-- Bottom Cart Bar -->
+<div class="cart-bar">
+  <div>
+    <div class="cart-total"><span data-en="Total:" data-cn="总计:">Total:</span> <span id="totalPrice">S$ 0.00</span></div>
+    <div class="cart-count"><span id="itemCount">0</span> <span data-en="items" data-cn="件商品">items</span></div>
+  </div>
+  <button class="submit-btn" id="submitBtn" onclick="submitOrder()" disabled>
+    <span data-en="Submit Order" data-cn="提交订单">Submit Order</span>
+  </button>
+</div>
+
+<!-- Floating Nav Buttons -->
+<div class="nav-buttons">
+  <button class="nav-btn" onclick="showKitchen()" title="Kitchen Orders">👨‍🍳</button>
+  <button class="nav-btn" onclick="showQR()" title="Table QR"></button>
+</div>
+
+<!-- Order Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 data-en="📋 Order Summary" data-cn=" 订单摘要">📋 Order Summary</h2>
+    <div id="orderItems"></div>
+    <div class="order-total">
+      <span data-en="Total:" data-cn="总计:">Total:</span>
+      <span id="modalTotal">S$ 0.00</span>
+    </div>
+    <button class="submit-btn" style="width:100%;margin-top:12px;" onclick="confirmOrder()">
+      <span data-en="✅ Confirm Order" data-cn="✅ 确认订单">✅ Confirm Order</span>
+    </button>
+  </div>
+</div>
+
+<!-- Success Screen -->
+<div class="success-screen" id="successScreen">
+  <div class="success-icon">✅</div>
+  <h2 data-en="Order Submitted!" data-cn="订单已提交!">Order Submitted!</h2>
+  <p data-en="Order No:" data-cn="订单号:">Order No:</p>
+  <div class="order-no" id="orderNo">#A001</div>
+  <p>🪑 <span data-en="Table:" data-cn="桌号:">Table:</span> <span id="successTable">3</span></p>
+  <p>💵 <span data-en="Total:" data-cn="总计:">Total:</span> <span id="successTotal">S$ 0.00</span></p>
+  <p style="margin-top:16px;color:#1a5c2e;font-weight:600;" data-en=" Kitchen is preparing your food" data-cn=" 厨房正在准备您的食物"> Kitchen is preparing your food</p>
+  <button class="success-btn" onclick="closeSuccess()">
+    <span data-en="Back to Menu" data-cn="返回菜单">Back to Menu</span>
+  </button>
+</div>
+
+<!-- Kitchen View -->
+<div class="kitchen-view" id="kitchenView">
+  <div class="kitchen-header">
+    <h2>👨‍🍳 <span data-en="Kitchen Orders" data-cn="厨房订单">Kitchen Orders</span></h2>
+    <button class="kitchen-back" onclick="closeKitchen()">← <span data-en="Back" data-cn="返回">Back</span></button>
+  </div>
+  <div id="kitchenOrders"></div>
+</div>
+
+<!-- QR Section -->
+<div class="qr-section" id="qrSection">
+  <h2 style="color:#1a5c2e;">📱 <span data-en="Table QR Code" data-cn="桌号二维码">Table QR Code</span></h2>
+  <p style="color:#666;margin-top:8px;" data-en="Scan to order at Table" data-cn="扫码点餐 - 桌号">Scan to order at Table</p>
+  <div class="qr-code" id="qrCode">
+    <div style="text-align:center;">
+      <div style="font-size:60px;margin-bottom:8px;"></div>
+      <div>Table <span id="qrTable">3</span></div>
+      <div style="font-size:11px;margin-top:4px;">Anjappar Vivocity</div>
+    </div>
+  </div>
+  <button class="qr-close" onclick="closeQR()">
+    <span data-en="Close" data-cn="关闭">Close</span>
+  </button>
+</div>
+
+<script>
+// Menu Data
+const menuData = {
+  combos: [
+    { id: 'c1', name: 'Mini Tiffin Delight (Veg)', nameCn: '迷你精选素食便当', price: 15.0, original: null, discount: null, desc: '1 Golden Masala Dosa + 1 Steamed Idli + 1 Scoop pongal + 1pc vada, Sambar + Dual Chutneys', emoji: '🫓', img: 'img_combo1' },
+    { id: 'c2', name: 'The Tanjore Trio Idly Vada & Pongal', nameCn: '坦贾武尔经典三拼套餐', price: 13.0, original: null, discount: null, desc: 'Idly Vada (2idly+1Vada+1scoop pongal) + Sambar + Dual Chutneys', emoji: '🍛', img: null },
+    { id: 'c3', name: 'The Chettinad Silk Combo', nameCn: '契蒂纳德风味精选套餐', price: 16.0, original: null, discount: null, desc: 'Fluffy, string-layered Nool Parotta paired with rich, creamy Butter Chicken', emoji: '', img: null },
+    { id: 'c4', name: 'The Tandoori Smoky Feast', nameCn: '坦都里烟熏盛宴套餐', price: 17.0, original: null, discount: null, desc: '1 Butter Naan + Tandoori Chicken (2 pcs) + Butter chicken masala + Mint Chutney', emoji: '🍗', img: 'img_combo4' },
+    { id: 'c5', name: 'The Kebab Express Lane', nameCn: '特色烤肉串套餐', price: 17.0, original: null, discount: null, desc: '1 Garlic Naan + Chicken garlic kebab (2 pcs) + Butter chicken masala + Salad + Mint Chutney', emoji: '🍢', img: null },
+    { id: 'c6', name: 'Chicken Tikka Meal', nameCn: '特色鸡肉串套餐', price: 17.0, original: null, discount: null, desc: '1 Butter Naan + Chicken garlic kebab (2 pcs) + Butter chicken masala + Salad + Mint Chutney', emoji: '🍗', img: null },
+    { id: 'c7', name: 'Fish Tikka Meal', nameCn: '鱼肉提卡套餐', price: 18.0, original: null, discount: null, desc: '1 Butter Naan + Fish Tikka (2 pcs) + Butter chicken masala + Salad + Mint Chutney', emoji: '🐟', img: null },
+    { id: 'c8', name: 'Paneer Tikka Meal', nameCn: '印度奶酪提卡套餐', price: 17.0, original: null, discount: null, desc: '1 Butter Naan + paneer Tikka (2 pcs) + Paneer butter masala + Salad + Mint Chutney', emoji: '🧀', img: null },
+    { id: 'c9', name: 'Kal Dosa Combo', nameCn: 'Kal Dosa 套餐', price: 16.0, original: null, discount: null, desc: '2pcs Kal Dosa + Choice of Chettinad Masala (Chicken/Mutton/Fish) + Sambar + Dual Chutneys', emoji: '🫓', img: null, variants: [{name:'Chicken',price:16},{name:'Mutton',price:17},{name:'Fish',price:17}] },
+    { id: 'c10', name: 'Idly Combo Meal', nameCn: 'Idly 套餐', price: 16.0, original: null, discount: null, desc: 'A popular South Indian savory steamed cake served with Choice of Chettinad Masala + Sambar + Dual Chutneys', emoji: '🍚', img: null, variants: [{name:'Chicken',price:16},{name:'Mutton',price:17},{name:'Fish',price:17}] },
+    { id: 'c11', name: 'Chappathi Combo Meal', nameCn: 'Chappathi 套餐', price: 16.0, original: null, discount: null, desc: 'A South Indian Flatbread made with whole wheat flour served with Choice of Chettinad Masala', emoji: '🫓', img: null, variants: [{name:'Chicken',price:16},{name:'Mutton',price:17},{name:'Fish',price:17}] },
+    { id: 'c12', name: 'Parotta Combo Meal', nameCn: 'Parotta 套餐', price: 16.0, original: null, discount: null, desc: '2 pcs Parotta served with Choice of Chettinad Masala (Chicken/Mutton/Fish and Raita)', emoji: '🫓', img: null, variants: [{name:'Chicken',price:16},{name:'Mutton',price:17},{name:'Fish',price:17}] }
+  ],
+  setmeals: [
+    { id: 's1', name: 'Anjappar Meal', nameCn: 'Anjappar 套餐', price: 13.0, original: null, discount: null, desc: 'Chicken / Mutton / Fish', emoji: '🍽️', img: null, variants: [{name:'Chicken',price:13},{name:'Mutton',price:15},{name:'Fish',price:15}] },
+    { id: 's2', name: 'Anjappar Veg Meal', nameCn: 'Anjappar 素食套餐', price: 11.0, original: null, discount: null, desc: 'Vegetarian set meal with rice, sambar, rasam, kootu, poriyal, curd & sweet', emoji: '🥗', img: null }
+  ],
+  kids: [
+    { id: 'k1', name: 'The Little Chota Bheem Meal (Veg)', nameCn: '小小 Chota Bheem 素食套餐', price: 12.0, original: null, discount: null, desc: '1 Mini Chocolate Cone Dosa + 1 Sweet Idli (with condensed milk) + Mild Coconut Chutney + French Fries', emoji: '🧒', img: null },
+    { id: 'k2', name: 'The Minion Mayhem Chicken Combo', nameCn: '小黄人大冒险鸡肉套餐', price: 13.0, original: null, discount: null, desc: '1 Mini Egg Dosa + Chicken Popcorn (Mild/Non-Spicy, 5 pcs) + Creamy Butter Chicken Gravy (for dipping) + French Fries', emoji: '🍗', img: null }
+  ],
+  rice: [
+    { id: 'r1', name: 'Vegetable Fried', nameCn: '蔬菜(炒饭/炒面)', price: 13.0, original: null, discount: null, desc: 'Rice / Noodles', emoji: '🥦', img: null },
+    { id: 'r2', name: 'Egg Fried', nameCn: '鸡蛋(炒饭/炒面)', price: 14.0, original: null, discount: null, desc: 'Rice / Noodles', emoji: '🍳', img: null },
+    { id: 'r3', name: 'Chicken Fried', nameCn: '鸡肉(炒饭/炒面)', price: 15.0, original: null, discount: null, desc: 'Rice / Noodles', emoji: '🍗', img: null },
+    { id: 'r4', name: 'Mutton Fried', nameCn: '羊肉(炒饭/炒面)', price: 17.0, original: null, discount: null, desc: 'Rice / Noodles', emoji: '🍖', img: null },
+    { id: 'r5', name: 'Prawn Fried', nameCn: '虾仁(炒饭/炒面)', price: 18.0, original: null, discount: null, desc: 'Rice / Noodles', emoji: '🦐', img: null }
+  ],
+  aromatic: [
+    { id: 'a1', name: 'Ghee Rice', nameCn: '酥油饭', price: 12.0, original: null, discount: null, desc: 'Fragrant rice cooked with ghee and spices', emoji: '🍚', img: null },
+    { id: 'a2', name: 'Veg Pulao', nameCn: '素食香料饭', price: 12.0, original: null, discount: null, desc: 'Aromatic basmati rice with mixed vegetables', emoji: '🥘', img: null },
+    { id: 'a3', name: 'Steamed Basmathi Rice', nameCn: '蔬菜抓饭', price: 5.0, original: null, discount: null, desc: 'Plain steamed basmati rice', emoji: '', img: null },
+    { id: 'a4', name: 'Ponni Boiled Rice', nameCn: 'Ponni 水煮米饭', price: 5.0, original: null, discount: null, desc: 'Traditional South Indian ponni rice', emoji: '', img: null }
+  ],
+  appetizers: [
+    { id: 'ap1', name: 'Chicken Lollipop', nameCn: '鸡肉棒棒腿', price: 8.0, original: null, discount: null, desc: 'Crispy fried chicken lollipop with sauce', emoji: '🍗', img: null },
+    { id: 'ap2', name: 'Chicken 65', nameCn: '辣味鸡肉', price: 8.0, original: null, discount: null, desc: 'Spicy deep-fried chicken bites', emoji: '🌶️', img: null },
+    { id: 'ap3', name: 'Samosa (2Pcs)', nameCn: '咖喱角 (2个)', price: 8.0, original: null, discount: null, desc: 'Crispy pastry filled with spiced potatoes', emoji: '', img: null },
+    { id: 'ap4', name: 'Gobi 65', nameCn: '辣味花椰菜', price: 8.0, original: null, discount: null, desc: 'Spicy fried cauliflower florets', emoji: '🥦', img: null },
+    { id: 'ap5', name: 'Paneer 65', nameCn: '辣味印度奶酪', price: 9.0, original: null, discount: null, desc: 'Spicy fried paneer cubes', emoji: '', img: null }
+  ],
+  drinks: [
+    { id: 'd1', name: 'Masala Tea Hot', nameCn: '玛萨拉热茶', price: 4.25, original: 5.00, discount: '15% off with S$ 30.00 spend', desc: 'Traditional Indian spiced tea', emoji: '🍵', img: 'img_masala' },
+    { id: 'd2', name: 'Ginger Tea', nameCn: '姜茶', price: 4.25, original: 5.00, discount: '15% off with S$ 30.00 spend', desc: 'Warm ginger infused tea', emoji: '🫚', img: null },
+    { id: 'd3', name: 'Filter Coffee', nameCn: '滤泡咖啡', price: 4.25, original: 5.00, discount: '15% off with S$ 30.00 spend', desc: 'Traditional South Indian filter coffee', emoji: '☕', img: null },
+    { id: 'd4', name: 'Mango Lassi', nameCn: '芒果拉西', price: 9.56, original: 11.25, discount: '15% off with S$ 30.00 spend', desc: 'Creamy mango yogurt drink', emoji: '🥭', img: 'img_mango' },
+    { id: 'd5', name: 'Salted Lassi', nameCn: '咸味拉西', price: 8.50, original: 10.00, discount: '15% off with S$ 30.00 spend', desc: 'Savory yogurt drink with herbs', emoji: '🥛', img: 'img_salted' },
+    { id: 'd6', name: 'Sweet Lassi', nameCn: '甜味拉西', price: 8.50, original: 10.00, discount: '15% off with S$ 30.00 spend', desc: 'Sweet yogurt drink with pistachio', emoji: '🥛', img: 'img_sweet' },
+    { id: 'd7', name: 'Butter Milk', nameCn: '酪乳', price: 8.50, original: 10.00, discount: '15% off with S$ 30.00 spend', desc: 'Traditional spiced buttermilk', emoji: '🥛', img: null }
+  ]
+};
+
+// Generated image URLs
+const imageUrls = {
+  'img_mango': 'https://images.unsplash.com/photo-mango-lassi',
+  'img_masala': 'https://images.unsplash.com/photo-masala-tea',
+  'img_salted': 'https://images.unsplash.com/photo-salted-lassi',
+  'img_sweet': 'https://images.unsplash.com/photo-sweet-lassi',
+  'img_combo1': 'https://images.unsplash.com/photo-combo1',
+  'img_combo4': 'https://images.unsplash.com/photo-combo4'
+};
+
+// State
+let cart = {};
+let currentLang = 'en';
+let currentCategory = 'combos';
+let orderCounter = 1;
+let kitchenOrders = [];
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  renderCategory('combos');
+});
+
+function switchCategory(cat) {
+  currentCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-cat="${cat}"]`).classList.add('active');
+  renderCategory(cat);
+}
+
+function renderCategory(cat) {
+  const items = menuData[cat];
+  const container = document.getElementById('mainContent');
+  const titles = {
+    combos: { en: 'COMBOS 组合餐', cn: '组合餐 COMBOS' },
+    setmeals: { en: 'SET MEALS 套餐', cn: '套餐 SET MEALS' },
+    kids: { en: "KIDS' SPECIAL COMBOS 儿童欢乐套餐", cn: '儿童欢乐套餐 (不辣)' },
+    rice: { en: 'RICE AND NOODLES 炒饭 & 炒面', cn: '炒饭 & 炒面' },
+    aromatic: { en: 'AROMATIC RICE DELIGHTS 香味米饭精选', cn: '香味米饭精选' },
+    appetizers: { en: 'APPETIZERS 开胃菜', cn: '开胃菜' },
+    drinks: { en: 'SOFT DRINKS 软饮', cn: '软饮' }
+  };
+
+  let html = `<div class="section-title">${currentLang === 'cn' ? titles[cat].cn : titles[cat].en}</div>`;
+  html += '<div class="menu-list">';
+
+  items.forEach((item, idx) => {
+    const qty = cart[item.id] || 0;
+    const priceDisplay = item.original
+      ? `S$ ${item.price.toFixed(2)} <span class="original">S$ ${item.original.toFixed(2)}</span>`
+      : `S$ ${item.price.toFixed(2)}`;
+
+    let variantsHtml = '';
+    if (item.variants) {
+      variantsHtml = `<div class="menu-item-desc">${item.variants.map(v => `${v.name}: S$${v.price.toFixed(2)}`).join(' | ')}</div>`;
+    }
+
+    html += `
+      <div class="menu-item" style="animation-delay: ${idx * 0.05}s">
+        <div class="menu-item-img">${item.emoji}</div>
+        <div class="menu-item-info">
+          <div class="menu-item-name menu-item-name-en">${item.name}</div>
+          <div class="menu-item-name menu-item-name-cn">${item.nameCn}</div>
+          <div class="menu-item-price">${priceDisplay}</div>
+          ${item.discount ? `<div class="menu-item-discount">${item.discount}</div>` : ''}
+          <div class="menu-item-desc">${item.desc}</div>
+          ${variantsHtml}
+        </div>
+        <button class="add-btn ${qty > 0 ? 'added' : ''}" onclick="addToCart('${item.id}')">
+          ${qty > 0 ? qty : '+'}
+        </button>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function addToCart(itemId) {
+  if (!cart[itemId]) cart[itemId] = 0;
+  cart[itemId]++;
+  updateCart();
+  renderCategory(currentCategory);
+}
+
+function removeFromCart(itemId) {
+  if (cart[itemId] && cart[itemId] > 0) {
+    cart[itemId]--;
+    if (cart[itemId] === 0) delete cart[itemId];
+  }
+  updateCart();
+  renderCategory(currentCategory);
+}
+
+function updateCart() {
+  let total = 0;
+  let count = 0;
+  for (let id in cart) {
+    const item = findItem(id);
+    if (item) {
+      total += item.price * cart[id];
+      count += cart[id];
+    }
+  }
+  document.getElementById('totalPrice').textContent = `S$ ${total.toFixed(2)}`;
+  document.getElementById('itemCount').textContent = count;
+  document.getElementById('submitBtn').disabled = count === 0;
+}
+
+function findItem(id) {
+  for (let cat in menuData) {
+    const item = menuData[cat].find(i => i.id === id);
+    if (item) return item;
+  }
+  return null;
+}
+
+function submitOrder() {
+  const modal = document.getElementById('orderModal');
+  const orderItemsDiv = document.getElementById('orderItems');
+  let html = '';
+  let total = 0;
+
+  for (let id in cart) {
+    const item = findItem(id);
+    if (item && cart[id] > 0) {
+      const subtotal = item.price * cart[id];
+      total += subtotal;
+      html += `
+        <div class="order-item">
+          <span>${item.emoji} ${currentLang === 'cn' ? item.nameCn : item.name} <span class="qty">x${cart[id]}</span></span>
+          <span>S$ ${subtotal.toFixed(2)}</span>
+        </div>
+      `;
+    }
+  }
+
+  // Check discount
+  let discount = 0;
+  if (total >= 30) {
+    discount = total * 0.15;
+    html += `<div class="order-item" style="color:#e91e63;"><span>🎟️ 15% Discount</span><span>-S$ ${discount.toFixed(2)}</span></div>`;
+  }
+
+  orderItemsDiv.innerHTML = html;
+  document.getElementById('modalTotal').textContent = `S$ ${(total - discount).toFixed(2)}`;
+  modal.classList.add('show');
+}
+
+function confirmOrder() {
+  closeModal();
+  const total = calculateTotal();
+  const table = document.getElementById('tableSelect').value;
+  const orderNo = `#A${String(orderCounter).padStart(3, '0')}`;
+
+  // Save to kitchen
+  kitchenOrders.push({
+    no: orderNo,
+    table: table,
+    items: {...cart},
+    total: total,
+    time: new Date().toLocaleTimeString()
+  });
+
+  document.getElementById('orderNo').textContent = orderNo;
+  document.getElementById('successTable').textContent = table;
+  document.getElementById('successTotal').textContent = `S$ ${total.toFixed(2)}`;
+  document.getElementById('successScreen').classList.add('show');
+
+  orderCounter++;
+  cart = {};
+  updateCart();
+}
+
+function calculateTotal() {
+  let total = 0;
+  for (let id in cart) {
+    const item = findItem(id);
+    if (item) total += item.price * cart[id];
+  }
+  if (total >= 30) total *= 0.85;
+  return total;
+}
+
+function closeSuccess() {
+  document.getElementById('successScreen').classList.remove('show');
+}
+
+function closeModal() {
+  document.getElementById('orderModal').classList.remove('show');
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (lang === 'cn') {
+    document.body.classList.add('cn');
+  } else {
+    document.body.classList.remove('cn');
+  }
+  // Update all data-en/data-cn elements
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.textContent = lang === 'cn' ? el.dataset.cn : el.dataset.en;
+  });
+  renderCategory(currentCategory);
+}
+
+function updateTable() {
+  const table = document.getElementById('tableSelect').value;
+  document.getElementById('qrTable').textContent = table;
+}
+
+function showKitchen() {
+  const view = document.getElementById('kitchenView');
+  const container = document.getElementById('kitchenOrders');
+
+  if (kitchenOrders.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">No orders yet</p>';
+  } else {
+    let html = '';
+    kitchenOrders.forEach(order => {
+      html += `<div class="kitchen-order">
+        <h3> ${order.no} - Table ${order.table}</h3>
+        <p style="font-size:12px;color:#888;margin-bottom:8px;">⏰ ${order.time}</p>`;
+      for (let id in order.items) {
+        const item = findItem(id);
+        if (item) {
+          html += `<div style="padding:4px 0;font-size:14px;">${item.emoji} ${item.name} x${order.items[id]}</div>`;
+        }
+      }
+      html += `<div style="margin-top:8px;font-weight:700;color:#1a5c2e;">Total: S$ ${order.total.toFixed(2)}</div>
+        <div style="margin-top:8px;color:#e91e63;font-size:13px;">⏳ Preparing...</div>
+      </div>`;
+    });
+    container.innerHTML = html;
+  }
+  view.classList.add('show');
+}
+
+function closeKitchen() {
+  document.getElementById('kitchenView').classList.remove('show');
+}
+
+function showQR() {
+  const table = document.getElementById('tableSelect').value;
+  document.getElementById('qrTable').textContent = table;
+  document.getElementById('qrSection').classList.add('show');
+}
+
+function closeQR() {
+  document.getElementById('qrSection').classList.remove('show');
+}
+
+function filterMenu() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  if (!query) {
+    renderCategory(currentCategory);
+    return;
+  }
+  const container = document.getElementById('mainContent');
+  let html = '<div class="menu-list">';
+  let found = false;
+
+  for (let cat in menuData) {
+    menuData[cat].forEach(item => {
+      if (item.name.toLowerCase().includes(query) || item.nameCn.includes(query)) {
+        found = true;
+        const qty = cart[item.id] || 0;
+        const priceDisplay = item.original
+          ? `S$ ${item.price.toFixed(2)} <span class="original">S$ ${item.original.toFixed(2)}</span>`
+          : `S$ ${item.price.toFixed(2)}`;
+        html += `
+          <div class="menu-item">
+            <div class="menu-item-img">${item.emoji}</div>
+            <div class="menu-item-info">
+              <div class="menu-item-name menu-item-name-en">${item.name}</div>
+              <div class="menu-item-name menu-item-name-cn">${item.nameCn}</div>
+              <div class="menu-item-price">${priceDisplay}</div>
+              ${item.discount ? `<div class="menu-item-discount">${item.discount}</div>` : ''}
+              <div class="menu-item-desc">${item.desc}</div>
+            </div>
+            <button class="add-btn ${qty > 0 ? 'added' : ''}" onclick="addToCart('${item.id}')">${qty > 0 ? qty : '+'}</button>
+          </div>
+        `;
+      }
+    });
+  }
+
+  if (!found) html += '<p style="text-align:center;padding:40px;color:#888;">No items found</p>';
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function goBack() {
+  if (confirm('Go back to main page?')) {
+    window.history.back();
+  }
+}
+
+function showMenu() {
+  alert('Anjappar Chettinad Indian Restaurant - Vivocity\n📍 1 HarbourFront Walk, Singapore 098585\n📞 +65 6274 6882');
+}
+</script>
+</body>
+</html>
