@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anjappar KDS - Kitchen Display System</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0f0f1e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Header */
+.kds-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e94560;
+  box-shadow: 0 2px 10px rgba(233, 69, 96, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.kds-logo { display: flex; align-items: center; gap: 12px; }
+.kds-logo-icon {
+  width: 45px; height: 45px;
+  background: linear-gradient(135deg, #e94560, #c23152);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+}
+.kds-logo-text h1 { font-size: 18px; color: #fff; letter-spacing: 1px; }
+.kds-logo-text p { font-size: 11px; color: #888; }
+
+.kds-stats { display: flex; gap: 15px; }
+.stat-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 16px;
+  text-align: center;
+  min-width: 90px;
+}
+.stat-box .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.stat-box .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.stat-box.pending .value { color: #e94560; }
+.stat-box.cooking .value { color: #f39c12; }
+.stat-box.done .value { color: #27ae60; }
+.stat-box.avg .value { color: #3498db; }
+
+.kds-clock { text-align: right; }
+.kds-clock .time { font-size: 24px; font-weight: 700; color: #fff; font-family: 'Courier New', monospace; }
+.kds-clock .date { font-size: 11px; color: #888; }
+
+/* Control Bar */
+.control-bar {
+  background: #1a1a2e;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-tab {
+  padding: 8px 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: #aaa;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.filter-tab:hover { border-color: #e94560; color: #fff; }
+.filter-tab.active { background: #e94560; border-color: #e94560; color: #fff; }
+.filter-tab .count {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.control-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-refresh { background: #3498db; color: #fff; }
+.btn-refresh:hover { background: #2980b9; }
+.btn-history { background: #9b59b6; color: #fff; }
+.btn-history:hover { background: #8e44ad; }
+.btn-clear { background: #7f8c8d; color: #fff; }
+.btn-clear:hover { background: #6c7a7b; }
+.btn-clear-all { background: #c0392b; color: #fff; }
+.btn-clear-all:hover { background: #a93226; }
+.btn-sound { background: #9b59b6; color: #fff; }
+.btn-sound.muted { background: #555; }
+
+/* Orders Grid */
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Order Card */
+.order-card {
+  background: #1a1a2e;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+  animation: slideIn 0.4s ease;
+  position: relative;
+}
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.order-card.status-pending { border-color: #e94560; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
+.order-card.status-pending.urgent { animation: urgentPulse 1s infinite; }
+@keyframes urgentPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(233, 69, 96, 0.8); }
+}
+.order-card.status-cooking { border-color: #f39c12; box-shadow: 0 0 15px rgba(243, 156, 18, 0.2); }
+.order-card.status-done { border-color: #27ae60; opacity: 0.7; }
+
+.order-card-header {
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.order-card-header .order-no { font-size: 16px; font-weight: 700; color: #fff; }
+.order-card-header .table-no {
+  background: #e94560; color: #fff; padding: 4px 12px;
+  border-radius: 15px; font-size: 13px; font-weight: 700;
+}
+.order-card-header .table-no.large { background: #f39c12; font-size: 15px; padding: 6px 14px; }
+
+.order-card-body { padding: 12px 15px; }
+.order-items { list-style: none; }
+.order-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); font-size: 14px;
+}
+.order-item:last-child { border-bottom: none; }
+.order-item .item-name { flex: 1; color: #ddd; }
+.order-item .item-qty {
+  background: rgba(233, 69, 96, 0.2); color: #e94560;
+  padding: 2px 10px; border-radius: 10px; font-weight: 700;
+  font-size: 13px; min-width: 30px; text-align: center;
+}
+.order-item .item-note { font-size: 11px; color: #f39c12; margin-top: 2px; font-style: italic; }
+
+.order-card-footer {
+  padding: 10px 15px; background: rgba(0,0,0,0.2);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.order-time { font-size: 12px; color: #888; }
+.order-time .elapsed { font-weight: 700; font-size: 14px; }
+.order-time .elapsed.warning { color: #f39c12; }
+.order-time .elapsed.danger { color: #e94560; }
+
+.order-actions { display: flex; gap: 6px; }
+.order-btn {
+  padding: 6px 14px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;
+}
+.order-btn:hover { transform: scale(1.05); }
+.btn-start { background: #f39c12; color: #fff; }
+.btn-complete { background: #27ae60; color: #fff; }
+.btn-cancel { background: #555; color: #fff; }
+.btn-undo { background: #3498db; color: #fff; }
+
+/* Status Badge */
+.status-badge {
+  position: absolute; top: 10px; right: 10px;
+  padding: 3px 10px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+.status-badge.pending { background: #e94560; color: #fff; }
+.status-badge.cooking { background: #f39c12; color: #fff; }
+.status-badge.done { background: #27ae60; color: #fff; }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 60px 20px; color: #666; grid-column: 1 / -1; }
+.empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+.empty-state h3 { font-size: 20px; margin-bottom: 8px; color: #888; }
+
+/* Toast */
+.new-order-toast {
+  position: fixed; top: 80px; right: 20px;
+  background: #e94560; color: #fff; padding: 12px 20px;
+  border-radius: 10px; box-shadow: 0 4px 15px rgba(233, 69, 96, 0.5);
+  display: none; align-items: center; gap: 10px; z-index: 200;
+  animation: toastIn 0.4s ease;
+}
+@keyframes toastIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+.new-order-toast.show { display: flex; }
+.new-order-toast .bell { font-size: 24px; animation: bellRing 0.5s ease infinite; }
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-15deg); }
+  75% { transform: rotate(15deg); }
+}
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8); z-index: 300; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #1a1a2e; border-radius: 15px; padding: 25px;
+  max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;
+  border: 2px solid #e94560;
+}
+.modal h2 { color: #fff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+.modal-close { float: right; background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+
+.modal-info {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 15px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;
+}
+.modal-info .info-item { font-size: 13px; }
+.modal-info .info-label { color: #888; font-size: 11px; }
+.modal-info .info-value { color: #fff; font-weight: 700; font-size: 15px; }
+
+.modal-items { margin-bottom: 15px; }
+.modal-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.modal-item .name { color: #ddd; }
+.modal-item .qty { color: #e94560; font-weight: 700; }
+
+.modal-actions { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 12px; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.3s;
+}
+.modal-btn:hover { transform: scale(1.02); }
+
+/* History List */
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-item {
+  background: rgba(255,255,255,0.05); border-radius: 8px;
+  padding: 12px; margin-bottom: 10px; border-left: 3px solid #27ae60;
+}
+.history-item-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.history-item .order-id { font-weight: 700; color: #fff; }
+.history-item .order-time { color: #888; font-size: 12px; }
+.history-item .order-details { font-size: 13px; color: #aaa; line-height: 1.4; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kds-header { flex-direction: column; gap: 10px; }
+  .kds-stats { flex-wrap: wrap; justify-content: center; }
+  .orders-grid { grid-template-columns: 1fr; }
+  .control-bar { flex-direction: column; }
+  .filter-tabs { justify-content: center; }
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f0f1e; }
+::-webkit-scrollbar-thumb { background: #e94560; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="kds-header">
+  <div class="kds-logo">
+    <div class="kds-logo-icon">👨‍🍳</div>
+    <div class="kds-logo-text">
+      <h1>ANJAPPAR KDS</h1>
+      <p>Kitchen Display System • Vivocity</p>
+    </div>
+  </div>
+  <div class="kds-stats">
+    <div class="stat-box pending">
+      <div class="label">Pending</div>
+      <div class="value" id="statPending">0</div>
+    </div>
+    <div class="stat-box cooking">
+      <div class="label">Cooking</div>
+      <div class="value" id="statCooking">0</div>
+    </div>
+    <div class="stat-box done">
+      <div class="label">Completed</div>
+      <div class="value" id="statDone">0</div>
+    </div>
+    <div class="stat-box avg">
+      <div class="label">Avg Time</div>
+      <div class="value" id="statAvg">0m</div>
+    </div>
+  </div>
+  <div class="kds-clock">
+    <div class="time" id="clockTime">00:00:00</div>
+    <div class="date" id="clockDate">2026-09-21</div>
+  </div>
+</div>
+
+<!-- Control Bar -->
+<div class="control-bar">
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All <span class="count" id="countAll">0</span></button>
+    <button class="filter-tab" data-filter="pending" onclick="setFilter('pending')">🔴 Pending <span class="count" id="countPending">0</span></button>
+    <button class="filter-tab" data-filter="cooking" onclick="setFilter('cooking')">🟡 Cooking <span class="count" id="countCooking">0</span></button>
+    <button class="filter-tab" data-filter="done" onclick="setFilter('done')">✅ Completed <span class="count" id="countDone">0</span></button>
+  </div>
+  <div class="control-actions">
+    <button class="action-btn btn-sound" id="soundBtn" onclick="toggleSound()">🔔 Sound</button>
+    <button class="action-btn btn-history" onclick="showHistory()">📜 History</button>
+    <button class="action-btn btn-refresh" onclick="refreshOrders()">🔄 Refresh</button>
+    <button class="action-btn btn-clear" onclick="clearDoneOrders()">🗑️ Clear Done</button>
+    <button class="action-btn btn-clear-all" onclick="clearAllHistory()">⚠️ Clear All History</button>
+  </div>
+</div>
+
+<!-- New Order Toast -->
+<div class="new-order-toast" id="newOrderToast">
+  <span class="bell">🔔</span>
+  <div>
+    <div style="font-weight:700;">New Order!</div>
+    <div style="font-size:12px;" id="toastMsg">Table 3 - #A001</div>
+  </div>
+</div>
+
+<!-- Orders Grid -->
+<div class="orders-grid" id="ordersGrid"></div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>📋 Order Details</h2>
+    <div class="modal-info" id="modalInfo"></div>
+    <div class="modal-items" id="modalItems"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeHistory()">✕</button>
+    <h2>📜 Order History</h2>
+    <div class="history-list" id="historyList"></div>
+    <div class="modal-actions" style="margin-top: 15px;">
+      <button class="modal-btn btn-clear-all" onclick="clearAllHistory()">🗑️ Clear All History</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Menu Data (English Only)
+const menuData = {
+  combos: [
+    { id: 'c1', name: 'Mini Tiffin Delight (Veg)', emoji: '🫓' },
+    { id: 'c2', name: 'The Tanjore Trio', emoji: '🍛' },
+    { id: 'c3', name: 'Chettinad Silk Combo', emoji: '🍗' },
+    { id: 'c4', name: 'Tandoori Smoky Feast', emoji: '🍗' },
+    { id: 'c5', name: 'Kebab Express Lane', emoji: '🍢' },
+    { id: 'c6', name: 'Chicken Tikka Meal', emoji: '🍗' },
+    { id: 'c7', name: 'Fish Tikka Meal', emoji: '🐟' },
+    { id: 'c8', name: 'Paneer Tikka Meal', emoji: '🧀' },
+    { id: 'c9', name: 'Kal Dosa Combo', emoji: '🫓' },
+    { id: 'c10', name: 'Idly Combo Meal', emoji: '🍚' }
+  ],
+  drinks: [
+    { id: 'd1', name: 'Masala Tea Hot', emoji: '🍵' },
+    { id: 'd2', name: 'Ginger Tea', emoji: '🫚' },
+    { id: 'd3', name: 'Filter Coffee', emoji: '☕' },
+    { id: 'd4', name: 'Mango Lassi', emoji: '🥭' },
+    { id: 'd5', name: 'Salted Lassi', emoji: '🥛' },
+    { id: 'd6', name: 'Sweet Lassi', emoji: '🥛' },
+    { id: 'd7', name: 'Butter Milk', emoji: '🥛' }
+  ]
+};
+
+let orders = [];
+let orderHistory = [];
+let currentFilter = 'all';
+let soundEnabled = true;
+let lastOrderCount = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadOrders();
+  updateClock();
+  setInterval(updateClock, 1000);
+  setInterval(refreshOrders, 3000); // Auto-refresh every 3s
+  setInterval(updateElapsedTimes, 1000);
+  renderOrders();
+});
+
+function loadOrders() {
+  const savedOrders = localStorage.getItem('anjappar_kds_orders');
+  const savedHistory = localStorage.getItem('anjappar_kds_history');
+  
+  if (savedOrders) orders = JSON.parse(savedOrders);
+  else {
+    orders = [
+      { id: 'A001', table: '3', status: 'pending', items: [{ id: 'c4', name: 'Tandoori Smoky Feast', qty: 2 }, { id: 'd4', name: 'Mango Lassi', qty: 3 }], createdAt: Date.now() - 120000, startedAt: null, completedAt: null },
+      { id: 'A002', table: '5', status: 'cooking', items: [{ id: 'c1', name: 'Mini Tiffin Delight', qty: 1 }, { id: 'd1', name: 'Masala Tea Hot', qty: 2 }], createdAt: Date.now() - 300000, startedAt: Date.now() - 180000, completedAt: null }
+    ];
+    saveOrders();
+  }
+  if (savedHistory) orderHistory = JSON.parse(savedHistory);
+  lastOrderCount = orders.length;
+}
+
+function saveOrders() { localStorage.setItem('anjappar_kds_orders', JSON.stringify(orders)); }
+function saveHistory() { localStorage.setItem('anjappar_kds_history', JSON.stringify(orderHistory)); }
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+function updateElapsedTimes() {
+  document.querySelectorAll('.elapsed').forEach(el => {
+    const createdAt = parseInt(el.dataset.created);
+    const startedAt = el.dataset.started ? parseInt(el.dataset.started) : null;
+    const status = el.dataset.status;
+    const now = Date.now();
+    let elapsed = status === 'pending' ? Math.floor((now - createdAt) / 1000) : (status === 'cooking' && startedAt ? Math.floor((now - startedAt) / 1000) : 0);
+    
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    el.classList.remove('warning', 'danger');
+    if (elapsed > 900) el.classList.add('danger');
+    else if (elapsed > 600) el.classList.add('warning');
+  });
+}
+
+function renderOrders() {
+  const grid = document.getElementById('ordersGrid');
+  const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🍽️</div><h3>No Orders</h3><p>Waiting for new orders...</p></div>`;
+    updateStats();
+    return;
+  }
+  
+  const sorted = [...filtered].sort((a, b) => {
+    const statusOrder = { pending: 0, cooking: 1, done: 2 };
+    if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
+    return b.createdAt - a.createdAt;
+  });
+  
+  grid.innerHTML = sorted.map(order => {
+    const isUrgent = order.status === 'pending' && (Date.now() - order.createdAt) > 900000;
+    const statusText = { pending: 'PENDING', cooking: 'COOKING', done: 'DONE' }[order.status];
+    const elapsed = order.status === 'pending' ? Math.floor((Date.now() - order.createdAt) / 1000) : (order.startedAt ? Math.floor((Date.now() - order.startedAt) / 1000) : 0);
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    
+    let actionsHtml = '';
+    if (order.status === 'pending') actionsHtml = `<button class="order-btn btn-start" onclick="startOrder('${order.id}')">▶ Start</button><button class="order-btn btn-cancel" onclick="cancelOrder('${order.id}')">✕ Cancel</button>`;
+    else if (order.status === 'cooking') actionsHtml = `<button class="order-btn btn-complete" onclick="completeOrder('${order.id}')">✓ Done</button><button class="order-btn btn-undo" onclick="undoOrder('${order.id}')">↩ Undo</button>`;
+    else actionsHtml = `<button class="order-btn btn-undo" onclick="reopenOrder('${order.id}')">↻ Reopen</button>`;
+    
+    return `
+      <div class="order-card status-${order.status} ${isUrgent ? 'urgent' : ''}" onclick="showOrderDetail('${order.id}')">
+        <div class="status-badge ${order.status}">${statusText}</div>
+        <div class="order-card-header">
+          <div class="order-no">#${order.id}</div>
+          <div class="table-no ${order.table > 4 ? 'large' : ''}">Table ${order.table}</div>
+        </div>
+        <div class="order-card-body">
+          <ul class="order-items">
+            ${order.items.map(item => `<li class="order-item"><div><div class="item-name">${item.emoji || '🍽️'} ${item.name}</div>${item.note ? `<div class="item-note">📝 ${item.note}</div>` : ''}</div><div class="item-qty">x${item.qty}</div></li>`).join('')}
+          </ul>
+        </div>
+        <div class="order-card-footer">
+          <div class="order-time">⏱️ <span class="elapsed ${mins > 15 ? 'danger' : mins > 10 ? 'warning' : ''}" data-created="${order.createdAt}" data-started="${order.startedAt || ''}" data-status="${order.status}">${mins}:${secs.toString().padStart(2, '0')}</span></div>
+          <div class="order-actions" onclick="event.stopPropagation()">${actionsHtml}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  updateStats();
+}
+
+function updateStats() {
+  const pending = orders.filter(o => o.status === 'pending').length;
+  const cooking = orders.filter(o => o.status === 'cooking').length;
+  const done = orders.filter(o => o.status === 'done').length;
+  
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statCooking').textContent = cooking;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('countAll').textContent = orders.length;
+  document.getElementById('countPending').textContent = pending;
+  document.getElementById('countCooking').textContent = cooking;
+  document.getElementById('countDone').textContent = done;
+  
+  const completedOrders = orders.filter(o => o.status === 'done' && o.startedAt && o.completedAt);
+  if (completedOrders.length > 0) {
+    const avgTime = completedOrders.reduce((sum, o) => sum + (o.completedAt - o.startedAt), 0) / completedOrders.length / 1000;
+    document.getElementById('statAvg').textContent = Math.round(avgTime / 60) + 'm';
+  }
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+  renderOrders();
+}
+
+function startOrder(id) {
+  const order = orders.find(o => o.id === id);
+  if (order) { order.status = 'cooking'; order.startedAt = Date.now(); saveOrders(); renderOrders(); playSound('start'); }
+}
+
+function completeOrder(id) {
+  const order = orders.find(o => o.id === id);
+  if (order) {
+    order.status = 'done'; order.completedAt = Date.now();
+    orderHistory.unshift({ ...order, archivedAt: Date.now() });
+    saveHistory(); saveOrders(); renderOrders(); playSound('complete');
+  }
+}
+
+function cancelOrder(id) {
+  if (confirm(`Cancel order #${id}?`)) { orders = orders.filter(o => o.id !== id); saveOrders(); renderOrders(); }
+}
+
+function undoOrder(id) {
+  const order = orders.find(o => o.id === id);
+  if (order) { order.status = 'pending'; order.startedAt = null; saveOrders(); renderOrders(); }
+}
+
+function reopenOrder(id) {
+  const order = orders.find(o => o.id === id);
+  if (order) { order.status = 'cooking'; order.completedAt = null; saveOrders(); renderOrders(); }
+}
+
+function clearDoneOrders() {
+  if (confirm('Clear all completed orders from the active list?')) {
+    orders = orders.filter(o => o.status !== 'done');
+    saveOrders(); renderOrders();
+  }
+}
+
+function clearAllHistory() {
+  if (confirm('⚠️ WARNING: This will permanently delete ALL order history. Are you sure?')) {
+    if (confirm('This action cannot be undone. Continue?')) {
+      orderHistory = [];
+      saveHistory();
+      showHistory();
+      alert('All history has been cleared.');
+    }
+  }
+}
+
+function showOrderDetail(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  document.querySelector('#orderModal h2').textContent = `📋 Order #${order.id}`;
+  const statusText = { pending: 'Pending', cooking: 'Cooking', done: 'Completed' }[order.status];
+  
+  document.getElementById('modalInfo').innerHTML = `
+    <div class="info-item"><div class="info-label">Table</div><div class="info-value">🪑 Table ${order.table}</div></div>
+    <div class="info-item"><div class="info-label">Status</div><div class="info-value">${statusText}</div></div>
+    <div class="info-item"><div class="info-label">Order Time</div><div class="info-value">🕐 ${new Date(order.createdAt).toLocaleString('en-US')}</div></div>
+    <div class="info-item"><div class="info-label">Start Time</div><div class="info-value">▶ ${order.startedAt ? new Date(order.startedAt).toLocaleString('en-US') : '-'}</div></div>
+    <div class="info-item"><div class="info-label">Complete Time</div><div class="info-value">✓ ${order.completedAt ? new Date(order.completedAt).toLocaleString('en-US') : '-'}</div></div>
+    <div class="info-item"><div class="info-label">Wait Time</div><div class="info-value">⏱️ ${Math.floor((Date.now() - order.createdAt) / 60000)} mins</div></div>
+  `;
+  
+  document.getElementById('modalItems').innerHTML = `<h3 style="color:#fff;margin-bottom:10px;">Items</h3>` + order.items.map(item => `<div class="modal-item"><span class="name">${item.emoji || '🍽️'} ${item.name}</span><span class="qty">x${item.qty}</span></div>`).join('');
+  
+  let actionsHtml = '';
+  if (order.status === 'pending') actionsHtml = `<button class="modal-btn btn-start" onclick="startOrder('${order.id}');closeModal()">▶ Start Cooking</button><button class="modal-btn btn-cancel" onclick="cancelOrder('${order.id}');closeModal()">✕ Cancel Order</button>`;
+  else if (order.status === 'cooking') actionsHtml = `<button class="modal-btn btn-complete" onclick="completeOrder('${order.id}');closeModal()">✓ Mark Complete</button><button class="modal-btn btn-undo" onclick="undoOrder('${order.id}');closeModal()">↩ Back to Pending</button>`;
+  else actionsHtml = `<button class="modal-btn btn-undo" onclick="reopenOrder('${order.id}');closeModal()">↻ Reopen Order</button>`;
+  document.getElementById('modalActions').innerHTML = actionsHtml;
+  document.getElementById('orderModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('orderModal').classList.remove('show'); }
+
+function showHistory() {
+  const historyList = document.getElementById('historyList');
+  if (orderHistory.length === 0) {
+    historyList.innerHTML = `<div class="empty-state"><div class="icon">📜</div><h3>No History</h3><p>No completed orders found in history.</p></div>`;
+  } else {
+    historyList.innerHTML = orderHistory.map(order => `
+      <div class="history-item">
+        <div class="history-item-header">
+          <div><div class="order-id">#${order.id} - Table ${order.table}</div><div class="order-time">Completed: ${order.completedAt ? new Date(order.completedAt).toLocaleString('en-US') : '-'}</div></div>
+        </div>
+        <div class="order-details">${order.items.map(item => `${item.name} x${item.qty}`).join(', ')}</div>
+        <div style="margin-top:8px;font-size:11px;color:#666;">Archived: ${order.archivedAt ? new Date(order.archivedAt).toLocaleString('en-US') : '-'}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('historyModal').classList.add('show');
+}
+
+function closeHistory() { document.getElementById('historyModal').classList.remove('show'); }
+
+function refreshOrders() {
+  const saved = localStorage.getItem('anjappar_kds_orders');
+  if (saved) {
+    const newOrders = JSON.parse(saved);
+    if (newOrders.length > lastOrderCount) {
+      showNewOrderToast(newOrders[newOrders.length - 1]);
+      if (soundEnabled) playSound('new');
+    }
+    orders = newOrders;
+    lastOrderCount = orders.length;
+    renderOrders();
+  }
+}
+
+function showNewOrderToast(order) {
+  const toast = document.getElementById('newOrderToast');
+  document.getElementById('toastMsg').textContent = `Table ${order.table} - #${order.id}`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundBtn');
+  btn.textContent = soundEnabled ? '🔔 Sound' : '🔕 Muted';
+  btn.classList.toggle('muted', !soundEnabled);
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'new') {
+      osc.frequency.value = 800; gain.gain.value = 0.3; osc.start();
+      setTimeout(() => { osc.frequency.value = 1000; }, 100);
+      setTimeout(() => { osc.frequency.value = 1200; }, 200);
+      setTimeout(() => osc.stop(), 300);
+    } else if (type === 'start') {
+      osc.frequency.value = 600; gain.gain.value = 0.2; osc.start();
+      setTimeout(() => osc.stop(), 200);
+    } else if (type === 'complete') {
+      osc.frequency.value = 1000; gain.gain.value = 0.3; osc.start();
+      setTimeout(() => { osc.frequency.value = 1500; }, 150);
+      setTimeout(() => osc.stop(), 300);
+    }
+  } catch(e) {}
+}
+
+// Demo: Press 'T' to add a test order
+function addTestOrder() {
+  const tables = ['1','2','3','4','5','6','7','8'];
+  const allItems = [...menuData.combos, ...menuData.drinks];
+  const items = [];
+  for (let i = 0; i < Math.floor(Math.random() * 3) + 1; i++) {
+    const item = allItems[Math.floor(Math.random() * allItems.length)];
+    items.push({ id: item.id, name: item.name, emoji: item.emoji, qty: Math.floor(Math.random() * 3) + 1 });
+  }
+  const orderNo = 'A' + String(orders.length + 1).padStart(3, '0');
+  orders.push({ id: orderNo, table: tables[Math.floor(Math.random() * tables.length)], status: 'pending', items: items, createdAt: Date.now(), startedAt: null, completedAt: null });
+  saveOrders(); renderOrders(); showNewOrderToast(orders[orders.length - 1]);
+  if (soundEnabled) playSound('new');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeModal(); closeHistory(); }
+  if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); refreshOrders(); }
+  if (e.key === 't' || e.key === 'T') addTestOrder();
+});
+</script>
+</body>
+</html>
