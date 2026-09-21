@@ -545,7 +545,7 @@ function renderOrders() {
   const sorted = [...cookingOrders].sort((a, b) => (a.startedAt || a.createdAt) - (b.startedAt || b.createdAt));
   
   grid.innerHTML = sorted.map(order => {
-    const statusText = 'COOKING';
+    const statusText = '';
     const elapsed = order.startedAt ? Math.floor((Date.now() - order.startedAt) / 1000) : 0;
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
