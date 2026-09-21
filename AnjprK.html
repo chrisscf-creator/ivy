@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anjappar KDS - Kitchen Display System</title>
+<title>Anjappar KDS - Cooking Only</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -22,8 +22,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #e94560;
-  box-shadow: 0 2px 10px rgba(233, 69, 96, 0.3);
+  border-bottom: 2px solid #f39c12;
+  box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -32,11 +32,11 @@ body {
 .kds-logo { display: flex; align-items: center; gap: 12px; }
 .kds-logo-icon {
   width: 45px; height: 45px;
-  background: linear-gradient(135deg, #e94560, #c23152);
+  background: linear-gradient(135deg, #f39c12, #e67e22);
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   font-size: 24px;
-  box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+  box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
 }
 .kds-logo-text h1 { font-size: 18px; color: #fff; letter-spacing: 1px; }
 .kds-logo-text p { font-size: 11px; color: #888; }
@@ -52,9 +52,7 @@ body {
 }
 .stat-box .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
 .stat-box .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
-.stat-box.pending .value { color: #e94560; }
 .stat-box.cooking .value { color: #f39c12; }
-.stat-box.done .value { color: #27ae60; }
 .stat-box.avg .value { color: #3498db; }
 
 .kds-clock { text-align: right; }
@@ -71,28 +69,6 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.05);
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-.filter-tab {
-  padding: 8px 20px;
-  border: 2px solid rgba(255,255,255,0.1);
-  background: transparent;
-  color: #aaa;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-.filter-tab:hover { border-color: #e94560; color: #fff; }
-.filter-tab.active { background: #e94560; border-color: #e94560; color: #fff; }
-.filter-tab .count {
-  background: rgba(255,255,255,0.2);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  margin-left: 6px;
 }
 
 .control-actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -145,14 +121,7 @@ body {
   from { transform: translateY(-20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-.order-card.status-pending { border-color: #e94560; box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
-.order-card.status-pending.urgent { animation: urgentPulse 1s infinite; }
-@keyframes urgentPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(233, 69, 96, 0.3); }
-  50% { box-shadow: 0 0 30px rgba(233, 69, 96, 0.8); }
-}
-.order-card.status-cooking { border-color: #f39c12; box-shadow: 0 0 15px rgba(243, 156, 18, 0.2); }
-.order-card.status-done { border-color: #27ae60; opacity: 0.7; }
+.order-card.status- { border-color: #f39c12; box-shadow: 0 0 15px rgba(243, 156, 18, 0.2); }
 
 .order-card-header {
   padding: 12px 15px;
@@ -163,7 +132,7 @@ body {
 }
 .order-card-header .order-no { font-size: 16px; font-weight: 700; color: #fff; }
 .order-card-header .table-no {
-  background: #e94560; color: #fff; padding: 4px 12px;
+  background: #f39c12; color: #fff; padding: 4px 12px;
   border-radius: 15px; font-size: 13px; font-weight: 700;
 }
 .order-card-header .table-no.large { background: #f39c12; font-size: 15px; padding: 6px 14px; }
@@ -177,7 +146,7 @@ body {
 .order-item:last-child { border-bottom: none; }
 .order-item .item-name { flex: 1; color: #ddd; }
 .order-item .item-qty {
-  background: rgba(233, 69, 96, 0.2); color: #e94560;
+  background: rgba(243, 156, 18, 0.2); color: #f39c12;
   padding: 2px 10px; border-radius: 10px; font-weight: 700;
   font-size: 13px; min-width: 30px; text-align: center;
 }
@@ -199,9 +168,7 @@ body {
   cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;
 }
 .order-btn:hover { transform: scale(1.05); }
-.btn-start { background: #f39c12; color: #fff; }
 .btn-complete { background: #27ae60; color: #fff; }
-.btn-cancel { background: #555; color: #fff; }
 .btn-undo { background: #3498db; color: #fff; }
 
 /* Status Badge */
@@ -210,9 +177,7 @@ body {
   padding: 3px 10px; border-radius: 10px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
 }
-.status-badge.pending { background: #e94560; color: #fff; }
-.status-badge.cooking { background: #f39c12; color: #fff; }
-.status-badge.done { background: #27ae60; color: #fff; }
+.status-badge.Order Complite { background: #f39c12; color: #fff; }
 
 /* Empty State */
 .empty-state { text-align: center; padding: 60px 20px; color: #666; grid-column: 1 / -1; }
@@ -288,11 +253,10 @@ body {
   .kds-stats { flex-wrap: wrap; justify-content: center; }
   .orders-grid { grid-template-columns: 1fr; }
   .control-bar { flex-direction: column; }
-  .filter-tabs { justify-content: center; }
 }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0f0f1e; }
-::-webkit-scrollbar-thumb { background: #e94560; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #f39c12; border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -300,24 +264,16 @@ body {
 <!-- Header -->
 <div class="kds-header">
   <div class="kds-logo">
-    <div class="kds-logo-icon">👨‍🍳</div>
+    <div class="kds-logo-icon">🍳</div>
     <div class="kds-logo-text">
       <h1>ANJAPPAR KDS</h1>
-      <p>Kitchen Display System • Vivocity</p>
+      <p>Kitchen Display System • Cooking Only</p>
     </div>
   </div>
   <div class="kds-stats">
-    <div class="stat-box pending">
-      <div class="label">Pending</div>
-      <div class="value" id="statPending">0</div>
-    </div>
     <div class="stat-box cooking">
       <div class="label">Cooking</div>
       <div class="value" id="statCooking">0</div>
-    </div>
-    <div class="stat-box done">
-      <div class="label">Completed</div>
-      <div class="value" id="statDone">0</div>
     </div>
     <div class="stat-box avg">
       <div class="label">Avg Time</div>
@@ -332,27 +288,22 @@ body {
 
 <!-- Control Bar -->
 <div class="control-bar">
-  <div class="filter-tabs">
-    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All <span class="count" id="countAll">0</span></button>
-    <button class="filter-tab" data-filter="pending" onclick="setFilter('pending')">🔴 Pending <span class="count" id="countPending">0</span></button>
-    <button class="filter-tab" data-filter="cooking" onclick="setFilter('cooking')">🟡 Order Complite <span class="count" id="countCooking">0</span></button>
-    <button class="filter-tab" data-filter="done" onclick="setFilter('done')">✅ Completed <span class="count" id="countDone">0</span></button>
+  <div style="font-size: 14px; color: #f39c12; font-weight: 600;">
+    🟡 Showing only Order Complite orders
   </div>
   <div class="control-actions">
     <button class="action-btn btn-sound" id="soundBtn" onclick="toggleSound()">🔔 Sound</button>
     <button class="action-btn btn-history" onclick="showHistory()">📜 History</button>
     <button class="action-btn btn-export" onclick="downloadExcel()">⬇ Download Excel</button>
     <button class="action-btn btn-refresh" onclick="refreshOrders()">🔄 Refresh</button>
-    <button class="action-btn btn-clear" onclick="clearDoneOrders()">🗑️ Clear Done</button>
-    <button class="action-btn btn-clear-all" onclick="clearAllHistory()">⚠️ Clear All History</button>
   </div>
 </div>
 
-<!-- New Order Toast -->
+<!-- New Order Toast (still useful for cooking notifications) -->
 <div class="new-order-toast" id="newOrderToast">
   <span class="bell">🔔</span>
   <div>
-    <div style="font-weight:700;">New Order!</div>
+    <div style="font-weight:700;">Order Cooking</div>
     <div style="font-size:12px;" id="toastMsg">Table 3 - #A001</div>
   </div>
 </div>
@@ -377,12 +328,8 @@ body {
     <button class="modal-close" onclick="closeHistory()">✕</button>
     <h2>📜 Order History</h2>
     <div class="history-list" id="historyList"></div>
-    <div class="modal-actions" style="margin-top: 15px;">
-      <button class="modal-btn btn-clear-all" onclick="clearAllHistory()">🗑️ Clear All History</button>
-    </div>
   </div>
 </div>
-
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -406,39 +353,11 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const ordersRef = db.ref("orders");
-const orderCounterRef = db.ref("orderCounter");
 const orderHistoryRef = db.ref("orderHistory");
-
-// Menu Data (English Only)
-const menuData = {
-  combos: [
-    { id: 'c1', name: 'Mini Tiffin Delight (Veg)', emoji: '🫓' },
-    { id: 'c2', name: 'The Tanjore Trio', emoji: '🍛' },
-    { id: 'c3', name: 'Chettinad Silk Combo', emoji: '🍗' },
-    { id: 'c4', name: 'Tandoori Smoky Feast', emoji: '🍗' },
-    { id: 'c5', name: 'Kebab Express Lane', emoji: '🍢' },
-    { id: 'c6', name: 'Chicken Tikka Meal', emoji: '🍗' },
-    { id: 'c7', name: 'Fish Tikka Meal', emoji: '🐟' },
-    { id: 'c8', name: 'Paneer Tikka Meal', emoji: '🧀' },
-    { id: 'c9', name: 'Kal Dosa Combo', emoji: '🫓' },
-    { id: 'c10', name: 'Idly Combo Meal', emoji: '🍚' }
-  ],
-  drinks: [
-    { id: 'd1', name: 'Masala Tea Hot', emoji: '🍵' },
-    { id: 'd2', name: 'Ginger Tea', emoji: '🫚' },
-    { id: 'd3', name: 'Filter Coffee', emoji: '☕' },
-    { id: 'd4', name: 'Mango Lassi', emoji: '🥭' },
-    { id: 'd5', name: 'Salted Lassi', emoji: '🥛' },
-    { id: 'd6', name: 'Sweet Lassi', emoji: '🥛' },
-    { id: 'd7', name: 'Butter Milk', emoji: '🥛' }
-  ]
-};
 
 let orders = [];
 let orderHistory = [];
-let currentFilter = 'all';
 let soundEnabled = true;
-let lastOrderCount = 0;
 let initialOrdersLoaded = false;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -475,11 +394,8 @@ function normaliseOrder(key, value) {
 }
 
 function loadOrders() {
-  // Firebase real-time listener. Customer orders appear here automatically.
   ordersRef.on('value', snapshot => {
     const data = snapshot.val() || {};
-    // Use the Firebase record key as a dependable fallback.  Customer-facing
-    // pages do not need to create their own IDs for the kitchen to find them.
     const newOrders = Object.entries(data)
       .filter(([, order]) => order)
       .map(([key, order]) => normaliseOrder(key, order));
@@ -490,12 +406,12 @@ function loadOrders() {
     orders = newOrders.sort((a, b) =>
       (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)
     );
-    lastOrderCount = orders.length;
 
+    // Notify only when a cooking order appears (rare, but if status changes)
     newlyArrived.forEach(order => {
-      if (initialOrdersLoaded && order.status === 'pending') {
+      if (initialOrdersLoaded && order.status === 'cooking') {
         showNewOrderToast(order);
-        if (soundEnabled) playSound('new');
+        if (soundEnabled) playSound('start');
       }
     });
 
@@ -517,9 +433,6 @@ function loadOrders() {
     console.error('Firebase history listener failed:', error);
   });
 }
-
-function saveOrders() {}
-function saveHistory() {}
 
 function orderKey(order) {
   return order._key || order.id;
@@ -582,14 +495,15 @@ function downloadExcel() {
     return;
   }
 
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
   const workbook = XLSX.utils.book_new();
-  const activeRows = spreadsheetRows(orders);
+  const activeRows = spreadsheetRows(cookingOrders);
   const historyRows = spreadsheetRows(orderHistory);
-  const activeSheet = XLSX.utils.json_to_sheet(activeRows.length ? activeRows : [{ 'Info': 'No active orders' }]);
+  const activeSheet = XLSX.utils.json_to_sheet(activeRows.length ? activeRows : [{ 'Info': 'No cooking orders' }]);
   const historySheet = XLSX.utils.json_to_sheet(historyRows.length ? historyRows : [{ 'Info': 'No completed order history' }]);
-  XLSX.utils.book_append_sheet(workbook, activeSheet, 'Active Orders');
+  XLSX.utils.book_append_sheet(workbook, activeSheet, 'Cooking Orders');
   XLSX.utils.book_append_sheet(workbook, historySheet, 'Order History');
-  XLSX.writeFile(workbook, `Anjappar-orders-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(workbook, `Anjappar-cooking-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 function showFirebaseError(message) {
@@ -605,7 +519,7 @@ function updateElapsedTimes() {
     const startedAt = el.dataset.started ? parseInt(el.dataset.started) : null;
     const status = el.dataset.status;
     const now = Date.now();
-    let elapsed = status === 'pending' ? Math.floor((now - createdAt) / 1000) : (status === 'Order Complite' && startedAt ? Math.floor((now - startedAt) / 1000) : 0);
+    let elapsed = status === 'cooking' && startedAt ? Math.floor((now - startedAt) / 1000) : 0;
     
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
@@ -618,35 +532,33 @@ function updateElapsedTimes() {
 
 function renderOrders() {
   const grid = document.getElementById('ordersGrid');
-  const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
+  // 🔥 ONLY COOKING ORDERS
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
   
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="icon">🍽️</div><h3>No Orders</h3><p>Waiting for new orders...</p></div>`;
+  if (cookingOrders.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🍳</div><h3>No Cooking Orders</h3><p>Waiting for orders to start cooking...</p></div>`;
     updateStats();
     return;
   }
   
-  const sorted = [...filtered].sort((a, b) => {
-    const statusOrder = { pending: 0, cooking: 1, done: 2 };
-    if (statusOrder[a.status] !== statusOrder[b.status]) return statusOrder[a.status] - statusOrder[b.status];
-    return b.createdAt - a.createdAt;
-  });
+  // Sort by startedAt (oldest first, so cooks see longest waiting first)
+  const sorted = [...cookingOrders].sort((a, b) => (a.startedAt || a.createdAt) - (b.startedAt || b.createdAt));
   
   grid.innerHTML = sorted.map(order => {
-    const isUrgent = order.status === 'pending' && (Date.now() - order.createdAt) > 900000;
-    const statusText = { pending: 'PENDING', cooking: 'Order Complite', done: 'DONE' }[order.status];
-    const elapsed = order.status === 'pending' ? Math.floor((Date.now() - order.createdAt) / 1000) : (order.startedAt ? Math.floor((Date.now() - order.startedAt) / 1000) : 0);
+    const statusText = '';
+    const elapsed = order.startedAt ? Math.floor((Date.now() - order.startedAt) / 1000) : 0;
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
     
-    let actionsHtml = '';
-    if (order.status === 'pending') actionsHtml = `<button class="order-btn btn-start" onclick="startOrder('${order._key}')">▶ Start</button><button class="order-btn btn-cancel" onclick="cancelOrder('${order._key}')">✕ Cancel</button>`;
-    else if (order.status === 'cooking') actionsHtml = `<button class="order-btn btn-complete" onclick="completeOrder('${order._key}')">✓ Done</button><button class="order-btn btn-undo" onclick="undoOrder('${order._key}')">↩ Undo</button>`;
-    else actionsHtml = `<button class="order-btn btn-undo" onclick="reopenOrder('${order._key}')">↻ Reopen</button>`;
+    // Cooking orders: Done and Undo buttons
+    const actionsHtml = `
+      <button class="order-btn btn-complete" onclick="completeOrder('${order._key}')">✓ Done</button>
+      <button class="order-btn btn-undo" onclick="undoOrder('${order._key}')">↩ Undo</button>
+    `;
     
     return `
-      <div class="order-card status-${order.status} ${isUrgent ? 'urgent' : ''}" onclick="showOrderDetail('${order._key}')">
-        <div class="status-badge ${order.status}">${statusText}</div>
+      <div class="order-card status-cooking" onclick="showOrderDetail('${order._key}')">
+        <div class="status-badge cooking">${statusText}</div>
         <div class="order-card-header">
           <div class="order-no">#${escapeHtml(order.id)}</div>
           <div class="table-no ${order.table > 4 ? 'large' : ''}">Table ${escapeHtml(order.table)}</div>
@@ -669,43 +581,15 @@ function renderOrders() {
 }
 
 function updateStats() {
-  const pending = orders.filter(o => o.status === 'pending').length;
   const cooking = orders.filter(o => o.status === 'cooking').length;
-  const done = orders.filter(o => o.status === 'done').length;
-  
-  document.getElementById('statPending').textContent = pending;
   document.getElementById('statCooking').textContent = cooking;
-  document.getElementById('statDone').textContent = done;
-  document.getElementById('countAll').textContent = orders.length;
-  document.getElementById('countPending').textContent = pending;
-  document.getElementById('countCooking').textContent = cooking;
-  document.getElementById('countDone').textContent = done;
   
   const completedOrders = orders.filter(o => o.status === 'done' && o.startedAt && o.completedAt);
   if (completedOrders.length > 0) {
     const avgTime = completedOrders.reduce((sum, o) => sum + (o.completedAt - o.startedAt), 0) / completedOrders.length / 1000;
     document.getElementById('statAvg').textContent = Math.round(avgTime / 60) + 'm';
-  }
-}
-
-function setFilter(filter) {
-  currentFilter = filter;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
-  renderOrders();
-}
-
-async function startOrder(id) {
-  const order = findOrder(id);
-  if (!order) return;
-  try {
-    await ordersRef.child(orderKey(order)).update({
-      status: 'cooking',
-      startedAt: firebase.database.ServerValue.TIMESTAMP
-    });
-    playSound('start');
-  } catch (e) {
-    alert('Unable to start order: ' + e.message);
+  } else {
+    document.getElementById('statAvg').textContent = '0m';
   }
 }
 
@@ -733,21 +617,10 @@ async function completeOrder(id) {
   }
 }
 
-async function cancelOrder(id) {
-  if (!confirm(`Cancel order #${id}?`)) return;
-  try {
-    const order = findOrder(id);
-    if (!order) return;
-    await ordersRef.child(orderKey(order)).remove();
-  } catch (e) {
-    alert('Unable to cancel order: ' + e.message);
-  }
-}
-
 async function undoOrder(id) {
-  if (!findOrder(id)) return;
+  const order = findOrder(id);
+  if (!order) return;
   try {
-    const order = findOrder(id);
     await ordersRef.child(orderKey(order)).update({
       status: 'pending',
       startedAt: null,
@@ -758,47 +631,11 @@ async function undoOrder(id) {
   }
 }
 
-async function reopenOrder(id) {
-  if (!findOrder(id)) return;
-  try {
-    const order = findOrder(id);
-    await ordersRef.child(orderKey(order)).update({
-      status: 'cooking',
-      completedAt: null
-    });
-  } catch (e) {
-    alert('Unable to reopen order: ' + e.message);
-  }
-}
-
-async function clearDoneOrders() {
-  if (!confirm('Clear all completed orders from the active list?')) return;
-  try {
-    const doneOrders = orders.filter(o => o.status === 'done');
-    await Promise.all(doneOrders.map(o => ordersRef.child(orderKey(o)).remove()));
-  } catch (e) {
-    alert('Unable to clear completed orders: ' + e.message);
-  }
-}
-
-async function clearAllHistory() {
-  if (!confirm('⚠️ WARNING: This will permanently delete ALL order history. Are you sure?')) return;
-  if (!confirm('This action cannot be undone. Continue?')) return;
-
-  try {
-    await orderHistoryRef.remove();
-    showHistory();
-    alert('All history has been cleared.');
-  } catch (e) {
-    alert('Unable to clear history: ' + e.message);
-  }
-}
-
 function showOrderDetail(id) {
   const order = findOrder(id);
   if (!order) return;
   document.querySelector('#orderModal h2').textContent = `📋 Order #${order.id}`;
-  const statusText = { pending: 'Pending', cooking: 'Cooking', done: 'Completed' }[order.status];
+  const statusText = { pending: 'Pending', cooking: 'Order Complite', done: 'Completed' }[order.status];
   
   document.getElementById('modalInfo').innerHTML = `
     <div class="info-item"><div class="info-label">Table</div><div class="info-value">🪑 Table ${order.table}</div></div>
@@ -813,9 +650,15 @@ function showOrderDetail(id) {
   document.getElementById('modalItems').innerHTML = `<h3 style="color:#fff;margin-bottom:10px;">Items</h3>` + (order.items.length ? order.items.map(item => `<div class="modal-item"><span class="name">${escapeHtml(item.emoji || '🍽️')} ${escapeHtml(item.name || 'Unnamed item')}</span><span class="qty">x${Number(item.qty) || 0}</span></div>`).join('') : '<div class="item-note">No item details were saved for this order.</div>');
   
   let actionsHtml = '';
-  if (order.status === 'pending') actionsHtml = `<button class="modal-btn btn-start" onclick="startOrder('${order._key}');closeModal()">▶ Start Cooking</button><button class="modal-btn btn-cancel" onclick="cancelOrder('${order._key}');closeModal()">✕ Cancel Order</button>`;
-  else if (order.status === 'cooking') actionsHtml = `<button class="modal-btn btn-complete" onclick="completeOrder('${order._key}');closeModal()">✓ Mark Complete</button><button class="modal-btn btn-undo" onclick="undoOrder('${order._key}');closeModal()">↩ Back to Pending</button>`;
-  else actionsHtml = `<button class="modal-btn btn-undo" onclick="reopenOrder('${order._key}');closeModal()">↻ Reopen Order</button>`;
+  if (order.status === 'cooking') {
+    actionsHtml = `
+      <button class="modal-btn btn-complete" style="background:#27ae60;color:#fff;" onclick="completeOrder('${order._key}');closeModal()">✓ Mark Complete</button>
+      <button class="modal-btn btn-undo" style="background:#3498db;color:#fff;" onclick="undoOrder('${order._key}');closeModal()">↩ Back to Pending</button>
+    `;
+  } else {
+    // This should not happen since we only show cooking, but just in case
+    actionsHtml = `<button class="modal-btn" style="background:#555;color:#fff;" onclick="closeModal()">Close</button>`;
+  }
   document.getElementById('modalActions').innerHTML = actionsHtml;
   document.getElementById('orderModal').classList.add('show');
 }
@@ -849,7 +692,6 @@ async function refreshOrders() {
     orders = Object.entries(data).filter(([, order]) => order)
       .map(([key, order]) => normaliseOrder(key, order))
       .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-    lastOrderCount = orders.length;
     renderOrders();
   } catch (e) {
     console.error('Firebase refresh failed:', e);
