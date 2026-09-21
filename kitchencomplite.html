@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anjappar KDS - Cooking Only</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #0f0f1e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Header */
+.kds-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f39c12;
+  box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.kds-logo { display: flex; align-items: center; gap: 12px; }
+.kds-logo-icon {
+  width: 45px; height: 45px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  box-shadow: 0 0 15px rgba(243, 156, 18, 0.5);
+}
+.kds-logo-text h1 { font-size: 18px; color: #fff; letter-spacing: 1px; }
+.kds-logo-text p { font-size: 11px; color: #888; }
+
+.kds-stats { display: flex; gap: 15px; }
+.stat-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 8px 16px;
+  text-align: center;
+  min-width: 90px;
+}
+.stat-box .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.stat-box .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.stat-box.cooking .value { color: #f39c12; }
+.stat-box.avg .value { color: #3498db; }
+
+.kds-clock { text-align: right; }
+.kds-clock .time { font-size: 24px; font-weight: 700; color: #fff; font-family: 'Courier New', monospace; }
+.kds-clock .date { font-size: 11px; color: #888; }
+
+/* Control Bar */
+.control-bar {
+  background: #1a1a2e;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.control-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.action-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+}
+.btn-refresh { background: #3498db; color: #fff; }
+.btn-refresh:hover { background: #2980b9; }
+.btn-export { background: #27ae60; color: #fff; }
+.btn-export:hover { background: #1e8b4c; }
+.btn-history { background: #9b59b6; color: #fff; }
+.btn-history:hover { background: #8e44ad; }
+.btn-clear { background: #7f8c8d; color: #fff; }
+.btn-clear:hover { background: #6c7a7b; }
+.btn-clear-all { background: #c0392b; color: #fff; }
+.btn-clear-all:hover { background: #a93226; }
+.btn-sound { background: #9b59b6; color: #fff; }
+.btn-sound.muted { background: #555; }
+
+/* Orders Grid */
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Order Card */
+.order-card {
+  background: #1a1a2e;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+  animation: slideIn 0.4s ease;
+  position: relative;
+}
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.order-card.status- { border-color: #f39c12; box-shadow: 0 0 15px rgba(243, 156, 18, 0.2); }
+
+.order-card-header {
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.order-card-header .order-no { font-size: 16px; font-weight: 700; color: #fff; }
+.order-card-header .table-no {
+  background: #f39c12; color: #fff; padding: 4px 12px;
+  border-radius: 15px; font-size: 13px; font-weight: 700;
+}
+.order-card-header .table-no.large { background: #f39c12; font-size: 15px; padding: 6px 14px; }
+
+.order-card-body { padding: 12px 15px; }
+.order-items { list-style: none; }
+.order-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); font-size: 14px;
+}
+.order-item:last-child { border-bottom: none; }
+.order-item .item-name { flex: 1; color: #ddd; }
+.order-item .item-qty {
+  background: rgba(243, 156, 18, 0.2); color: #f39c12;
+  padding: 2px 10px; border-radius: 10px; font-weight: 700;
+  font-size: 13px; min-width: 30px; text-align: center;
+}
+.order-item .item-note { font-size: 11px; color: #f39c12; margin-top: 2px; font-style: italic; }
+
+.order-card-footer {
+  padding: 10px 15px; background: rgba(0,0,0,0.2);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.order-time { font-size: 12px; color: #888; }
+.order-time .elapsed { font-weight: 700; font-size: 14px; }
+.order-time .elapsed.warning { color: #f39c12; }
+.order-time .elapsed.danger { color: #e94560; }
+.order-total { color: #6ee7a4; font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+.order-actions { display: flex; gap: 6px; }
+.order-btn {
+  padding: 6px 14px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s;
+}
+.order-btn:hover { transform: scale(1.05); }
+.btn-complete { background: #27ae60; color: #fff; }
+.btn-undo { background: #3498db; color: #fff; }
+
+/* Status Badge */
+.status-badge {
+  position: absolute; top: 10px; right: 10px;
+  padding: 3px 10px; border-radius: 10px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+.status-badge.Order Complite { background: #f39c12; color: #fff; }
+
+/* Empty State */
+.empty-state { text-align: center; padding: 60px 20px; color: #666; grid-column: 1 / -1; }
+.empty-state .icon { font-size: 60px; margin-bottom: 15px; }
+.empty-state h3 { font-size: 20px; margin-bottom: 8px; color: #888; }
+
+/* Toast */
+.new-order-toast {
+  position: fixed; top: 80px; right: 20px;
+  background: #e94560; color: #fff; padding: 12px 20px;
+  border-radius: 10px; box-shadow: 0 4px 15px rgba(233, 69, 96, 0.5);
+  display: none; align-items: center; gap: 10px; z-index: 200;
+  animation: toastIn 0.4s ease;
+}
+@keyframes toastIn { from { transform: translateX(400px); } to { transform: translateX(0); } }
+.new-order-toast.show { display: flex; }
+.new-order-toast .bell { font-size: 24px; animation: bellRing 0.5s ease infinite; }
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-15deg); }
+  75% { transform: rotate(15deg); }
+}
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8); z-index: 300; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #1a1a2e; border-radius: 15px; padding: 25px;
+  max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto;
+  border: 2px solid #e94560;
+}
+.modal h2 { color: #fff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+.modal-close { float: right; background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+
+.modal-info {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 15px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;
+}
+.modal-info .info-item { font-size: 13px; }
+.modal-info .info-label { color: #888; font-size: 11px; }
+.modal-info .info-value { color: #fff; font-weight: 700; font-size: 15px; }
+
+.modal-items { margin-bottom: 15px; }
+.modal-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.modal-item .name { color: #ddd; }
+.modal-item .qty { color: #e94560; font-weight: 700; }
+
+.modal-actions { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 12px; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.3s;
+}
+.modal-btn:hover { transform: scale(1.02); }
+
+/* History List */
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-item {
+  background: rgba(255,255,255,0.05); border-radius: 8px;
+  padding: 12px; margin-bottom: 10px; border-left: 3px solid #27ae60;
+}
+.history-item-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.history-item .order-id { font-weight: 700; color: #fff; }
+.history-item .order-time { color: #888; font-size: 12px; }
+.history-item .order-details { font-size: 13px; color: #aaa; line-height: 1.4; }
+.history-total { color: #6ee7a4; font-size: 15px; font-weight: 700; white-space: nowrap; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kds-header { flex-direction: column; gap: 10px; }
+  .kds-stats { flex-wrap: wrap; justify-content: center; }
+  .orders-grid { grid-template-columns: 1fr; }
+  .control-bar { flex-direction: column; }
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f0f1e; }
+::-webkit-scrollbar-thumb { background: #f39c12; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="kds-header">
+  <div class="kds-logo">
+    <div class="kds-logo-icon">🍳</div>
+    <div class="kds-logo-text">
+      <h1>ANJAPPAR KDS</h1>
+      <p>Kitchen Display System • Cooking Only</p>
+    </div>
+  </div>
+  <div class="kds-stats">
+    <div class="stat-box cooking">
+      <div class="label">Cooking</div>
+      <div class="value" id="statCooking">0</div>
+    </div>
+    <div class="stat-box avg">
+      <div class="label">Avg Time</div>
+      <div class="value" id="statAvg">0m</div>
+    </div>
+  </div>
+  <div class="kds-clock">
+    <div class="time" id="clockTime">00:00:00</div>
+    <div class="date" id="clockDate">2026-09-21</div>
+  </div>
+</div>
+
+<!-- Control Bar -->
+<div class="control-bar">
+  <div style="font-size: 14px; color: #f39c12; font-weight: 600;">
+    🟡 Showing only Order Complite orders
+  </div>
+  <div class="control-actions">
+    <button class="action-btn btn-sound" id="soundBtn" onclick="toggleSound()">🔔 Sound</button>
+    <button class="action-btn btn-history" onclick="showHistory()">📜 History</button>
+    <button class="action-btn btn-export" onclick="downloadExcel()">⬇ Download Excel</button>
+    <button class="action-btn btn-refresh" onclick="refreshOrders()">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- New Order Toast (still useful for cooking notifications) -->
+<div class="new-order-toast" id="newOrderToast">
+  <span class="bell">🔔</span>
+  <div>
+    <div style="font-weight:700;">Order Cooking</div>
+    <div style="font-size:12px;" id="toastMsg">Table 3 - #A001</div>
+  </div>
+</div>
+
+<!-- Orders Grid -->
+<div class="orders-grid" id="ordersGrid"></div>
+
+<!-- Order Detail Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>📋 Order Details</h2>
+    <div class="modal-info" id="modalInfo"></div>
+    <div class="modal-items" id="modalItems"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeHistory()">✕</button>
+    <h2>📜 Order History</h2>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+
+// =========================
+// Firebase - Anjappar Shared Database
+// =========================
+const firebaseConfig = {
+  apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+  authDomain: "create-for-payment.firebaseapp.com",
+  databaseURL: "https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "create-for-payment",
+  storageBucket: "create-for-payment.firebasestorage.app",
+  messagingSenderId: "505063429802",
+  appId: "1:505063429802:web:8ec8cca8c788610bad62d3",
+  measurementId: "G-SHP91WNP0H"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ordersRef = db.ref("orders");
+const orderHistoryRef = db.ref("orderHistory");
+
+let orders = [];
+let orderHistory = [];
+let soundEnabled = true;
+let initialOrdersLoaded = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadOrders();
+  updateClock();
+  setInterval(updateClock, 1000);
+  setInterval(updateElapsedTimes, 1000);
+  renderOrders();
+});
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-SG', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+  document.getElementById('clockDate').textContent = now.toLocaleDateString('en-SG', {
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+  });
+}
+
+function normaliseOrder(key, value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const rawItems = Array.isArray(source.items) ? source.items : Object.values(source.items || {});
+  const status = ['pending', 'cooking', 'done'].includes(source.status) ? source.status : 'pending';
+  return {
+    ...source,
+    id: source.id || key,
+    _key: key,
+    table: source.table ?? '-',
+    items: rawItems.filter(item => item && typeof item === 'object'),
+    status,
+    createdAt: Number(source.createdAt) || Date.now()
+  };
+}
+
+function loadOrders() {
+  ordersRef.on('value', snapshot => {
+    const data = snapshot.val() || {};
+    const newOrders = Object.entries(data)
+      .filter(([, order]) => order)
+      .map(([key, order]) => normaliseOrder(key, order));
+
+    const previousKeys = new Set(orders.map(o => o._key));
+    const newlyArrived = newOrders.filter(o => !previousKeys.has(o._key));
+
+    orders = newOrders.sort((a, b) =>
+      (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)
+    );
+
+    // Notify only when a cooking order appears (rare, but if status changes)
+    newlyArrived.forEach(order => {
+      if (initialOrdersLoaded && order.status === 'cooking') {
+        showNewOrderToast(order);
+        if (soundEnabled) playSound('start');
+      }
+    });
+
+    initialOrdersLoaded = true;
+    renderOrders();
+  }, error => {
+    console.error('Firebase orders listener failed:', error);
+    showFirebaseError('Cannot connect to Firebase: ' + error.message);
+  });
+
+  orderHistoryRef.on('value', snapshot => {
+    const data = snapshot.val() || {};
+    orderHistory = Object.entries(data).filter(([, order]) => order)
+      .map(([key, order]) => normaliseOrder(key, order))
+      .sort((a, b) =>
+        (Number(b.archivedAt) || 0) - (Number(a.archivedAt) || 0)
+      );
+  }, error => {
+    console.error('Firebase history listener failed:', error);
+  });
+}
+
+function orderKey(order) {
+  return order._key || order.id;
+}
+
+function findOrder(key) {
+  return orders.find(order => order._key === key || order.id === key);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  })[char]);
+}
+
+function orderTotal(order) {
+  const savedTotal = Number(order.total);
+  if (Number.isFinite(savedTotal) && savedTotal >= 0) return savedTotal;
+
+  let hasPrice = false;
+  const calculated = (order.items || []).reduce((sum, item) => {
+    const price = Number(item.price);
+    const quantity = Number(item.qty);
+    if (Number.isFinite(price) && Number.isFinite(quantity)) {
+      hasPrice = true;
+      return sum + price * quantity;
+    }
+    return sum;
+  }, 0);
+  return hasPrice ? calculated : null;
+}
+
+function formatOrderTotal(order) {
+  const total = orderTotal(order);
+  return total === null ? 'Price unavailable' : `S$ ${total.toFixed(2)}`;
+}
+
+function spreadsheetRows(orderList) {
+  return orderList.flatMap(order => {
+    const items = order.items && order.items.length ? order.items : [{}];
+    return items.map(item => ({
+      'Order No.': order.id,
+      'Table / Collection No.': order.table,
+      'Status': order.status,
+      'Order Time': new Date(order.createdAt).toLocaleString('en-SG'),
+      'Item': item.name || 'No item details',
+      'Quantity': Number(item.qty) || 0,
+      'Unit Price (S$)': Number.isFinite(Number(item.price)) ? Number(item.price) : '',
+      'Order Subtotal (S$)': Number.isFinite(Number(order.subtotal)) ? Number(order.subtotal) : '',
+      'Discount (S$)': Number.isFinite(Number(order.discount)) ? Number(order.discount) : '',
+      'Order Total (S$)': orderTotal(order) ?? '',
+      'Customer Note': order.note || ''
+    }));
+  });
+}
+
+function downloadExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel exporter is still loading. Please check your internet connection and try again.');
+    return;
+  }
+
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
+  const workbook = XLSX.utils.book_new();
+  const activeRows = spreadsheetRows(cookingOrders);
+  const historyRows = spreadsheetRows(orderHistory);
+  const activeSheet = XLSX.utils.json_to_sheet(activeRows.length ? activeRows : [{ 'Info': 'No cooking orders' }]);
+  const historySheet = XLSX.utils.json_to_sheet(historyRows.length ? historyRows : [{ 'Info': 'No completed order history' }]);
+  XLSX.utils.book_append_sheet(workbook, activeSheet, 'Cooking Orders');
+  XLSX.utils.book_append_sheet(workbook, historySheet, 'Order History');
+  XLSX.writeFile(workbook, `Anjappar-cooking-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+function showFirebaseError(message) {
+  const grid = document.getElementById('ordersGrid');
+  if (grid && !orders.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>Firebase Connection Error</h3><p>${message}</p></div>`;
+  }
+}
+
+function updateElapsedTimes() {
+  document.querySelectorAll('.elapsed').forEach(el => {
+    const createdAt = parseInt(el.dataset.created);
+    const startedAt = el.dataset.started ? parseInt(el.dataset.started) : null;
+    const status = el.dataset.status;
+    const now = Date.now();
+    let elapsed = status === 'cooking' && startedAt ? Math.floor((now - startedAt) / 1000) : 0;
+    
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    el.classList.remove('warning', 'danger');
+    if (elapsed > 900) el.classList.add('danger');
+    else if (elapsed > 600) el.classList.add('warning');
+  });
+}
+
+function renderOrders() {
+  const grid = document.getElementById('ordersGrid');
+  // 🔥 ONLY COOKING ORDERS
+  const cookingOrders = orders.filter(o => o.status === 'cooking');
+  
+  if (cookingOrders.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="icon">🍳</div><h3>No Cooking Orders</h3><p>Waiting for orders to start cooking...</p></div>`;
+    updateStats();
+    return;
+  }
+  
+  // Sort by startedAt (oldest first, so cooks see longest waiting first)
+  const sorted = [...cookingOrders].sort((a, b) => (a.startedAt || a.createdAt) - (b.startedAt || b.createdAt));
+  
+  grid.innerHTML = sorted.map(order => {
+    const statusText = 'COOKING';
+    const elapsed = order.startedAt ? Math.floor((Date.now() - order.startedAt) / 1000) : 0;
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    
+    // Cooking orders: Done and Undo buttons
+    const actionsHtml = `
+      <button class="order-btn btn-complete" onclick="completeOrder('${order._key}')">✓ Done</button>
+      <button class="order-btn btn-undo" onclick="undoOrder('${order._key}')">↩ Undo</button>
+    `;
+    
+    return `
+      <div class="order-card status-cooking" onclick="showOrderDetail('${order._key}')">
+        <div class="status-badge cooking">${statusText}</div>
+        <div class="order-card-header">
+          <div class="order-no">#${escapeHtml(order.id)}</div>
+          <div class="table-no ${order.table > 4 ? 'large' : ''}">Table ${escapeHtml(order.table)}</div>
+        </div>
+        <div class="order-card-body">
+          <ul class="order-items">
+            ${order.items.length ? order.items.map(item => `<li class="order-item"><div><div class="item-name">${escapeHtml(item.emoji || '🍽️')} ${escapeHtml(item.name || 'Unnamed item')}</div>${item.note ? `<div class="item-note">📝 ${escapeHtml(item.note)}</div>` : ''}</div><div class="item-qty">x${Number(item.qty) || 0}</div></li>`).join('') : '<li class="order-item"><div class="item-note">No item details were saved for this order.</div></li>'}
+          </ul>
+          ${order.note ? `<div class="item-note" style="margin-top:10px">Order note: ${escapeHtml(order.note)}</div>` : ''}
+        </div>
+        <div class="order-card-footer">
+          <div class="order-total">Total: ${formatOrderTotal(order)}</div>
+          <div class="order-time">⏱️ <span class="elapsed ${mins > 15 ? 'danger' : mins > 10 ? 'warning' : ''}" data-created="${order.createdAt}" data-started="${order.startedAt || ''}" data-status="${order.status}">${mins}:${secs.toString().padStart(2, '0')}</span></div>
+          <div class="order-actions" onclick="event.stopPropagation()">${actionsHtml}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  updateStats();
+}
+
+function updateStats() {
+  const cooking = orders.filter(o => o.status === 'cooking').length;
+  document.getElementById('statCooking').textContent = cooking;
+  
+  const completedOrders = orders.filter(o => o.status === 'done' && o.startedAt && o.completedAt);
+  if (completedOrders.length > 0) {
+    const avgTime = completedOrders.reduce((sum, o) => sum + (o.completedAt - o.startedAt), 0) / completedOrders.length / 1000;
+    document.getElementById('statAvg').textContent = Math.round(avgTime / 60) + 'm';
+  } else {
+    document.getElementById('statAvg').textContent = '0m';
+  }
+}
+
+async function completeOrder(id) {
+  const order = findOrder(id);
+  if (!order) return;
+
+  try {
+    const completedAt = Date.now();
+    const updatedOrder = {
+      ...order,
+      status: 'done',
+      completedAt: completedAt,
+      archivedAt: completedAt
+    };
+
+    await ordersRef.child(orderKey(order)).update({
+      status: 'done',
+      completedAt: completedAt
+    });
+    await orderHistoryRef.child(orderKey(order)).set(updatedOrder);
+    playSound('complete');
+  } catch (e) {
+    alert('Unable to complete order: ' + e.message);
+  }
+}
+
+async function undoOrder(id) {
+  const order = findOrder(id);
+  if (!order) return;
+  try {
+    await ordersRef.child(orderKey(order)).update({
+      status: 'pending',
+      startedAt: null,
+      completedAt: null
+    });
+  } catch (e) {
+    alert('Unable to return order to pending: ' + e.message);
+  }
+}
+
+function showOrderDetail(id) {
+  const order = findOrder(id);
+  if (!order) return;
+  document.querySelector('#orderModal h2').textContent = `📋 Order #${order.id}`;
+  const statusText = { pending: 'Pending', cooking: 'Order Complite', done: 'Completed' }[order.status];
+  
+  document.getElementById('modalInfo').innerHTML = `
+    <div class="info-item"><div class="info-label">Table</div><div class="info-value">🪑 Table ${order.table}</div></div>
+    <div class="info-item"><div class="info-label">Status</div><div class="info-value">${statusText}</div></div>
+    <div class="info-item"><div class="info-label">Total</div><div class="info-value">${formatOrderTotal(order)}</div></div>
+    <div class="info-item"><div class="info-label">Order Time</div><div class="info-value">🕐 ${new Date(order.createdAt).toLocaleString('en-US')}</div></div>
+    <div class="info-item"><div class="info-label">Start Time</div><div class="info-value">▶ ${order.startedAt ? new Date(order.startedAt).toLocaleString('en-US') : '-'}</div></div>
+    <div class="info-item"><div class="info-label">Complete Time</div><div class="info-value">✓ ${order.completedAt ? new Date(order.completedAt).toLocaleString('en-US') : '-'}</div></div>
+    <div class="info-item"><div class="info-label">Wait Time</div><div class="info-value">⏱️ ${Math.floor((Date.now() - order.createdAt) / 60000)} mins</div></div>
+  `;
+  
+  document.getElementById('modalItems').innerHTML = `<h3 style="color:#fff;margin-bottom:10px;">Items</h3>` + (order.items.length ? order.items.map(item => `<div class="modal-item"><span class="name">${escapeHtml(item.emoji || '🍽️')} ${escapeHtml(item.name || 'Unnamed item')}</span><span class="qty">x${Number(item.qty) || 0}</span></div>`).join('') : '<div class="item-note">No item details were saved for this order.</div>');
+  
+  let actionsHtml = '';
+  if (order.status === 'cooking') {
+    actionsHtml = `
+      <button class="modal-btn btn-complete" style="background:#27ae60;color:#fff;" onclick="completeOrder('${order._key}');closeModal()">✓ Mark Complete</button>
+      <button class="modal-btn btn-undo" style="background:#3498db;color:#fff;" onclick="undoOrder('${order._key}');closeModal()">↩ Back to Pending</button>
+    `;
+  } else {
+    // This should not happen since we only show cooking, but just in case
+    actionsHtml = `<button class="modal-btn" style="background:#555;color:#fff;" onclick="closeModal()">Close</button>`;
+  }
+  document.getElementById('modalActions').innerHTML = actionsHtml;
+  document.getElementById('orderModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('orderModal').classList.remove('show'); }
+
+function showHistory() {
+  const historyList = document.getElementById('historyList');
+  if (orderHistory.length === 0) {
+    historyList.innerHTML = `<div class="empty-state"><div class="icon">📜</div><h3>No History</h3><p>No completed orders found in history.</p></div>`;
+  } else {
+    historyList.innerHTML = orderHistory.map(order => `
+      <div class="history-item">
+        <div class="history-item-header">
+          <div><div class="order-id">#${escapeHtml(order.id)} - Table ${escapeHtml(order.table)}</div><div class="order-time">Completed: ${order.completedAt ? new Date(order.completedAt).toLocaleString('en-US') : '-'}</div></div><div class="history-total">${formatOrderTotal(order)}</div>
+        </div>
+        <div class="order-details">${order.items.length ? order.items.map(item => `${escapeHtml(item.name || 'Unnamed item')} x${Number(item.qty) || 0}`).join(', ') : 'No item details were saved for this order.'}</div>
+        <div style="margin-top:8px;font-size:11px;color:#666;">Archived: ${order.archivedAt ? new Date(order.archivedAt).toLocaleString('en-US') : '-'}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('historyModal').classList.add('show');
+}
+
+function closeHistory() { document.getElementById('historyModal').classList.remove('show'); }
+
+async function refreshOrders() {
+  try {
+    const snapshot = await ordersRef.once('value');
+    const data = snapshot.val() || {};
+    orders = Object.entries(data).filter(([, order]) => order)
+      .map(([key, order]) => normaliseOrder(key, order))
+      .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+    renderOrders();
+  } catch (e) {
+    console.error('Firebase refresh failed:', e);
+    showFirebaseError('Refresh failed: ' + e.message);
+  }
+}
+
+function showNewOrderToast(order) {
+  const toast = document.getElementById('newOrderToast');
+  document.getElementById('toastMsg').textContent = `Table ${order.table} - #${order.id}`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundBtn');
+  btn.textContent = soundEnabled ? '🔔 Sound' : '🔕 Muted';
+  btn.classList.toggle('muted', !soundEnabled);
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (type === 'new') {
+      osc.frequency.value = 800; gain.gain.value = 0.3; osc.start();
+      setTimeout(() => { osc.frequency.value = 1000; }, 100);
+      setTimeout(() => { osc.frequency.value = 1200; }, 200);
+      setTimeout(() => osc.stop(), 300);
+    } else if (type === 'start') {
+      osc.frequency.value = 600; gain.gain.value = 0.2; osc.start();
+      setTimeout(() => osc.stop(), 200);
+    } else if (type === 'complete') {
+      osc.frequency.value = 1000; gain.gain.value = 0.3; osc.start();
+      setTimeout(() => { osc.frequency.value = 1500; }, 150);
+      setTimeout(() => osc.stop(), 300);
+    }
+  } catch(e) {}
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeModal(); closeHistory(); }
+  if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); refreshOrders(); }
+});
+</script>
+</body>
+</html>
