@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anjappar - Order Food</title>
+<style>
+:root{--red:#c8244a;--ink:#202025;--muted:#71717a;--line:#e9e7e3;--cream:#fffaf2;--green:#1f6b52}*{box-sizing:border-box}body{margin:0;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",Arial,sans-serif;background:#f6f4ef}header{padding:24px max(20px,calc((100vw - 1140px)/2));color:#fff;background:linear-gradient(120deg,#0c4c40,#166253 55%,#bc7829)}header h1{margin:0;font-size:26px}header p{margin:5px 0 0;opacity:.88}#connection{margin-top:10px;font-size:13px;color:#d8f4e9}.page{width:min(1140px,calc(100% - 32px));margin:22px auto 48px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:22px;align-items:start}.menu-shell,.cart{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 18px #43210a0d}.menu-shell{padding:20px}h2{margin:0;font-size:20px}.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px}.tab{padding:8px 12px;border:1px solid #d9d6d0;border-radius:100px;color:#555;background:#fff;cursor:pointer;font:inherit;font-size:14px}.tab.active{color:#fff;border-color:var(--green);background:var(--green)}.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.food{min-height:130px;padding:15px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:13px;background:var(--cream)}.food-top{display:flex;gap:11px;align-items:flex-start}.emoji{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:11px;font-size:22px;background:#fff0d3}.name{font-weight:750;line-height:1.28}.desc{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}.food-footer{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px}.price{color:var(--red);font-size:17px;font-weight:800}.add{padding:8px 11px;border:0;border-radius:8px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-weight:700}.add:hover{background:#a91d3e}.cart{position:sticky;top:16px;overflow:hidden}.cart-head{padding:18px;color:#fff;background:#173e36}.cart-head h2{display:flex;justify-content:space-between}.cart-body{padding:15px 18px 18px}.empty{padding:23px 6px;color:var(--muted);text-align:center}.cart-line{display:grid;grid-template-columns:1fr auto;gap:9px;padding:12px 0;border-bottom:1px solid var(--line)}.cart-name{font-weight:700;font-size:14px}.cart-price{margin-top:3px;color:var(--red);font-size:13px}.quantity{display:flex;height:30px;align-items:center;border:1px solid #d8d5d0;border-radius:8px;overflow:hidden}.quantity button{width:29px;height:100%;border:0;background:#fff;cursor:pointer;font-size:17px}.quantity span{min-width:25px;text-align:center;font-size:14px}.summary{margin-top:13px;padding-top:12px;border-top:2px solid var(--line)}.summary-row{display:flex;justify-content:space-between;margin:7px 0;color:#555;font-size:14px}.summary-row.discount{color:#16805b}.summary-row.total{margin-top:12px;color:var(--ink);font-size:19px;font-weight:800}label{display:block;margin:16px 0 6px;font-size:14px;font-weight:700}input,textarea{width:100%;padding:10px 11px;border:1px solid #d8d5d0;border-radius:8px;font:inherit}textarea{min-height:62px;resize:vertical}.submit{width:100%;margin-top:15px;padding:13px;border:0;border-radius:9px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-size:16px;font-weight:800}.submit:disabled{opacity:.55;cursor:wait}#message{min-height:22px;margin:12px 0 0;text-align:center;font-size:14px}.ok{color:#16805b}.error{color:#c8244a}@media(max-width:800px){.page{grid-template-columns:1fr}.cart{position:static;order:-1}.cart-body{padding-bottom:16px}}@media(max-width:680px){.page{width:min(100% - 20px,600px);margin-top:10px}.menu-shell{padding:15px}.menu-grid{grid-template-columns:1fr}header{padding:19px 16px}.food{min-height:112px}}
+</style>
+</head>
+<body>
+<header>
+<h1>🍛 Anjappar Food Order</h1>
+<p>Link To Kitchen。</p>
+<div id="connection">Link To Kitchen…</div>
+</header>
+<main class="page">
+<section class="menu-shell">
+<h2>Menu</h2>
+<div id="tabs" class="tabs"></div>
+<div id="menu" class="menu-grid"></div>
+</section>
+<aside class="cart">
+<div class="cart-head">
+<h2>My Order <span id="cartCount">0</span></h2>
+</div>
+<form id="orderForm" class="cart-body">
+<div id="cartItems"></div>
+<div id="summary" class="summary"></div>
+<label for="table">Table 3</label>
+<input id="table" type="hidden" value="Table 3">
+<label for="note">Note（Optional）</label>
+<textarea id="note" maxlength="300" placeholder="e.g. No Spicy"></textarea>
+<button id="submit" class="submit" type="submit">Link to kitchen</button>
+<div id="message" role="status"></div>
+</form>
+</aside>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig={
+apiKey:"AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+authDomain:"create-for-payment.firebaseapp.com",
+databaseURL:"https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"create-for-payment",
+storageBucket:"create-for-payment.firebasestorage.app",
+messagingSenderId:"505063429802",
+appId:"1:505063429802:web:8ec8cca8c788610bad62d3",
+measurementId:"G-SHP91WNP0H"
+};
+firebase.initializeApp(firebaseConfig);
+const ordersRef=firebase.database().ref("orders"),
+tabs=document.getElementById("tabs"),
+menu=document.getElementById("menu"),
+cartCount=document.getElementById("cartCount"),
+cartItems=document.getElementById("cartItems"),
+summary=document.getElementById("summary"),
+message=document.getElementById("message"),
+connection=document.getElementById("connection"),
+orderForm=document.getElementById("orderForm"),
+table=document.getElementById("table"),
+note=document.getElementById("note"),
+submit=document.getElementById("submit");
+
+const raw=[
+["combos","🍽️","Mini Tiffin Delight (Veg)",15,"Combo #1"],
+["combos","🥘","The Tanjore Trio Idly Vada & Pongal",13,"Combo #2"],
+["combos","🌶️","The Chettinad Silk Combo",16,"Combo #3"],
+["combos","🍗","The Tandoori Smoky Feast",17,"Combo #4"],
+["combos","🍢","The Kebab Express Lane",17,"Combo #5"],
+["combos","🍗","Chicken Tikka Meal",17,"Combo #6"],
+["combos","🐟","Fish Tikka Meal",18,"Combo #7"],
+["combos","🧀","Paneer Tikka Meal",17,"Combo #8"],
+["combos","🫓","Kal Dosa Combo (Chicken)",16,"Combo #9"],
+["combos","🫓","Kal Dosa Combo (Mutton)",17,"Combo #9"],
+["combos","🐟","Kal Dosa Combo (Fish)",17,"Combo #9"],
+["combos","🫓","Idly Combo Meal (Chicken)",16,"Combo #10"],
+["combos","🫓","Idly Combo Meal (Mutton)",17,"Combo #10"],
+["combos","🐟","Idly Combo Meal (Fish)",17,"Combo #10"],
+["combos","🫓","Chappathi Combo Meal (Chicken)",16,"Combo #11"],
+["combos","🫓","Chappathi Combo Meal (Mutton)",17,"Combo #11"],
+["combos","🐟","Chappathi Combo Meal (Fish)",17,"Combo #11"],
+["combos","🫓","Parotta Combo Meal (Chicken)",16,"Combo #12"],
+["combos","🫓","Parotta Combo Meal (Mutton)",17,"Combo #12"],
+["combos","🐟","Parotta Combo Meal (Fish)",17,"Combo #12"],
+["set","🍛","Anjappar Meal",13,"Chicken; mutton/fish S$15"],
+["set","🥗","Anjappar Veg Meal",11,"Vegetarian set meal"],
+["set","🧒","The Little Chota Bheem Meal (Veg)",12,"Kids' special combo"],
+["set","🍗","The Minion Mayhem Chicken Combo",13,"Kids' special combo"],
+["rice","🍚","Ghee Rice",12,"Aromatic rice delights"],
+["rice","🍚","Veg Pulao",12,"Aromatic rice delights"],
+["rice","🍚","Steamed Basmathi Rice",5,""],
+["rice","🍚","Ponni Boiled Rice",5,""],
+["rice","🍳","Vegetable Fried Rice / Noodles",13,""],
+["rice","🍳","Egg Fried Rice / Noodles",14,""],
+["rice","🍗","Chicken Fried Rice / Noodles",15,""],
+["rice","🍖","Mutton Fried Rice / Noodles",17,""],
+["rice","🦐","Prawn Fried Rice / Noodles",18,""],
+["appetizers","🍗","Chicken Lollipop",8,""],
+["appetizers","🌶️","Chicken 65",8,""],
+["appetizers","🥟","Samosa (2 pcs)",8,""],
+["appetizers","🌶️","Gobi 65",8,""],
+["appetizers","🧀","Paneer 65",9,""],
+["drinks","☕","Masala Tea Hot",4.25,"Soft drink"],
+["drinks","🍵","Ginger Tea",4.25,"Soft drink"],
+["drinks","☕","Filter Coffee",4.25,"Soft drink"],
+["drinks","🥭","Mango Lassi",9.56,""],
+["drinks","🥛","Salted Lassi",8.5,""],
+["drinks","🥛","Sweet Lassi",8.5,""],
+["drinks","🥛","Butter Milk",8.5,""]
+];
+
+const menuItems=raw.map((x,id)=>({id,category:x[0],emoji:x[1],name:x[2],price:x[3],description:x[4]}));
+const categories={all:"All",combos:"Combos",set:"Set",rice:"Rice/Noodle",appetizers:"Appetizers",drinks:"Drinks"};
+let activeCategory="all";
+const cart=new Map(),
+money=v=>"S$ "+v.toFixed(2),
+itemById=id=>menuItems.find(x=>x.id===Number(id));
+
+function renderTabs(){
+tabs.innerHTML=Object.entries(categories).map(([key,label])=>`<button type="button" class="tab ${key===activeCategory?"active":""}" data-category="${key}">${label}</button>`).join("");
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{
+activeCategory=b.dataset.category;
+renderTabs();
+renderMenu();
+}));
+}
+
+function renderMenu(){
+const visible=activeCategory==="all"?menuItems:menuItems.filter(x=>x.category===activeCategory);
+menu.innerHTML=visible.map(x=>`<article class="food"><div class="food-top"><div class="emoji">${x.emoji}</div><div><div class="name">${x.name}</div><div class="desc">${x.description}</div></div></div><div class="food-footer"><span class="price">${money(x.price)}</span><button type="button" class="add" data-add="${x.id}">＋ Add</button></div></article>`).join("");
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>changeItem(+b.dataset.add,1)));
+}
+
+function changeItem(id,amount){
+const qty=(cart.get(id)||0)+amount;
+qty>0?cart.set(id,qty):cart.delete(id);
+renderCart();
+}
+
+function renderCart(){
+const lines=[...cart.entries()],
+count=lines.reduce((t,[,q])=>t+q,0),
+subtotal=lines.reduce((t,[id,q])=>t+itemById(id).price*q,0),
+discount=subtotal>=30?subtotal*.15:0;
+cartCount.textContent=count;
+cartItems.innerHTML=lines.length?lines.map(([id,q])=>{
+const x=itemById(id);
+return `<div class="cart-line"><div><div class="cart-name">${x.name}</div><div class="cart-price">${money(x.price)} each</div></div><div class="quantity"><button type="button" data-change="${id}" data-amount="-1">−</button><span>${q}</span><button type="button" data-change="${id}" data-amount="1">＋</button></div></div>`;
+}).join(""):'<div class="empty">No Order。<br>Order Now！</div>';
+summary.innerHTML=`<div class="summary-row"><span>Cal</span><span>${money(subtotal)}</span></div>${discount?`<div class="summary-row discount"><span>Promo</span><span>−${money(discount)}</span></div>`:'<div class="summary-row"><span>Promo</span></div>'}<div class="summary-row total"><span>Total</span><span>${money(subtotal-discount)}</span></div>`;
+document.querySelectorAll("[data-change]").forEach(b=>b.addEventListener("click",()=>changeItem(+b.dataset.change,+b.dataset.amount)));
+}
+
+function setMessage(t,c=""){
+message.textContent=t;
+message.className=c;
+}
+
+firebase.database().ref(".info/connected").on("value",s=>
+connection.textContent=s.val()?"✓ link to kitchen":"off line；no order send"
+);
+
+orderForm.addEventListener("submit",async e=>{
+e.preventDefault();
+if(!cart.size)return setMessage("请Must order。","error");
+const entries=[...cart.entries()],
+subtotal=entries.reduce((t,[id,q])=>t+itemById(id).price*q,0),
+discount=subtotal>=30?subtotal*.15:0,
+order={
+id:"A"+Date.now().toString().slice(-6),
+table:table.value.trim(),
+items:entries.map(([id,qty])=>{
+const x=itemById(id);
+return{name:x.name,emoji:x.emoji,qty,price:x.price};
+}),
+note:note.value.trim(),
+subtotal,
+discount,
+total:subtotal-discount,
+status:"pending",
+createdAt:firebase.database.ServerValue.TIMESTAMP
+};
+submit.disabled=true;
+setMessage("正在发送订单…");
+try{
+await ordersRef.push().set(order);
+setMessage("order send to kitchen！Order No："+order.id,"ok");
+cart.clear();
+orderForm.reset();
+renderCart();
+}catch(error){
+console.error(error);
+setMessage("Order no send："+error.message,"error");
+}finally{
+submit.disabled=false;
+}
+});
+
+renderTabs();
+renderMenu();
+renderCart();
+</script>
+</body>
+</html>
