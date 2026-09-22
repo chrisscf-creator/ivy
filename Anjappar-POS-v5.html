@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anjappar POS System</title>
+<style>
+/* SECTION: base */
+:root{--red:#c8244a;--ink:#202025;--muted:#71717a;--line:#e9e7e3;--cream:#fffaf2;--green:#1f6b52}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",Arial,sans-serif;background:#f6f4ef}
+header{padding:20px max(20px,calc((100vw - 1200px)/2));color:#fff;background:linear-gradient(120deg,#0c4c40,#166253 55%,#bc7829)}
+.header-inner{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+header h1{margin:0;font-size:26px}
+header p{margin:5px 0 0;opacity:.88}
+#connection{margin-top:8px;font-size:13px;color:#d8f4e9}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.logout-btn{padding:9px 14px;border:1px solid #ffffff66;border-radius:8px;background:#ffffff1a;color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.logout-btn:hover{background:#ffffff33}
+.page{width:min(1200px,calc(100% - 32px));margin:22px auto 48px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+.menu-shell,.cart,.orders-shell{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 18px #43210a0d}
+.menu-shell,.orders-shell{padding:20px}
+h2{margin:0;font-size:20px}
+.left-col{display:flex;flex-direction:column;gap:22px;min-width:0}
+
+/* SECTION: lock-screen 密码登入 */
+.lock-screen{position:fixed;inset:0;z-index:999;display:grid;place-items:center;padding:20px;
+background:linear-gradient(140deg,#0c4c40,#166253 55%,#bc7829)}
+.lock-screen[hidden]{display:none}
+.lock-card{width:min(380px,100%);background:#fff;border-radius:18px;padding:28px 24px 22px;
+box-shadow:0 24px 60px #00000038;text-align:center}
+.lock-logo{font-size:42px;line-height:1}
+.lock-card h2{margin:10px 0 4px;font-size:22px}
+.lock-sub{margin:0 0 20px;color:var(--muted);font-size:13px}
+.lock-card input{margin-bottom:12px;text-align:center;letter-spacing:4px;font-size:18px;padding:13px 11px}
+.lock-msg{min-height:20px;margin-top:12px;font-size:13px}
+.lock-msg.error{color:var(--red)}
+.lock-msg.ok{color:var(--green)}
+.lock-hint{margin:16px 0 0;font-size:11.5px;color:#a1a1aa;line-height:1.6}
+
+/* SECTION: tabs-menu */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;position:relative;z-index:10}
+.tab{padding:8px 12px;border:1px solid #d9d6d0;border-radius:100px;color:#555;background:#fff;cursor:pointer;font:inherit;font-size:14px}
+.tab.active{color:#fff;border-color:var(--green);background:var(--green)}
+.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.food{min-height:130px;padding:15px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:13px;background:var(--cream)}
+.food-top{display:flex;gap:11px;align-items:flex-start}
+.emoji{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:11px;font-size:22px;background:#fff0d3}
+.name{font-weight:750;line-height:1.28}
+.desc{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
+.food-footer{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px}
+.price{color:var(--red);font-size:17px;font-weight:800}
+.add{padding:8px 11px;border:0;border-radius:8px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-weight:700}
+.add:hover{background:#a91d3e}
+
+/* SECTION: printer-panel */
+.printer-panel{border:1px solid var(--line);border-radius:13px;background:#f4faf7;padding:14px 16px;margin-top:16px}
+.printer-panel h3{margin:0 0 8px;font-size:15px}
+.printer-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#printerStatus{flex:1 1 160px;font-size:13px;color:#555;min-width:0}
+#printerStatus.ok{color:#16805b;font-weight:700}
+#printerStatus.err{color:#c8244a}
+.pbtn{padding:9px 12px;border:1px solid #b9cfc6;border-radius:8px;background:#fff;color:#173e36;cursor:pointer;font:inherit;font-size:13px;font-weight:700;min-height:38px}
+.pbtn.primary{border-color:var(--green);background:var(--green);color:#fff}
+.pbtn:disabled{opacity:.5;cursor:not-allowed}
+.auto-print{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:#444}
+.auto-print input{width:auto}
+.hint{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+
+/* SECTION: cart —— 强制固定在右侧上方 */
+.cart{
+  position:sticky;top:16px;
+  align-self:start;
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - 32px);
+  overflow:hidden;
+  z-index:30;
+}
+.cart-head{padding:18px;color:#fff;background:#173e36;flex:0 0 auto}
+.cart-head h2{display:flex;justify-content:space-between;align-items:center}
+.cart-body{padding:15px 18px 18px;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain}
+.empty{padding:23px 6px;color:var(--muted);text-align:center}
+.cart-line{display:grid;grid-template-columns:1fr auto;gap:9px;padding:12px 0;border-bottom:1px solid var(--line)}
+.cart-name{font-weight:700;font-size:14px}
+.cart-price{margin-top:3px;color:var(--red);font-size:13px}
+.quantity{display:flex;height:30px;align-items:center;border:1px solid #d8d5d0;border-radius:8px;overflow:hidden}
+.quantity button{width:29px;height:100%;border:0;background:#fff;cursor:pointer;font-size:17px}
+.quantity span{min-width:25px;text-align:center;font-size:14px}
+.summary{margin-top:13px;padding-top:12px;border-top:2px solid var(--line)}
+.summary-row{display:flex;justify-content:space-between;margin:7px 0;color:#555;font-size:14px}
+.summary-row.discount{color:#16805b}
+.summary-row.total{margin-top:12px;color:var(--ink);font-size:19px;font-weight:800}
+.summary-row.change{color:#16805b;font-weight:700}
+label{display:block;margin:16px 0 6px;font-size:14px;font-weight:700}
+input,textarea{width:100%;padding:10px 11px;border:1px solid #d8d5d0;border-radius:8px;font:inherit}
+input[type=number]{font-size:16px}
+textarea{min-height:62px;resize:vertical}
+.submit{width:100%;margin-top:15px;padding:13px;border:0;border-radius:9px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-size:16px;font-weight:800}
+.submit:disabled{opacity:.55;cursor:wait}
+#message{min-height:22px;margin:12px 0 0;text-align:center;font-size:14px}
+.ok{color:#16805b}.error{color:#c8244a}
+.reprint-bar{margin-top:10px;text-align:center}
+
+/* SECTION: orders */
+.orders-shell h2{display:flex;justify-content:space-between;align-items:center}
+.order-list{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.order-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--cream)}
+.order-top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.order-id{font-weight:800}
+.order-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.order-items{font-size:13px;color:#444;margin-top:6px;line-height:1.5}
+.order-total{font-weight:800;color:var(--red)}
+.status-badge{font-size:11px;padding:3px 8px;border-radius:100px;background:#fde8ee;color:var(--red);font-weight:700}
+.status-badge.done{background:#e3f3ec;color:#16805b}
+
+/* SECTION: responsive */
+@media(max-width:900px){
+  .page{grid-template-columns:1fr}
+  .cart{position:sticky;top:8px;order:-1;max-height:none}
+  .cart-body{max-height:62vh}
+}
+@media(max-width:680px){
+  .page{width:min(100% - 20px,600px);margin-top:10px}
+  .menu-shell,.orders-shell{padding:15px}
+  .menu-grid{grid-template-columns:1fr}
+  header{padding:19px 16px}
+  .food{min-height:112px}
+  .header-actions{width:100%}
+  .header-actions .logout-btn{flex:1 1 auto;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- SECTION: lock-screen 密码登入 -->
+<div class="lock-screen" id="lockScreen">
+  <form class="lock-card" id="loginForm" autocomplete="off">
+    <div class="lock-logo">🍛</div>
+    <h2>Anjappar POS</h2>
+    <p class="lock-sub">请输入员工密码以继续 · Staff Password Required</p>
+    <input id="password" type="password" inputmode="numeric" autocomplete="current-password"
+           placeholder="····" aria-label="Password">
+    <button class="submit" type="submit" id="btnLogin">登入 Login</button>
+    <div id="loginMsg" class="lock-msg" role="status"></div>
+    <p class="lock-hint">默认密码：1234<br>可在源码 <code>const PASSWORD = "1234"</code> 处修改</p>
+  </form>
+</div>
+
+<!-- SECTION: header -->
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>🍛 Anjappar POS System</h1>
+      <p>Cashier · Kitchen Link · Bluetooth Printer (POS-5810DD 58mm)</p>
+      <div id="connection">Link To Kitchen…</div>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="btnFullscreen" class="logout-btn">⛶ 全屏 Fullscreen</button>
+      <button type="button" id="btnLogout" class="logout-btn">🔒 登出 Logout</button>
+    </div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="left-col">
+    <!-- SECTION: menu -->
+    <section class="menu-shell">
+      <h2>Menu</h2>
+      <div id="tabs" class="tabs"></div>
+      <div id="menu" class="menu-grid"></div>
+
+      <!-- SECTION: printer-ui -->
+      <div class="printer-panel">
+        <h3>🖨️ 蓝牙打印机 Bluetooth Printer</h3>
+        <div class="printer-row">
+          <span id="printerStatus">未连接 · Not connected</span>
+          <button type="button" id="btnConnect" class="pbtn primary">连接打印机</button>
+          <button type="button" id="btnTest" class="pbtn" disabled>打印测试页</button>
+          <button type="button" id="btnDisconnect" class="pbtn" disabled>断开</button>
+        </div>
+        <label class="auto-print"><input id="autoPrint" type="checkbox" checked> 下单成功后自动打印小票 Auto-print receipt</label>
+        <p class="hint">适配 POS-5810DD 58mm 热敏小票机（32字符/行，ESC/POS 指令）。需在 Chrome / Edge（Android 或桌面+蓝牙）中通过 HTTPS 或本地文件打开，点击「连接打印机」后在系统弹窗里选择已配对的打印机。若搜不到设备，请先在手机/电脑系统蓝牙设置中完成配对，并确认打印机开机、纸仓盖好。</p>
+      </div>
+    </section>
+
+    <!-- SECTION: orders -->
+    <section class="orders-shell">
+      <h2>Recent Orders <button type="button" id="btnRefreshOrders" class="pbtn">刷新</button></h2>
+      <div id="orderList" class="order-list"><div class="empty">暂无订单</div></div>
+    </section>
+  </div>
+
+  <!-- SECTION: cart（固定右上方） -->
+  <aside class="cart">
+    <div class="cart-head">
+      <h2>Current Order <span id="cartCount">0</span></h2>
+    </div>
+    <form id="orderForm" class="cart-body">
+      <div id="cartItems"></div>
+      <div id="summary" class="summary"></div>
+      <label for="cash">实收现金 Cash Received（可选，用于计算找零）</label>
+      <input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 50">
+      <label for="table">Table</label>
+      <input id="table" type="text" value="Table 3">
+      <label for="note">Note（Optional）</label>
+      <textarea id="note" maxlength="300" placeholder="e.g. No Spicy"></textarea>
+      <button id="submit" class="submit" type="submit">下单并发送厨房 Place Order</button>
+      <div class="reprint-bar" id="reprintBar" hidden><button type="button" id="btnPrintLast" class="pbtn primary">🖨️ 打印上一张小票</button></div>
+      <div id="message" role="status"></div>
+    </form>
+  </aside>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* SECTION: firebase-init */
+const firebaseConfig={
+apiKey:"AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
+authDomain:"create-for-payment.firebaseapp.com",
+databaseURL:"https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"create-for-payment",
+storageBucket:"create-for-payment.firebasestorage.app",
+messagingSenderId:"505063429802",
+appId:"1:505063429802:web:8ec8cca8c788610bad62d3",
+measurementId:"G-SHP91WNP0H"
+};
+firebase.initializeApp(firebaseConfig);
+const ordersRef=firebase.database().ref("orders");
+
+/* SECTION: dom-refs */
+const tabs=document.getElementById("tabs"),
+menu=document.getElementById("menu"),
+cartCount=document.getElementById("cartCount"),
+cartItems=document.getElementById("cartItems"),
+summary=document.getElementById("summary"),
+message=document.getElementById("message"),
+connection=document.getElementById("connection"),
+orderForm=document.getElementById("orderForm"),
+tableInput=document.getElementById("table"),
+note=document.getElementById("note"),
+cashInput=document.getElementById("cash"),
+submit=document.getElementById("submit"),
+orderList=document.getElementById("orderList"),
+printerStatus=document.getElementById("printerStatus"),
+btnConnect=document.getElementById("btnConnect"),
+btnTest=document.getElementById("btnTest"),
+btnDisconnect=document.getElementById("btnDisconnect"),
+autoPrint=document.getElementById("autoPrint"),
+reprintBar=document.getElementById("reprintBar"),
+btnPrintLast=document.getElementById("btnPrintLast"),
+lockScreen=document.getElementById("lockScreen"),
+loginForm=document.getElementById("loginForm"),
+passwordInput=document.getElementById("password"),
+loginMsg=document.getElementById("loginMsg"),
+btnLogout=document.getElementById("btnLogout"),
+btnFullscreen=document.getElementById("btnFullscreen");
+
+/* SECTION: menu-data */
+const raw=[
+["combos","🍽️","Mini Tiffin Delight (Veg)",15,"Combo #1"],
+["combos","🥘","The Tanjore Trio Idly Vada & Pongal",13,"Combo #2"],
+["combos","🌶️","The Chettinad Silk Combo",16,"Combo #3"],
+["combos","🍗","The Tandoori Smoky Feast",17,"Combo #4"],
+["combos","🍢","The Kebab Express Lane",17,"Combo #5"],
+["combos","🍗","Chicken Tikka Meal",17,"Combo #6"],
+["combos","🐟","Fish Tikka Meal",18,"Combo #7"],
+["combos","🧀","Paneer Tikka Meal",17,"Combo #8"],
+["combos","🫓","Kal Dosa Combo (Chicken)",16,"Combo #9"],
+["combos","🫓","Kal Dosa Combo (Mutton)",17,"Combo #9"],
+["combos","🐟","Kal Dosa Combo (Fish)",17,"Combo #9"],
+["combos","🫓","Idly Combo Meal (Chicken)",16,"Combo #10"],
+["combos","🫓","Idly Combo Meal (Mutton)",17,"Combo #10"],
+["combos","🐟","Idly Combo Meal (Fish)",17,"Combo #10"],
+["combos","🫓","Chappathi Combo Meal (Chicken)",16,"Combo #11"],
+["combos","🫓","Chappathi Combo Meal (Mutton)",17,"Combo #11"],
+["combos","🐟","Chappathi Combo Meal (Fish)",17,"Combo #11"],
+["combos","🫓","Parotta Combo Meal (Chicken)",16,"Combo #12"],
+["combos","🫓","Parotta Combo Meal (Mutton)",17,"Combo #12"],
+["combos","🐟","Parotta Combo Meal (Fish)",17,"Combo #12"],
+["set","🍛","Anjappar Meal",13,"Chicken; mutton/fish S$15"],
+["set","🥗","Anjappar Veg Meal",11,"Vegetarian set meal"],
+["set","🧒","The Little Chota Bheem Meal (Veg)",12,"Kids' special combo"],
+["set","🍗","The Minion Mayhem Chicken Combo",13,"Kids' special combo"],
+["rice","🍚","Ghee Rice",12,"Aromatic rice delights"],
+["rice","🍚","Veg Pulao",12,"Aromatic rice delights"],
+["rice","🍚","Steamed Basmathi Rice",5,""],
+["rice","🍚","Ponni Boiled Rice",5,""],
+["rice","🍳","Vegetable Fried Rice / Noodles",13,""],
+["rice","🍳","Egg Fried Rice / Noodles",14,""],
+["rice","🍗","Chicken Fried Rice / Noodles",15,""],
+["rice","🍖","Mutton Fried Rice / Noodles",17,""],
+["rice","🦐","Prawn Fried Rice / Noodles",18,""],
+["appetizers","🍗","Chicken Lollipop",8,""],
+["appetizers","🌶️","Chicken 65",8,""],
+["appetizers","🥟","Samosa (2 pcs)",8,""],
+["appetizers","🌶️","Gobi 65",8,""],
+["appetizers","🧀","Paneer 65",9,""],
+["drinks","☕","Masala Tea Hot",4.25,"Soft drink"],
+["drinks","🍵","Ginger Tea",4.25,"Soft drink"],
+["drinks","☕","Filter Coffee",4.25,"Soft drink"],
+["drinks","🥭","Mango Lassi",9.56,""],
+["drinks","🥛","Salted Lassi",8.5,""],
+["drinks","🥛","Sweet Lassi",8.5,""],
+["drinks","🥛","Butter Milk",8.5,""]
+];
+const menuItems=raw.map((x,id)=>({id,category:x[0],emoji:x[1],name:x[2],price:x[3],description:x[4]}));
+const categories={all:"All",combos:"Combos",set:"Set",rice:"Rice/Noodle",appetizers:"Appetizers",drinks:"Drinks"};
+let activeCategory="all";
+const cart=new Map(),
+money=v=>"S$ "+v.toFixed(2),
+itemById=id=>menuItems.find(x=>x.id===Number(id));
+let lastOrder=null;
+
+/* SECTION: escaper */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+/* SECTION: menu-render */
+function renderTabs(){
+tabs.innerHTML=Object.entries(categories).map(([key,label])=>`<button type="button" class="tab ${key===activeCategory?"active":""}" data-category="${key}">${label}</button>`).join("");
+}
+function renderMenu(){
+const visible=activeCategory==="all"?menuItems:menuItems.filter(x=>x.category===activeCategory);
+menu.innerHTML=visible.map(x=>`<article class="food"><div class="food-top"><div class="emoji">${x.emoji}</div><div><div class="name">${esc(x.name)}</div><div class="desc">${esc(x.description)}</div></div></div><div class="food-footer"><span class="price">${money(x.price)}</span><button type="button" class="add" data-add="${x.id}">＋ Add</button></div></article>`).join("");
+}
+function changeItem(id,amount){
+const qty=(cart.get(id)||0)+amount;
+qty>0?cart.set(id,qty):cart.delete(id);
+renderCart();
+}
+
+/* SECTION: cart-render */
+function cartTotals(){
+const lines=[...cart.entries()],
+subtotal=lines.reduce((t,[id,q])=>t+itemById(id).price*q,0),
+discount=subtotal>=30?subtotal*.15:0;
+return {lines,subtotal,discount,total:subtotal-discount};
+}
+function renderCart(){
+const {lines,subtotal,discount,total}=cartTotals(),
+count=lines.reduce((t,[,q])=>t+q,0),
+cash=parseFloat(cashInput.value)||0,
+change=cash>0&&cash>=total?cash-total:0;
+cartCount.textContent=count;
+cartItems.innerHTML=lines.length?lines.map(([id,q])=>{
+const x=itemById(id);
+return `<div class="cart-line"><div><div class="cart-name">${esc(x.name)}</div><div class="cart-price">${money(x.price)} each</div></div><div class="quantity"><button type="button" data-change="${id}" data-amount="-1">−</button><span>${q}</span><button type="button" data-change="${id}" data-amount="1">＋</button></div></div>`;
+}).join(""):'<div class="empty">No Order。<br>Order Now！</div>';
+summary.innerHTML=`<div class="summary-row"><span>Subtotal</span><span>${money(subtotal)}</span></div>${discount?`<div class="summary-row discount"><span>Promo (15% off S$30+)</span><span>−${money(discount)}</span></div>`:'<div class="summary-row"><span>Promo</span><span>—</span></div>'}<div class="summary-row total"><span>Total</span><span>${money(total)}</span></div>${change?`<div class="summary-row change"><span>Change 找零</span><span>${money(change)}</span></div>`:""}`;
+}
+cashInput.addEventListener("input",renderCart);
+
+function setMessage(t,c=""){
+message.textContent=t;
+message.className=c;
+}
+
+/* SECTION: printer-bluetooth */
+const PRINT_WIDTH=32;
+const CANDIDATE_SERVICES=[
+{service:"000018f0-0000-1000-8000-00805f9b34fb",characteristic:"00002af1-0000-1000-8000-00805f9b34fb"},
+{service:"0000ffe0-0000-1000-8000-00805f9b34fb",characteristic:"0000ffe1-0000-1000-8000-00805f9b34fb"},
+{service:"0000ff00-0000-1000-8000-00805f9b34fb",characteristic:"0000ff02-0000-1000-8000-00805f9b34fb"}
+];
+let btDevice=null,btChar=null;
+
+function setPrinterStatus(text,cls=""){
+printerStatus.textContent=text;
+printerStatus.className=cls;
+btnTest.disabled=!btChar;
+btnDisconnect.disabled=!btChar;
+btnConnect.textContent=btChar?"重新连接":"连接打印机";
+}
+
+async function connectPrinter(){
+if(!navigator.bluetooth){
+setPrinterStatus("当前浏览器不支持 Web Bluetooth，请用 Chrome / Edge（Android 或桌面）打开","err");
+return;
+}
+try{
+btnConnect.disabled=true;
+setPrinterStatus("请在弹窗中选择打印机…");
+btDevice=await navigator.bluetooth.requestDevice({
+filters:CANDIDATE_SERVICES.map(s=>({services:[s.service]}))
+});
+btDevice.addEventListener("gattserverdisconnected",()=>{
+btChar=null;btDevice=null;
+setPrinterStatus("打印机已断开 · Disconnected","err");
+});
+setPrinterStatus("正在连接 "+(btDevice.name||"printer")+" …");
+const server=await btDevice.gatt.connect();
+let found=null;
+for(const cand of CANDIDATE_SERVICES){
+try{
+const svc=await server.getPrimaryService(cand.service);
+found=await svc.getCharacteristic(cand.characteristic);
+break;
+}catch(_){/* try next candidate */}
+}
+if(!found){
+const services=await server.getPrimaryServices();
+for(const svc of services){
+const chars=await svc.getCharacteristics();
+for(const ch of chars){
+if(ch.properties.write||ch.properties.writeWithoutResponse){found=ch;break;}
+}
+if(found)break;
+}
+}
+if(!found)throw new Error("未找到可写入的打印特征值 (no writable characteristic)");
+btChar=found;
+setPrinterStatus("✓ 已连接 · "+(btDevice.name||"POS-5810DD"),"ok");
+}catch(err){
+console.error(err);
+btChar=null;
+setPrinterStatus("连接失败："+err.message,"err");
+}finally{
+btnConnect.disabled=false;
+}
+}
+
+function disconnectPrinter(){
+btChar=null;
+if(btDevice&&btDevice.gatt&&btDevice.gatt.connected)btDevice.gatt.disconnect();
+btDevice=null;
+setPrinterStatus("未连接 · Not connected");
+}
+
+/* SECTION: escpos-builder */
+function encode(str){
+const out=[];
+for(const ch of str){
+const code=ch.codePointAt(0);
+out.push(code<128?code:0x3F);
+}
+return out;
+}
+function padLine(left,right){
+const gap=PRINT_WIDTH-left.length-right.length;
+return left+(gap>0?" ".repeat(gap):"")+(gap>0?right:"");
+}
+function buildReceipt(order){
+const B=[];
+const push=(...b)=>B.push(...b);
+const text=(s,newline=true)=>{push(...encode(s));if(newline)push(0x0A);};
+const ESC=0x1B,GS=0x1D;
+push(GS,0x40);
+push(ESC,0x61,0x01);
+push(GS,0x21,0x11);
+push(ESC,0x45,0x01);
+text("ANJAPPAR");
+push(GS,0x21,0x00);
+push(ESC,0x45,0x00);
+text("Indian Cuisine · Singapore");
+text("--------------------------------");
+push(ESC,0x61,0x00);
+text("Order No : "+order.id);
+text("Table    : "+order.table);
+const d=new Date(order.createdAtLocal||Date.now());
+const dt=s=>String(s).padStart(2,"0");
+text("Date     : "+d.getFullYear()+"-"+dt(d.getMonth()+1)+"-"+dt(d.getDate())+" "+dt(d.getHours())+":"+dt(d.getMinutes()));
+text("--------------------------------");
+push(ESC,0x45,0x01);
+for(const it of order.items){
+const amount=money(it.price*it.qty);
+const head=it.qty+" x "+it.name;
+if(head.length+amount.length>PRINT_WIDTH){
+text(head);
+text(padLine("",amount));
+}else{
+text(padLine(head,amount));
+}
+}
+push(ESC,0x45,0x00);
+text("--------------------------------");
+text(padLine("Subtotal",money(order.subtotal)));
+if(order.discount>0)text(padLine("Promo 15%", "-"+money(order.discount)));
+push(GS,0x21,0x11);
+push(ESC,0x45,0x01);
+text(padLine("TOTAL",money(order.total)).slice(0,PRINT_WIDTH));
+push(GS,0x21,0x00);
+push(ESC,0x45,0x00);
+if(order.cash>0){
+text(padLine("Cash",money(order.cash)));
+text(padLine("Change",money(Math.max(0,order.cash-order.total))));
+}
+if(order.note){
+text("--------------------------------");
+text("Note: "+order.note);
+}
+text("--------------------------------");
+push(ESC,0x61,0x01);
+text("Thank You! Welcome Again");
+text("");
+push(ESC,0x64,0x04);
+return new Uint8Array(B);
+}
+
+async function sendBytes(bytes){
+if(!btChar)throw new Error("打印机未连接");
+const CHUNK=100;
+for(let i=0;i<bytes.length;i+=CHUNK){
+const part=bytes.slice(i,i+CHUNK);
+if(btChar.properties.writeWithoutResponse){
+await btChar.writeValueWithoutResponse(part);
+}else{
+await btChar.writeValue(part);
+}
+await new Promise(r=>setTimeout(r,20));
+}
+}
+
+async function printOrder(order){
+if(!btChar){
+setPrinterStatus("打印机未连接，请先点击「连接打印机」","err");
+return false;
+}
+try{
+await sendBytes(buildReceipt(order));
+return true;
+}catch(err){
+console.error(err);
+btChar=null;
+setPrinterStatus("打印失败："+err.message+"（若打印机已关机请重新连接）","err");
+return false;
+}
+}
+
+btnConnect.addEventListener("click",connectPrinter);
+btnDisconnect.addEventListener("click",disconnectPrinter);
+btnTest.addEventListener("click",async()=>{
+const ok=await printOrder({
+id:"TEST-"+Date.now().toString().slice(-4),
+table:"Table Test",
+items:[{name:"Test Print 测试打印",qty:1,price:0},{name:"POS-5810DD 58mm OK",qty:2,price:1.5}],
+note:"Bluetooth printer is working!",
+subtotal:3,discount:0,total:3,cash:0
+});
+setMessage(ok?"✓ 测试页已发送打印":"测试打印失败，请检查打印机",ok?"ok":"error");
+});
+
+/* SECTION: orders-history */
+function renderOrders(orders){
+if(!orders.length){orderList.innerHTML='<div class="empty">暂无订单</div>';return;}
+orderList.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-top"><span class="order-id">${esc(o.id)}</span><span class="order-total">${money(o.total)}</span></div><div class="order-meta">${esc(o.table)} · ${esc(o.timeText)} · <span class="status-badge ${o.status==="done"?"done":""}">${esc(o.status)}</span></div><div class="order-items">${o.items.map(it=>esc(it.qty+" × "+it.name)).join("<br>")}</div><div class="reprint-bar"><button type="button" class="pbtn" data-print-order='${esc(o.json)}'>🖨️ 重打小票</button></div></div>`).join("");
+}
+
+function loadOrders(){
+ordersRef.limitToLast(20).once("value").then(snap=>{
+const val=snap.val()||{};
+const orders=Object.values(val).map(o=>{
+const ts=o.createdAt||Date.now();
+const d=new Date(ts);
+const dt=n=>String(n).padStart(2,"0");
+return {...o,createdAtLocal:ts,timeText:d.getFullYear()+"-"+dt(d.getMonth()+1)+"-"+dt(d.getDate())+" "+dt(d.getHours())+":"+dt(d.getMinutes()),json:JSON.stringify({...o,createdAtLocal:ts})};
+}).sort((a,b)=>(b.createdAtLocal||0)-(a.createdAtLocal||0));
+renderOrders(orders);
+}).catch(err=>{
+orderList.innerHTML='<div class="empty error">订单加载失败：'+esc(err.message)+"</div>";
+});
+}
+document.getElementById("btnRefreshOrders").addEventListener("click",loadOrders);
+
+/* SECTION: order-submit */
+firebase.database().ref(".info/connected").on("value",s=>
+connection.textContent=s.val()?"✓ link to kitchen":"off line；no order send"
+);
+
+btnPrintLast.addEventListener("click",async()=>{
+if(!lastOrder)return;
+const ok=await printOrder(lastOrder);
+setMessage(ok?"✓ 已重新打印小票："+lastOrder.id:"打印失败，请检查打印机连接",ok?"ok":"error");
+});
+
+orderForm.addEventListener("submit",async e=>{
+e.preventDefault();
+if(!cart.size)return setMessage("请先选择菜品 Must order。","error");
+const {lines,subtotal,discount,total}=cartTotals(),
+cash=parseFloat(cashInput.value)||0;
+const order={
+id:"A"+Date.now().toString().slice(-6),
+table:tableInput.value.trim()||"Table 3",
+items:lines.map(([id,qty])=>{
+const x=itemById(id);
+return{name:x.name,emoji:x.emoji,qty,price:x.price};
+}),
+note:note.value.trim(),
+subtotal,
+discount,
+total,
+cash,
+status:"pending",
+createdAt:firebase.database.ServerValue.TIMESTAMP
+};
+submit.disabled=true;
+setMessage("正在发送订单…");
+try{
+await ordersRef.push().set(order);
+lastOrder={...order,createdAtLocal:Date.now()};
+setMessage("✓ 订单已发送厨房！Order No："+order.id+(cash>=total&&cash>0?" 找零："+money(cash-total):""),"ok");
+cart.clear();
+note.value="";
+cashInput.value="";
+renderCart();
+reprintBar.hidden=false;
+if(autoPrint.checked){
+const ok=await printOrder(lastOrder);
+if(ok)setMessage(message.textContent+" · 🖨️ 小票已打印","ok");
+}
+loadOrders();
+}catch(error){
+console.error(error);
+setMessage("Order no send："+error.message,"error");
+}finally{
+submit.disabled=false;
+}
+});
+
+/* SECTION: fullscreen 全屏 */
+function isFullscreen(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
+}
+function updateFullscreenBtn(){
+  if (btnFullscreen) {
+    btnFullscreen.textContent=isFullscreen()?"⛶ 退出全屏 Exit Fullscreen":"⛶ 全屏 Fullscreen";
+  }
+}
+async function toggleFullscreen(){
+  try{
+    if(isFullscreen()){
+      if(document.exitFullscreen)await document.exitFullscreen();
+      else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+      else if(document.msExitFullscreen)document.msExitFullscreen();
+    }else{
+      const el=document.documentElement;
+      if(el.requestFullscreen)await el.requestFullscreen();
+      else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+      else if(el.msRequestFullscreen)el.msRequestFullscreen();
+      else setMessage("当前浏览器不支持全屏 API","error");
+    }
+  }catch(err){
+    console.error(err);
+    setMessage("全屏切换失败："+err.message,"error");
+  }
+}
+if (btnFullscreen) {
+  btnFullscreen.addEventListener("click",toggleFullscreen);
+  ["fullscreenchange","webkitfullscreenchange","msfullscreenchange"].forEach(ev=>
+    document.addEventListener(ev,updateFullscreenBtn)
+  );
+  updateFullscreenBtn();
+}
+
+/* SECTION: auth 密码登入 */
+const PASSWORD="1234";                 /* ← 在这里修改密码 */
+const AUTH_KEY="anjappar-pos-auth";
+const MAX_FAIL=5, LOCK_MS=30000;
+let failCount=0, lockUntil=0, appStarted=false, orderTimer=null;
+
+function safeSessionGet(k){try{return sessionStorage.getItem(k);}catch(_){return null;}}
+function safeSessionSet(k,v){try{sessionStorage.setItem(k,v);}catch(_){}}
+function safeSessionDel(k){try{sessionStorage.removeItem(k);}catch(_){}}
+
+function showLoginMsg(t,cls="error"){
+loginMsg.textContent=t;
+loginMsg.className="lock-msg "+(t?cls:"");
+}
+
+function startApp(){
+  if(appStarted)return;
+  appStarted=true;
+
+  // 【关键修复】使用事件委托，父容器只绑定一次，动态生成的按钮也能响应
+  tabs.addEventListener("click", e => {
+    const tab = e.target.closest(".tab");
+    if (!tab) return;
+    activeCategory = tab.dataset.category;
+    renderTabs();
+    renderMenu();
+  });
+
+  menu.addEventListener("click", e => {
+    const btn = e.target.closest("[data-add]");
+    if (!btn) return;
+    changeItem(+btn.dataset.add, 1);
+  });
+
+  cartItems.addEventListener("click", e => {
+    const btn = e.target.closest("[data-change]");
+    if (!btn) return;
+    changeItem(+btn.dataset.change, +btn.dataset.amount);
+  });
+
+  orderList.addEventListener("click", e => {
+    const btn = e.target.closest("[data-print-order]");
+    if (!btn) return;
+    try {
+      const o = JSON.parse(btn.dataset.printOrder);
+      printOrder(o).then(ok => {
+        setMessage(ok ? "✓ 小票已重打：" + o.id : "重打失败，请检查打印机连接", ok ? "ok" : "error");
+      });
+    } catch(err) {
+      console.error("解析订单数据失败", err);
+    }
+  });
+
+  setPrinterStatus("未连接 · Not connected");
+  renderTabs();
+  renderMenu();
+  renderCart();
+  loadOrders();
+  orderTimer=setInterval(loadOrders,15000);
+}
+
+function unlockApp(){
+lockScreen.hidden=true;
+startApp();
+}
+
+function lockApp(){
+lockScreen.hidden=false;
+safeSessionDel(AUTH_KEY);
+if(orderTimer){clearInterval(orderTimer);orderTimer=null;}
+appStarted=false;
+cart.clear();
+renderCart();
+reprintBar.hidden=true;
+setMessage("");
+passwordInput.value="";
+showLoginMsg("");
+passwordInput.focus();
+}
+
+loginForm.addEventListener("submit",e=>{
+e.preventDefault();
+const now=Date.now();
+if(now<lockUntil){
+showLoginMsg("尝试次数过多，请 "+Math.ceil((lockUntil-now)/1000)+" 秒后再试");
+return;
+}
+if(passwordInput.value===PASSWORD){
+failCount=0;
+safeSessionSet(AUTH_KEY,"1");
+showLoginMsg("登入成功","ok");
+passwordInput.value="";
+unlockApp();
+}else{
+failCount++;
+passwordInput.value="";
+if(failCount>=MAX_FAIL){
+failCount=0;
+lockUntil=Date.now()+LOCK_MS;
+showLoginMsg("密码错误 5 次，已锁定 30 秒");
+}else{
+showLoginMsg("密码错误，请重试（剩余 "+(MAX_FAIL-failCount)+" 次）");
+}
+passwordInput.focus();
+}
+});
+
+btnLogout.addEventListener("click",()=>{
+if(!confirm("确定要登出吗？ Logout?"))return;
+lockApp();
+});
+
+/* SECTION: boot */
+if(safeSessionGet(AUTH_KEY)==="1"){
+unlockApp();
+}else{
+lockApp();
+}
+</script>
+</body>
+</html>
