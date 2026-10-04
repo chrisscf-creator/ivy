@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>我的账户 · 顾客端</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh; padding: 16px; color: #1a1528; }
+.app-container { max-width: 480px; margin: 0 auto; }
+
+/* 登录/注册 */
+.auth-screen { display: flex; flex-direction: column; justify-content: center; min-height: calc(100vh - 32px); padding: 20px 0; }
+.auth-screen.hidden { display: none; }
+.auth-brand { text-align: center; margin-bottom: 32px; }
+.auth-logo { width: 72px; height: 72px; border-radius: 24px; background: linear-gradient(135deg, #2d2642, #1e1b2f); display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; color: #f9e076; margin-bottom: 16px; box-shadow: 0 12px 30px -8px rgba(30, 27, 47, 0.5); }
+.auth-title { font-size: 1.6rem; font-weight: 800; color: #1e1b2f; letter-spacing: -0.02em; }
+.auth-subtitle { font-size: 0.85rem; color: #8b7aa8; margin-top: 6px; }
+.auth-card { background: white; border-radius: 24px; padding: 28px 24px; box-shadow: 0 10px 40px -12px rgba(88, 28, 135, 0.15); border: 1px solid #ede6f7; }
+.auth-tabs { display: flex; background: #f5f0ff; border-radius: 14px; padding: 4px; margin-bottom: 24px; }
+.auth-tab { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 10px; font-weight: 600; font-size: 0.88rem; color: #8b7aa8; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.auth-tab.active { background: white; color: #2d2642; box-shadow: 0 2px 8px -2px rgba(88, 28, 135, 0.15); }
+.auth-form-group { margin-bottom: 16px; }
+.auth-form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #4c3b7a; margin-bottom: 6px; }
+.auth-form-group input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid #e8e0f0; font-size: 0.95rem; font-family: inherit; background: #fdfbff; transition: all 0.2s; }
+.auth-form-group input:focus { outline: none; border-color: #8b6fcb; background: white; box-shadow: 0 0 0 4px rgba(139, 111, 203, 0.1); }
+.auth-form-group .hint { font-size: 0.7rem; color: #9b8bb5; margin-top: 6px; }
+.auth-submit { width: 100%; padding: 16px; border-radius: 16px; border: none; background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; box-shadow: 0 8px 20px -8px rgba(30, 27, 47, 0.5); }
+.auth-submit:hover { transform: translateY(-1px); }
+.auth-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.auth-submit i { color: #f9e076; }
+.auth-error { background: #ffebee; color: #c62828; padding: 12px 16px; border-radius: 12px; font-size: 0.82rem; margin-bottom: 16px; display: none; align-items: center; gap: 8px; border: 1px solid #ffcdd2; }
+.auth-error.show { display: flex; }
+.auth-footer { text-align: center; font-size: 0.75rem; color: #9b8bb5; margin-top: 20px; line-height: 1.6; }
+
+/* 主应用 */
+.main-app { display: none; }
+.main-app.active { display: block; }
+.user-header { background: linear-gradient(135deg, #2d2642, #1e1b2f); border-radius: 24px; padding: 24px 20px; color: white; margin-bottom: 20px; box-shadow: 0 10px 30px -10px rgba(30, 27, 47, 0.4); position: relative; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2; }
+.user-greeting { font-size: 0.85rem; opacity: 0.8; margin-bottom: 6px; }
+.user-name { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.user-name i { color: #f9e076; font-size: 1.6rem; }
+.user-id { font-size: 0.72rem; opacity: 0.6; margin-top: 8px; font-family: monospace; background: rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 20px; display: inline-block; }
+.header-menu-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 38px; height: 38px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s; z-index: 3; }
+.header-menu-btn:hover { background: rgba(255,255,255,0.2); }
+.dropdown-menu { position: absolute; top: 70px; right: 20px; background: white; border-radius: 16px; box-shadow: 0 12px 40px -8px rgba(0,0,0,0.25); padding: 8px; min-width: 180px; display: none; z-index: 100; border: 1px solid #ede6f7; }
+.dropdown-menu.show { display: block; }
+.dropdown-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; color: #4c3b7a; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: inherit; transition: all 0.15s; }
+.dropdown-item:hover { background: #f5f0ff; }
+.dropdown-item i { width: 18px; text-align: center; color: #8b6fcb; }
+.dropdown-item.logout { color: #c62828; }
+.dropdown-item.logout i { color: #c62828; }
+.dropdown-divider { height: 1px; background: #f0eaf8; margin: 6px 8px; }
+
+.balance-card { background: white; border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 16px -4px rgba(88, 28, 135, 0.1); border: 1px solid #ede6f7; }
+.balance-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.balance-label { font-size: 0.8rem; color: #7e6a9e; font-weight: 500; margin-bottom: 4px; }
+.balance-amount { font-size: 2rem; font-weight: 800; color: #2d2642; letter-spacing: -0.03em; }
+.balance-amount span { font-size: 1rem; font-weight: 600; color: #8b6fcb; }
+.balance-actions { display: flex; gap: 10px; }
+.btn-round { padding: 10px 16px; border-radius: 40px; border: none; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; font-family: inherit; }
+.btn-round.primary { background: linear-gradient(135deg, #8b6fcb, #6b4fa8); color: white; box-shadow: 0 4px 12px -4px rgba(139, 111, 203, 0.5); }
+.btn-round.secondary { background: #f5f0ff; color: #4c3b7a; }
+.btn-round:hover { transform: translateY(-1px); }
+
+.pending-notice { background: #fff8e1; border: 1px solid #ffe082; border-radius: 14px; padding: 12px 16px; font-size: 0.8rem; color: #8d6e00; display: none; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+.pending-notice.show { display: flex; }
+.pending-notice i { font-size: 1.1rem; color: #f9a825; margin-top: 2px; }
+.pending-notice .pending-list { margin-top: 6px; font-size: 0.75rem; line-height: 1.5; }
+
+.tab-bar { display: flex; background: white; border-radius: 16px; padding: 4px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 12px; font-weight: 600; font-size: 0.85rem; color: #8b7aa8; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.tab-btn.active { background: #2d2642; color: white; }
+
+.voucher-list { display: flex; flex-direction: column; gap: 14px; }
+.voucher-item { background: white; border-radius: 20px; padding: 18px; box-shadow: 0 4px 16px -6px rgba(88, 28, 135, 0.1); border: 1px solid #ede6f7; display: flex; gap: 14px; position: relative; overflow: hidden; }
+.voucher-item.used { opacity: 0.6; filter: grayscale(0.6); }
+.voucher-item.expired { opacity: 0.5; filter: grayscale(1); }
+.voucher-item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: linear-gradient(180deg, #d4af37, #f9e076); }
+.voucher-item.used::before { background: #b0b0b0; }
+.voucher-item.expired::before { background: #d0d0d0; }
+.voucher-icon { width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(145deg, #f9f0ff, #ede0ff); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #8b6fcb; flex-shrink: 0; }
+.voucher-item.used .voucher-icon, .voucher-item.expired .voucher-icon { background: #f0f0f0; color: #999; }
+.voucher-body { flex: 1; min-width: 0; }
+.voucher-amount { font-size: 1.3rem; font-weight: 800; color: #2d2642; }
+.voucher-amount small { font-size: 0.75rem; font-weight: 500; color: #8b6fcb; margin-left: 4px; }
+.voucher-desc { font-size: 0.78rem; color: #7e6a9e; margin-top: 4px; }
+.voucher-code { font-family: monospace; font-size: 0.75rem; background: #f5f0ff; color: #6b4fa8; padding: 3px 8px; border-radius: 6px; display: inline-block; margin-top: 8px; font-weight: 600; }
+.voucher-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 0.7rem; color: #9b8bb5; }
+.voucher-status { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+.status-active { background: #e8f5e9; color: #2e7d32; }
+.status-used { background: #f0f0f0; color: #757575; }
+.status-expired { background: #ffebee; color: #c62828; }
+.use-btn { background: linear-gradient(135deg, #2d2642, #1e1b2f); border: none; padding: 8px 16px; border-radius: 30px; color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; align-self: center; font-family: inherit; }
+.use-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
+
+.history-list { display: flex; flex-direction: column; gap: 10px; }
+.history-item { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px -4px rgba(88, 28, 135, 0.08); border: 1px solid #f0eaf8; display: flex; justify-content: space-between; align-items: center; }
+.history-left { display: flex; align-items: center; gap: 12px; }
+.history-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.icon-topup { background: #e8f5e9; color: #2e7d32; }
+.icon-pending { background: #fff8e1; color: #f9a825; }
+.icon-use { background: #fff3e0; color: #e65100; }
+.icon-receive { background: #e3f2fd; color: #1565c0; }
+.icon-reject { background: #ffebee; color: #c62828; }
+.history-info h4 { font-size: 0.88rem; font-weight: 600; color: #2d2642; }
+.history-info p { font-size: 0.7rem; color: #9b8bb5; margin-top: 2px; }
+.history-amount { font-size: 1rem; font-weight: 700; }
+.history-amount.plus { color: #2e7d32; }
+.history-amount.minus { color: #c62828; }
+.history-amount.pending { color: #f9a825; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: #9b8bb5; }
+.empty-state i { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(30, 27, 47, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; }
+.modal-header { padding: 24px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #1e1b2f; }
+.modal-close { background: none; border: none; font-size: 1.4rem; color: #9b8bb5; cursor: pointer; padding: 4px; }
+.modal-body { padding: 24px; }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #4c3b7a; margin-bottom: 6px; }
+.form-group input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid #e8e0f0; font-size: 1rem; font-family: inherit; background: #fdfbff; font-weight: 600; }
+.form-group input:focus { outline: none; border-color: #8b6fcb; background: white; }
+.quick-amounts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.quick-amount { padding: 12px; border-radius: 12px; border: 1.5px solid #e8e0f0; background: #fdfbff; font-weight: 700; font-size: 0.95rem; color: #4c3b7a; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.quick-amount:hover { border-color: #8b6fcb; background: #f5f0ff; }
+.quick-amount.selected { background: #2d2642; color: white; border-color: #2d2642; }
+.modal-footer { padding: 0 24px 24px; display: flex; gap: 12px; }
+.btn { flex: 1; padding: 14px; border-radius: 14px; border: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; font-family: inherit; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-outline { background: white; border: 1.5px solid #e0d4f0; color: #4c3b7a; }
+
+.scanner-container { width: 100%; border-radius: 16px; overflow: hidden; background: #000; min-height: 280px; }
+#qr-reader { width: 100%; }
+#qr-reader video { border-radius: 16px; }
+.scan-hint { text-align: center; font-size: 0.8rem; color: #8b7aa8; margin-top: 16px; line-height: 1.6; }
+.scan-hint code { background: #f5f0ff; padding: 2px 6px; border-radius: 6px; color: #6b4fa8; font-size: 0.75rem; }
+.scan-result { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 14px; padding: 16px; margin-top: 16px; display: none; align-items: center; gap: 12px; color: #2e7d32; font-size: 0.85rem; }
+.scan-result.show { display: flex; }
+.scan-result i { font-size: 1.5rem; }
+
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; font-weight: 500; font-size: 0.85rem; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.4); opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 2000; display: flex; align-items: center; gap: 8px; max-width: 90%; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border: 1px solid rgba(46, 125, 50, 0.4); }
+.toast.error { border: 1px solid rgba(198, 40, 40, 0.4); color: #ffb3b3; }
+
+.loading { text-align: center; padding: 40px; color: #8b6fcb; }
+.loading i { font-size: 2rem; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ==================== 登录/注册 ==================== -->
+<div class="auth-screen" id="authScreen">
+  <div class="app-container">
+    <div class="auth-brand">
+      <div class="auth-logo"><i class="fas fa-crown"></i></div>
+      <div class="auth-title">LUXE & CO.</div>
+      <div class="auth-subtitle">顾客会员中心</div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tabLoginBtn"><i class="fas fa-sign-in-alt"></i> 登录</button>
+        <button type="button" class="auth-tab" id="tabRegisterBtn"><i class="fas fa-user-plus"></i> 注册</button>
+      </div>
+
+      <div class="auth-error" id="authError">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="authErrorText"></span>
+      </div>
+
+      <form id="loginForm">
+        <div class="auth-form-group">
+          <label>顾客ID</label>
+          <input type="text" id="loginCustomerId" placeholder="例如: customer_001" autocomplete="username" required>
+        </div>
+        <div class="auth-form-group">
+          <label>密码</label>
+          <input type="password" id="loginPassword" placeholder="输入密码" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="auth-submit" id="loginBtn">
+          <i class="fas fa-sign-in-alt"></i> 登录
+        </button>
+      </form>
+
+      <form id="registerForm" style="display: none;">
+        <div class="auth-form-group">
+          <label>顾客ID</label>
+          <input type="text" id="regCustomerId" placeholder="例如: customer_001" autocomplete="username" required>
+          <div class="hint">请使用英文字母、数字或下划线（唯一）</div>
+        </div>
+        <div class="auth-form-group">
+          <label>姓名 / 昵称</label>
+          <input type="text" id="regName" placeholder="例如: 张三" autocomplete="name" required>
+        </div>
+        <div class="auth-form-group">
+          <label>密码</label>
+          <input type="password" id="regPassword" placeholder="至少 6 位" autocomplete="new-password" required minlength="6">
+        </div>
+        <div class="auth-form-group">
+          <label>确认密码</label>
+          <input type="password" id="regPassword2" placeholder="再次输入密码" autocomplete="new-password" required minlength="6">
+        </div>
+        <button type="submit" class="auth-submit" id="registerBtn">
+          <i class="fas fa-user-plus"></i> 注册并登录
+        </button>
+      </form>
+    </div>
+
+    <div class="auth-footer">
+      <i class="fas fa-shield-alt"></i> 您的数据经过加密保护
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 主应用 ==================== -->
+<div class="main-app" id="mainApp">
+  <div class="app-container">
+    <div class="user-header">
+      <div class="header-top">
+        <div>
+          <div class="user-greeting">欢迎回来</div>
+          <div class="user-name" id="userName"><i class="fas fa-user-circle"></i> 加载中...</div>
+          <div class="user-id" id="userId">ID: ---</div>
+        </div>
+        <button type="button" class="header-menu-btn" id="headerMenuBtn"><i class="fas fa-ellipsis-v"></i></button>
+      </div>
+      <div class="dropdown-menu" id="dropdownMenu">
+        <button type="button" class="dropdown-item" id="scanPayMenuItem"><i class="fas fa-qrcode"></i> 扫码支付</button>
+        <button type="button" class="dropdown-item" id="refreshMenuItem"><i class="fas fa-sync-alt"></i> 刷新数据</button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> 退出登录</button>
+      </div>
+    </div>
+
+    <div class="balance-card">
+      <div class="balance-top">
+        <div>
+          <div class="balance-label">账户余额</div>
+          <div class="balance-amount" id="userBalance">$0<span>.00</span></div>
+        </div>
+      </div>
+      <div class="balance-actions">
+        <button type="button" class="btn-round primary" id="topupBtn"><i class="fas fa-plus-circle"></i> 申请充值</button>
+        <button type="button" class="btn-round secondary" id="scanPayBtn"><i class="fas fa-qrcode"></i> 扫码支付</button>
+      </div>
+    </div>
+
+    <div class="pending-notice" id="pendingNotice">
+      <i class="fas fa-hourglass-half"></i>
+      <div>
+        <strong>有充值申请待审批</strong>
+        <div class="pending-list" id="pendingList"></div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button type="button" class="tab-btn active" data-tab="vouchers"><i class="fas fa-ticket-alt"></i> 我的礼券</button>
+      <button type="button" class="tab-btn" data-tab="history"><i class="fas fa-history"></i> 交易记录</button>
+    </div>
+
+    <div id="voucherTab">
+      <div id="voucherList" class="voucher-list">
+        <div class="loading"><i class="fas fa-spinner"></i></div>
+      </div>
+    </div>
+
+    <div id="historyTab" style="display: none;">
+      <div id="historyList" class="history-list">
+        <div class="loading"><i class="fas fa-spinner"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 充值弹窗 -->
+<div class="modal-overlay" id="topupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-wallet" style="color:#8b6fcb; margin-right:8px;"></i>申请充值</h3>
+      <button type="button" class="modal-close" id="closeTopupModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>选择金额</label>
+        <div class="quick-amounts">
+          <button type="button" class="quick-amount" data-amount="50">$50</button>
+          <button type="button" class="quick-amount" data-amount="100">$100</button>
+          <button type="button" class="quick-amount" data-amount="200">$200</button>
+          <button type="button" class="quick-amount" data-amount="500">$500</button>
+          <button type="button" class="quick-amount" data-amount="1000">$1000</button>
+          <button type="button" class="quick-amount" data-amount="2000">$2000</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>自定义金额 ($)</label>
+        <input type="number" id="topupAmount" placeholder="输入金额" min="1" step="0.01">
+      </div>
+      <div style="background:#fff8e1; border-radius:12px; padding:12px; font-size:0.78rem; color:#8d6e00; display:flex; gap:8px;">
+        <i class="fas fa-info-circle" style="margin-top:2px;"></i>
+        <div>提交后需等待商户审批，审批通过后余额才会到账。</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" id="cancelTopup">取消</button>
+      <button type="button" class="btn btn-primary" id="confirmTopup"><i class="fas fa-paper-plane"></i> 提交申请</button>
+    </div>
+  </div>
+</div>
+
+<!-- 扫码支付弹窗 -->
+<div class="modal-overlay" id="scanModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-qrcode" style="color:#8b6fcb; margin-right:8px;"></i>扫码支付</h3>
+      <button type="button" class="modal-close" id="closeScanModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="scanner-container">
+        <div id="qr-reader"></div>
+      </div>
+      <div class="scan-hint">
+        将摄像头对准商户二维码<br>
+        支持格式：<code>VOUCHER:券码</code> 或纯券码
+      </div>
+      <div class="scan-result" id="scanResult">
+        <i class="fas fa-check-circle"></i>
+        <span id="scanResultText">识别成功</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ================= Firebase =================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, get, set, push, update, onValue, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
+  authDomain: "restaurants-cs.firebaseapp.com",
+  databaseURL: "https://restaurants-cs-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "restaurants-cs",
+  storageBucket: "restaurants-cs.firebasestorage.app",
+  messagingSenderId: "209872919844",
+  appId: "1:209872919844:web:c1730801cd51d615e867b1",
+  measurementId: "G-12T3WGM880"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ================= 工具 =================
+async function sha256(text) {
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  document.getElementById('authErrorText').textContent = msg;
+  el.classList.add('show');
+}
+
+function hideAuthError() {
+  document.getElementById('authError').classList.remove('show');
+}
+
+function formatDate(ts) {
+  if (!ts) return '---';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDateTime(ts) {
+  if (!ts) return '---';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function getInitials(name) {
+  return (name || '?').charAt(0).toUpperCase();
+}
+
+// ================= 全局状态 =================
+let CURRENT_CUSTOMER_ID = null;
+let unsubscribers = [];
+
+function clearListeners() {
+  unsubscribers.forEach(fn => { try { fn(); } catch(e){} });
+  unsubscribers = [];
+}
+
+// ================= Tab切换（登录/注册） =================
+document.getElementById('tabLoginBtn').addEventListener('click', () => {
+  document.getElementById('tabLoginBtn').classList.add('active');
+  document.getElementById('tabRegisterBtn').classList.remove('active');
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  hideAuthError();
+});
+
+document.getElementById('tabRegisterBtn').addEventListener('click', () => {
+  document.getElementById('tabRegisterBtn').classList.add('active');
+  document.getElementById('tabLoginBtn').classList.remove('active');
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  hideAuthError();
+});
+
+// ================= 注册 =================
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAuthError();
+  const btn = document.getElementById('registerBtn');
+  const customerId = document.getElementById('regCustomerId').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  const pwd = document.getElementById('regPassword').value;
+  const pwd2 = document.getElementById('regPassword2').value;
+
+  if (!/^[a-zA-Z0-9_]{3,30}$/.test(customerId)) {
+    showAuthError('顾客ID只能包含字母、数字或下划线，长度3-30');
+    return;
+  }
+  if (!name) { showAuthError('请输入姓名'); return; }
+  if (pwd.length < 6) { showAuthError('密码至少 6 位'); return; }
+  if (pwd !== pwd2) { showAuthError('两次输入的密码不一致'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
+
+  try {
+    // 检查是否已存在
+    const userRef = ref(db, `users/${customerId}`);
+    const snap = await get(userRef);
+    if (snap.exists() && snap.val().passwordHash) {
+      showAuthError('该顾客ID已被注册，请更换或直接登录');
+      return;
+    }
+
+    const passwordHash = await sha256(pwd);
+    const userData = {
+      name,
+      passwordHash,
+      balance: 0,
+      createdAt: serverTimestamp()
+    };
+
+    // 保留原有数据（如已有 vouchers/history）
+    const existing = snap.val() || {};
+    await set(userRef, { ...existing, ...userData });
+
+    // 登录成功
+    await completeLogin(customerId, name);
+
+  } catch (err) {
+    console.error(err);
+    showAuthError('注册失败：' + (err.message || '请稍后再试'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-plus"></i> 注册并登录';
+  }
+});
+
+// ================= 登录 =================
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideAuthError();
+  const btn = document.getElementById('loginBtn');
+  const customerId = document.getElementById('loginCustomerId').value.trim();
+  const pwd = document.getElementById('loginPassword').value;
+
+  if (!customerId || !pwd) { showAuthError('请输入顾客ID和密码'); return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+
+  try {
+    const userRef = ref(db, `users/${customerId}`);
+    const snap = await get(userRef);
+    if (!snap.exists()) {
+      showAuthError('该顾客ID尚未注册，请先注册');
+      return;
+    }
+    const userData = snap.val();
+    if (!userData.passwordHash) {
+      showAuthError('该账号未设置密码，请重新注册');
+      return;
+    }
+
+    const inputHash = await sha256(pwd);
+    if (inputHash !== userData.passwordHash) {
+      showAuthError('密码错误，请重试');
+      return;
+    }
+
+    await completeLogin(customerId, userData.name || customerId);
+
+  } catch (err) {
+    console.error(err);
+    showAuthError('登录失败：' + (err.message || '请稍后再试'));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> 登录';
+  }
+});
+
+// ================= 登录成功后的处理 =================
+async function completeLogin(customerId, name) {
+  CURRENT_CUSTOMER_ID = customerId;
+  localStorage.setItem('customerId', customerId);
+  localStorage.setItem('customerName', name || customerId);
+
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.add('active');
+
+  startListeners();
+}
+
+// ================= 退出登录 =================
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if (!confirm('确认退出登录吗？')) return;
+  clearListeners();
+  localStorage.removeItem('customerId');
+  localStorage.removeItem('customerName');
+  CURRENT_CUSTOMER_ID = null;
+
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('dropdownMenu').classList.remove('show');
+});
+
+// ================= 下拉菜单 =================
+const dropdownMenu = document.getElementById('dropdownMenu');
+document.getElementById('headerMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  dropdownMenu.classList.toggle('show');
+});
+document.addEventListener('click', (e) => {
+  if (!dropdownMenu.contains(e.target) && e.target.id !== 'headerMenuBtn') {
+    dropdownMenu.classList.remove('show');
+  }
+});
+
+document.getElementById('refreshMenuItem').addEventListener('click', () => {
+  dropdownMenu.classList.remove('show');
+  showToast('已刷新', 'success');
+  startListeners();
+});
+
+document.getElementById('scanPayMenuItem').addEventListener('click', () => {
+  dropdownMenu.classList.remove('show');
+  openScanner();
+});
+
+// ================= 数据监听 =================
+function startListeners() {
+  clearListeners();
+  if (!CURRENT_CUSTOMER_ID) return;
+
+  // 用户信息
+  const userRef = ref(db, `users/${CURRENT_CUSTOMER_ID}`);
+  unsubscribers.push(onValue(userRef, (snap) => {
+    const data = snap.val();
+    if (data) {
+      document.getElementById('userName').innerHTML = `<i class="fas fa-user-circle"></i> ${data.name || '尊贵顾客'}`;
+      document.getElementById('userId').textContent = `ID: ${CURRENT_CUSTOMER_ID}`;
+      document.getElementById('userBalance').innerHTML = `$${(data.balance || 0).toFixed(2)}<span></span>`;
+    }
+  }));
+
+  // 待审批
+  const pendingRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/topupRequests`);
+  unsubscribers.push(onValue(pendingRef, (snap) => {
+    const data = snap.val();
+    const notice = document.getElementById('pendingNotice');
+    const list = document.getElementById('pendingList');
+    if (!data) { notice.classList.remove('show'); return; }
+    const pending = Object.values(data).filter(r => r.status === 'pending');
+    if (pending.length === 0) { notice.classList.remove('show'); return; }
+    notice.classList.add('show');
+    list.innerHTML = pending.map(p =>
+      `· $${(p.amount || 0).toFixed(2)} 申请于 ${formatDateTime(p.createdAt)}`
+    ).join('<br>');
+  }));
+
+  // 礼券
+  const vouchersRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/vouchers`);
+  unsubscribers.push(onValue(vouchersRef, (snap) => {
+    renderVouchers(snap.val());
+  }));
+
+  // 历史
+  const historyRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/history`);
+  unsubscribers.push(onValue(historyRef, (snap) => {
+    renderHistory(snap.val());
+  }));
+}
+
+// ================= 渲染礼券 =================
+function renderVouchers(data) {
+  const list = document.getElementById('voucherList');
+  if (!data) {
+    list.innerHTML = `<div class="empty-state"><i class="fas fa-ticket-alt"></i><p>暂无礼券</p></div>`;
+    return;
+  }
+  const now = Date.now();
+  const vouchers = Object.entries(data).map(([id, v]) => ({ id, ...v }));
+  vouchers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  list.innerHTML = vouchers.map(v => {
+    let status = 'active', statusText = '可用', statusClass = 'status-active';
+    if (v.used) { status = 'used'; statusText = '已使用'; statusClass = 'status-used'; }
+    else if (v.expiry && v.expiry < now) { status = 'expired'; statusText = '已过期'; statusClass = 'status-expired'; }
+
+    return `
+      <div class="voucher-item ${status}">
+        <div class="voucher-icon"><i class="fas fa-gift"></i></div>
+        <div class="voucher-body">
+          <div class="voucher-amount">$${(v.amount || 0).toFixed(2)} <small>抵扣券</small></div>
+          <div class="voucher-desc">${v.description || '满 $' + (v.minSpend || 0) + ' 可用'}</div>
+          <div class="voucher-code">${v.code || '----'}</div>
+          <div class="voucher-meta">
+            <span>有效期至 ${formatDate(v.expiry)}</span>
+            <span class="voucher-status ${statusClass}">${statusText}</span>
+          </div>
+        </div>
+        <button type="button" class="use-btn" data-id="${v.id}" ${status !== 'active' ? 'disabled' : ''}>
+          <i class="fas fa-bolt"></i> 使用
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.use-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => useVoucher(btn.dataset.id));
+  });
+}
+
+// ================= 使用礼券 =================
+async function useVoucher(voucherId) {
+  if (!confirm('确认使用此礼券吗？')) return;
+  try {
+    const vRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/vouchers/${voucherId}`);
+    const snap = await get(vRef);
+    const v = snap.val();
+    if (!v || v.used) { showToast('礼券不可用', 'error'); return; }
+    await update(vRef, { used: true, usedAt: serverTimestamp() });
+    await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
+      type: 'voucher_use',
+      voucherId,
+      amount: v.amount,
+      code: v.code,
+      description: `使用礼券 $${v.amount}`,
+      createdAt: serverTimestamp()
+    });
+    showToast(`礼券 $${v.amount} 使用成功！`, 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('使用失败', 'error');
+  }
+}
+
+// ================= 渲染历史 =================
+function renderHistory(data) {
+  const list = document.getElementById('historyList');
+  if (!data) {
+    list.innerHTML = `<div class="empty-state"><i class="fas fa-history"></i><p>暂无交易记录</p></div>`;
+    return;
+  }
+  const items = Object.entries(data).map(([id, h]) => ({ id, ...h }));
+  items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  list.innerHTML = items.map(h => {
+    let iconClass = 'icon-receive', icon = 'fa-gift', prefix = '+', amountClass = 'plus';
+    if (h.type === 'topup') { iconClass = 'icon-topup'; icon = 'fa-plus-circle'; prefix = '+'; amountClass = 'plus'; }
+    else if (h.type === 'topup_pending') { iconClass = 'icon-pending'; icon = 'fa-hourglass-half'; prefix = ''; amountClass = 'pending'; }
+    else if (h.type === 'topup_rejected') { iconClass = 'icon-reject'; icon = 'fa-times-circle'; prefix = ''; amountClass = 'minus'; }
+    else if (h.type === 'voucher_use' || h.type === 'spend') { iconClass = 'icon-use'; icon = 'fa-shopping-bag'; prefix = '-'; amountClass = 'minus'; }
+
+    return `
+      <div class="history-item">
+        <div class="history-left">
+          <div class="history-icon ${iconClass}"><i class="fas ${icon}"></i></div>
+          <div class="history-info">
+            <h4>${h.description || '交易'}</h4>
+            <p>${formatDateTime(h.createdAt)}</p>
+          </div>
+        </div>
+        <div class="history-amount ${amountClass}">${prefix}$${Math.abs(h.amount || 0).toFixed(2)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ================= Tab切换（礼券/历史） =================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('voucherTab').style.display = tab === 'vouchers' ? 'block' : 'none';
+    document.getElementById('historyTab').style.display = tab === 'history' ? 'block' : 'none';
+  });
+});
+
+// ================= 充值弹窗 =================
+const topupModal = document.getElementById('topupModal');
+const topupAmountInput = document.getElementById('topupAmount');
+
+document.getElementById('topupBtn').addEventListener('click', () => {
+  topupModal.classList.add('show');
+  topupAmountInput.value = '';
+  document.querySelectorAll('.quick-amount').forEach(b => b.classList.remove('selected'));
+});
+document.getElementById('closeTopupModal').addEventListener('click', () => topupModal.classList.remove('show'));
+document.getElementById('cancelTopup').addEventListener('click', () => topupModal.classList.remove('show'));
+
+document.querySelectorAll('.quick-amount').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.quick-amount').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    topupAmountInput.value = btn.dataset.amount;
+  });
+});
+
+document.getElementById('confirmTopup').addEventListener('click', async () => {
+  const amount = parseFloat(topupAmountInput.value);
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  try {
+    const reqRef = push(ref(db, `users/${CURRENT_CUSTOMER_ID}/topupRequests`));
+    await set(reqRef, { amount, status: 'pending', createdAt: serverTimestamp() });
+    await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
+      type: 'topup_pending',
+      amount,
+      requestId: reqRef.key,
+      description: `申请充值 $${amount.toFixed(2)}（待审批）`,
+      createdAt: serverTimestamp()
+    });
+    showToast('充值申请已提交，等待商户审批', 'success');
+    topupModal.classList.remove('show');
+  } catch (e) {
+    console.error(e);
+    showToast('提交失败，请重试', 'error');
+  }
+});
+
+// ================= 扫码支付 =================
+let qrScanner = null;
+
+function openScanner() {
+  document.getElementById('scanModal').classList.add('show');
+  document.getElementById('scanResult').classList.remove('show');
+
+  setTimeout(() => {
+    if (!qrScanner) {
+      qrScanner = new Html5Qrcode("qr-reader");
+    }
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess,
+      () => {}
+    ).catch(err => {
+      console.error('摄像头启动失败:', err);
+      showToast('无法启动摄像头，请检查权限', 'error');
+    });
+  }, 200);
+}
+
+function closeScanner() {
+  document.getElementById('scanModal').classList.remove('show');
+  if (qrScanner) {
+    qrScanner.stop().then(() => {
+      qrScanner.clear();
+    }).catch(() => {});
+  }
+}
+
+async function onScanSuccess(decodedText) {
+  // 停掉扫描
+  if (qrScanner) {
+    try { await qrScanner.stop(); qrScanner.clear(); } catch(e){}
+  }
+
+  // 解析券码
+  let code = decodedText.trim();
+  if (code.toUpperCase().startsWith('VOUCHER:')) {
+    code = code.substring(8).trim();
+  }
+
+  const resultEl = document.getElementById('scanResult');
+  const textEl = document.getElementById('scanResultText');
+  resultEl.classList.add('show');
+
+  // 查找当前顾客是否拥有此券码
+  try {
+    const vouchersRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/vouchers`);
+    const snap = await get(vouchersRef);
+    const vouchers = snap.val() || {};
+    let matchedId = null, matchedVoucher = null;
+    for (const [vid, v] of Object.entries(vouchers)) {
+      if (v.code === code) { matchedId = vid; matchedVoucher = v; break; }
+    }
+
+    if (!matchedVoucher) {
+      textEl.textContent = `未找到券码：${code}`;
+      resultEl.style.background = '#ffebee';
+      resultEl.style.borderColor = '#ffcdd2';
+      resultEl.style.color = '#c62828';
+      showToast('未找到此券码', 'error');
+      return;
+    }
+    if (matchedVoucher.used) {
+      textEl.textContent = `该券已使用：${code}`;
+      resultEl.style.background = '#ffebee';
+      resultEl.style.borderColor = '#ffcdd2';
+      resultEl.style.color = '#c62828';
+      showToast('此券已被使用', 'error');
+      return;
+    }
+
+    // 核销
+    await update(ref(db, `users/${CURRENT_CUSTOMER_ID}/vouchers/${matchedId}`), {
+      used: true, usedAt: serverTimestamp()
+    });
+    await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
+      type: 'voucher_use',
+      voucherId: matchedId,
+      amount: matchedVoucher.amount,
+      code: matchedVoucher.code,
+      description: `扫码支付 $${matchedVoucher.amount}`,
+      createdAt: serverTimestamp()
+    });
+
+    resultEl.style.background = '#e8f5e9';
+    resultEl.style.borderColor = '#a5d6a7';
+    resultEl.style.color = '#2e7d32';
+    textEl.textContent = `支付成功！抵扣 $${matchedVoucher.amount}`;
+    showToast(`扫码支付成功 $${matchedVoucher.amount}`, 'success');
+
+    setTimeout(() => {
+      closeScanner();
+      document.getElementById('scanResult').classList.remove('show');
+    }, 2000);
+
+  } catch (e) {
+    console.error(e);
+    textEl.textContent = '核销失败，请重试';
+    showToast('核销失败', 'error');
+  }
+}
+
+document.getElementById('scanPayBtn').addEventListener('click', openScanner);
+document.getElementById('closeScanModal').addEventListener('click', closeScanner);
+
+// ================= 自动登录（保持登录状态） =================
+(function autoLogin() {
+  const savedId = localStorage.getItem('customerId');
+  if (savedId) {
+    // 验证用户是否还存在
+    get(ref(db, `users/${savedId}`)).then(snap => {
+      if (snap.exists()) {
+        completeLogin(savedId, snap.val().name || savedId);
+      } else {
+        localStorage.removeItem('customerId');
+        localStorage.removeItem('customerName');
+      }
+    }).catch(() => {
+      // 离线时也允许进入
+      completeLogin(savedId, localStorage.getItem('customerName') || savedId);
+    });
+  }
+})();
+</script>
+</body>
+</html>
