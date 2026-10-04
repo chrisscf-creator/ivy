@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商户后台 · LUXE & CO.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #f0f2f5; min-height: 100vh; color: #1a1528; }
+.admin-header {
+  background: linear-gradient(135deg, #1e1b2f, #2d2642);
+  color: white;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px -4px rgba(0,0,0,0.3);
+  position: sticky; top: 0; z-index: 100;
+}
+.admin-logo { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.admin-logo i { color: #f9e076; }
+.admin-badge { font-size: 0.7rem; background: rgba(249, 224, 118, 0.2); color: #f9e076; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+.pending-badge { background: #c62828; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; font-weight: 700; margin-left: 6px; }
+.admin-layout { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 64px); }
+.sidebar { background: white; border-right: 1px solid #e8e0f0; padding: 20px 12px; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
+.sidebar-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  border-radius: 12px; color: #6b5b8a; font-weight: 500; font-size: 0.88rem;
+  cursor: pointer; transition: all 0.2s; margin-bottom: 4px;
+  border: none; background: none; width: 100%; text-align: left; font-family: inherit;
+}
+.sidebar-item:hover { background: #f5f0ff; color: #4c3b7a; }
+.sidebar-item.active { background: #2d2642; color: white; }
+.sidebar-item.active i { color: #f9e076; }
+.sidebar-item i { width: 20px; text-align: center; }
+.main-content { padding: 24px; overflow-y: auto; max-height: calc(100vh - 64px); }
+.page-title { font-size: 1.4rem; font-weight: 700; color: #1e1b2f; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+.page-subtitle { font-size: 0.82rem; color: #8b7aa8; margin-bottom: 24px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: white; border-radius: 18px; padding: 20px; box-shadow: 0 2px 12px -4px rgba(88, 28, 135, 0.08); border: 1px solid #f0eaf8; position: relative; overflow: hidden; }
+.stat-label { font-size: 0.75rem; color: #8b7aa8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stat-value { font-size: 1.8rem; font-weight: 800; color: #1e1b2f; }
+.stat-value small { font-size: 0.9rem; color: #8b6fcb; }
+.stat-icon { position: absolute; right: 20px; bottom: 20px; font-size: 1.8rem; color: #ede0ff; }
+.search-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.search-input {
+  flex: 1; min-width: 200px; padding: 12px 18px; border-radius: 14px;
+  border: 1.5px solid #e8e0f0; font-size: 0.9rem; font-family: inherit; background: white;
+}
+.search-input:focus { outline: none; border-color: #8b6fcb; box-shadow: 0 0 0 4px rgba(139, 111, 203, 0.1); }
+.btn {
+  padding: 12px 24px; border-radius: 14px; border: none;
+  font-weight: 600; font-size: 0.88rem; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; transition: all 0.2s; font-family: inherit;
+}
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-outline { background: white; border: 1.5px solid #e0d4f0; color: #4c3b7a; }
+.btn-outline:hover { background: #f9f6fe; }
+.btn-sm { padding: 8px 14px; font-size: 0.78rem; border-radius: 10px; }
+.btn-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.btn-success:hover { background: #c8e6c9; }
+.btn-danger { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+.btn-danger:hover { background: #ffcdd2; }
+.table-container { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 12px -4px rgba(88, 28, 135, 0.08); border: 1px solid #f0eaf8; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+thead { background: #faf8fe; border-bottom: 1px solid #ede6f7; }
+th { text-align: left; padding: 14px 18px; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #7e6a9e; white-space: nowrap; }
+td { padding: 14px 18px; border-bottom: 1px solid #f5f0ff; color: #2d2642; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fdfbff; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+.status-active { background: #e8f5e9; color: #2e7d32; }
+.status-used { background: #f0f0f0; color: #757575; }
+.status-expired { background: #ffebee; color: #c62828; }
+.status-pending { background: #fff8e1; color: #f9a825; }
+.status-rejected { background: #ffebee; color: #c62828; }
+.customer-info { display: flex; align-items: center; gap: 10px; }
+.customer-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(145deg, #ede0ff, #d9c9f0);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem; color: #6b4fa8; flex-shrink: 0;
+}
+.customer-name { font-weight: 600; font-size: 0.85rem; }
+.customer-id { font-size: 0.7rem; color: #9b8bb5; font-family: monospace; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(30, 27, 47, 0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: 24px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.2s ease; }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.modal-header { padding: 24px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #1e1b2f; }
+.modal-close { background: none; border: none; font-size: 1.4rem; color: #9b8bb5; cursor: pointer; }
+.modal-body { padding: 24px; }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: #4c3b7a; margin-bottom: 6px; }
+.form-group input, .form-group select {
+  width: 100%; padding: 12px 16px; border-radius: 12px;
+  border: 1.5px solid #e8e0f0; font-size: 0.9rem; font-family: inherit; background: #fdfbff;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: #8b6fcb; background: white; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.modal-footer { padding: 0 24px 24px; display: flex; gap: 12px; justify-content: flex-end; }
+.detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f5f0ff; font-size: 0.85rem; }
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: #8b7aa8; }
+.detail-value { color: #1e1b2f; font-weight: 600; text-align: right; }
+.empty-state { text-align: center; padding: 60px 20px; color: #9b8bb5; }
+.empty-state i { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+.toast {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1e1b2f; color: #f9e076;
+  padding: 14px 24px; border-radius: 60px; font-weight: 500; font-size: 0.85rem;
+  box-shadow: 0 10px 30px -8px rgba(0,0,0,0.4);
+  opacity: 0; transition: all 0.3s; pointer-events: none;
+  z-index: 2000; display: flex; align-items: center; gap: 8px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { border: 1px solid rgba(46, 125, 50, 0.4); }
+.toast.error { border: 1px solid rgba(198, 40, 40, 0.4); color: #ffb3b3; }
+.menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 8px; }
+
+/* ============ 二维码收银台 ============ */
+.cashier-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .cashier-layout { grid-template-columns: 1fr; } }
+.cashier-card {
+  background: white; border-radius: 24px; padding: 28px;
+  box-shadow: 0 4px 20px -8px rgba(88, 28, 135, 0.12);
+  border: 1px solid #f0eaf8;
+}
+.cashier-card h3 { font-size: 1.05rem; font-weight: 700; color: #1e1b2f; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.cashier-card .subtitle { font-size: 0.78rem; color: #9b8bb5; margin-bottom: 20px; }
+.qr-display {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 340px; padding: 20px; background: #faf8fe;
+  border-radius: 20px; border: 2px dashed #e0d4f0;
+}
+.qr-display.active { border: 2px solid #a5d6a7; background: #f1f8e9; }
+#qrcode-container {
+  padding: 20px; background: white; border-radius: 16px;
+  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.1);
+}
+#qrcode-container img, #qrcode-container canvas { display: block; }
+.qr-placeholder { text-align: center; color: #b0a0c5; }
+.qr-placeholder i { font-size: 3.5rem; margin-bottom: 12px; opacity: 0.5; }
+.qr-placeholder p { font-size: 0.85rem; line-height: 1.6; }
+.scan-code-display {
+  margin-top: 20px; padding: 16px; background: #2d2642;
+  border-radius: 14px; text-align: center; color: white;
+}
+.scan-code-display .label { font-size: 0.7rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+.scan-code-display .code { font-family: monospace; font-size: 1.5rem; font-weight: 700; letter-spacing: 3px; color: #f9e076; margin-top: 6px; }
+.scan-code-display .amount { font-size: 1.2rem; font-weight: 700; margin-top: 8px; color: #a5d6a7; }
+
+.voucher-picker {
+  max-height: 340px; overflow-y: auto;
+  border-radius: 14px; border: 1px solid #f0eaf8;
+  padding: 8px; background: #fdfbff;
+}
+.voucher-pick-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; border-radius: 12px;
+  cursor: pointer; transition: all 0.15s;
+  border: 1.5px solid transparent;
+  margin-bottom: 6px;
+}
+.voucher-pick-item:hover { background: #f5f0ff; }
+.voucher-pick-item.selected { background: #2d2642; border-color: #2d2642; }
+.voucher-pick-item.selected .vp-code,
+.voucher-pick-item.selected .vp-amount,
+.voucher-pick-item.selected .vp-customer { color: white; }
+.voucher-pick-item.selected .vp-customer { opacity: 0.7; }
+.vp-left { display: flex; flex-direction: column; gap: 2px; }
+.vp-code { font-family: monospace; font-weight: 700; font-size: 0.85rem; color: #6b4fa8; letter-spacing: 0.5px; }
+.vp-customer { font-size: 0.68rem; color: #9b8bb5; }
+.vp-amount { font-weight: 800; color: #2d2642; font-size: 0.95rem; }
+
+@media (max-width: 900px) {
+  .admin-layout { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; left: -280px; top: 64px; width: 260px; z-index: 200; transition: left 0.3s; }
+  .sidebar.open { left: 0; }
+  .menu-toggle { display: flex; }
+  .main-content { padding: 16px; }
+}
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+  th, td { padding: 10px 12px; font-size: 0.78rem; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="admin-header">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button type="button" class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <div class="admin-logo"><i class="fas fa-store"></i> LUXE & CO. 商户后台</div>
+  </div>
+  <div class="admin-badge"><i class="fas fa-shield-alt"></i> 管理员</div>
+</header>
+
+<div class="admin-layout">
+  <aside class="sidebar" id="sidebar">
+    <button type="button" class="sidebar-item active" data-page="dashboard">
+      <i class="fas fa-chart-pie"></i> 数据概览
+    </button>
+    <button type="button" class="sidebar-item" data-page="cashier">
+      <i class="fas fa-cash-register"></i> 二维码收银台
+    </button>
+    <button type="button" class="sidebar-item" data-page="topup">
+      <i class="fas fa-clock"></i> 充值审批 <span class="pending-badge" id="pendingCount" style="display:none;">0</span>
+    </button>
+    <button type="button" class="sidebar-item" data-page="vouchers">
+      <i class="fas fa-ticket-alt"></i> 礼券管理
+    </button>
+    <button type="button" class="sidebar-item" data-page="customers">
+      <i class="fas fa-users"></i> 顾客管理
+    </button>
+    <button type="button" class="sidebar-item" data-page="history">
+      <i class="fas fa-history"></i> 消费历史
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <!-- 数据概览 -->
+    <div id="page-dashboard" class="page">
+      <div class="page-title"><i class="fas fa-chart-pie" style="color: #8b6fcb;"></i> 数据概览</div>
+      <div class="page-subtitle">实时掌握顾客消费与礼券使用情况</div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">顾客总数</div>
+          <div class="stat-value" id="statCustomers">--</div>
+          <i class="fas fa-users stat-icon"></i>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">待审批充值</div>
+          <div class="stat-value" id="statPending">--</div>
+          <i class="fas fa-hourglass-half stat-icon"></i>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">已发放礼券</div>
+          <div class="stat-value" id="statVouchers">--</div>
+          <i class="fas fa-ticket-alt stat-icon"></i>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">累计充值金额</div>
+          <div class="stat-value" id="statRevenue">$--</div>
+          <i class="fas fa-dollar-sign stat-icon"></i>
+        </div>
+      </div>
+
+      <div class="page-title" style="font-size: 1.1rem; margin-top: 8px;">
+        <i class="fas fa-clock" style="color: #8b6fcb;"></i> 最近交易
+      </div>
+      <div class="table-container" style="margin-top: 14px;">
+        <table>
+          <thead><tr><th>顾客</th><th>类型</th><th>金额</th><th>时间</th></tr></thead>
+          <tbody id="recentTransactions">
+            <tr><td colspan="4" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 二维码收银台 -->
+    <div id="page-cashier" class="page" style="display: none;">
+      <div class="page-title"><i class="fas fa-cash-register" style="color: #8b6fcb;"></i> 二维码收银台</div>
+      <div class="page-subtitle">选择顾客的礼券，生成二维码让顾客扫码核销</div>
+
+      <div class="cashier-layout">
+        <!-- 左侧：二维码显示 -->
+        <div class="cashier-card">
+          <h3><i class="fas fa-qrcode" style="color: #8b6fcb;"></i> 待核销二维码</h3>
+          <div class="subtitle">顾客使用顾客端「扫码支付」扫描下方二维码</div>
+          <div class="qr-display" id="qrDisplay">
+            <div class="qr-placeholder" id="qrPlaceholder">
+              <i class="fas fa-qrcode"></i>
+              <p>请从右侧选择一张礼券<br>或手动输入券码</p>
+            </div>
+            <div id="qrcode-container" style="display:none;"></div>
+          </div>
+          <div class="scan-code-display" id="scanCodeDisplay" style="display:none;">
+            <div class="label">券码</div>
+            <div class="code" id="scanCodeText">----</div>
+            <div class="amount" id="scanAmountText">$0.00</div>
+          </div>
+        </div>
+
+        <!-- 右侧：礼券选择 -->
+        <div class="cashier-card">
+          <h3><i class="fas fa-list" style="color: #8b6fcb;"></i> 选择礼券</h3>
+          <div class="subtitle">仅显示当前可用的礼券</div>
+
+          <div style="margin-bottom: 14px; display: flex; gap: 8px;">
+            <input type="text" class="search-input" id="cashierSearch" placeholder="搜索顾客ID、姓名或券码..." style="flex:1; padding: 10px 14px; font-size: 0.85rem;">
+            <button type="button" class="btn btn-outline btn-sm" id="refreshCashierBtn">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+
+          <div style="margin-bottom: 14px; display: flex; gap: 8px;">
+            <input type="text" class="search-input" id="manualCodeInput" placeholder="手动输入券码，如 LUXEABC123" style="flex:1; padding: 10px 14px; font-size: 0.85rem; font-family: monospace;">
+            <button type="button" class="btn btn-primary btn-sm" id="manualCodeBtn">
+              <i class="fas fa-qrcode"></i> 生成
+            </button>
+          </div>
+
+          <div class="voucher-picker" id="voucherPicker">
+            <div class="empty-state" style="padding: 30px 20px;">
+              <i class="fas fa-spinner fa-spin"></i>
+              <p style="margin-top: 10px; font-size: 0.8rem;">加载中...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 充值审批 -->
+    <div id="page-topup" class="page" style="display: none;">
+      <div class="page-title"><i class="fas fa-clock" style="color: #8b6fcb;"></i> 充值审批</div>
+      <div class="page-subtitle">审批顾客的充值申请，通过后余额才会到账</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>顾客</th><th>申请金额</th><th>申请时间</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody id="topupTable">
+            <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 礼券管理 -->
+    <div id="page-vouchers" class="page" style="display: none;">
+      <div class="page-title"><i class="fas fa-ticket-alt" style="color: #8b6fcb;"></i> 礼券管理</div>
+      <div class="page-subtitle">发放、查看和管理顾客礼券</div>
+      <div class="search-bar">
+        <input type="text" class="search-input" id="voucherSearch" placeholder="搜索顾客ID或礼券码...">
+        <button type="button" class="btn btn-primary" id="issueVoucherBtn"><i class="fas fa-plus"></i> 发放礼券</button>
+        <button type="button" class="btn btn-outline" id="refreshVouchersBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>顾客</th><th>礼券码</th><th>金额</th><th>状态</th><th>有效期</th><th>操作</th></tr>
+          </thead>
+          <tbody id="voucherTable">
+            <tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 顾客管理 -->
+    <div id="page-customers" class="page" style="display: none;">
+      <div class="page-title"><i class="fas fa-users" style="color: #8b6fcb;"></i> 顾客管理</div>
+      <div class="page-subtitle">查看顾客余额、礼券与消费记录</div>
+      <div class="search-bar">
+        <input type="text" class="search-input" id="customerSearch" placeholder="搜索顾客ID或姓名...">
+        <button type="button" class="btn btn-outline" id="refreshCustomersBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>顾客</th><th>余额</th><th>礼券数</th><th>消费次数</th><th>操作</th></tr>
+          </thead>
+          <tbody id="customerTable">
+            <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 消费历史 -->
+    <div id="page-history" class="page" style="display: none;">
+      <div class="page-title"><i class="fas fa-history" style="color: #8b6fcb;"></i> 消费历史</div>
+      <div class="page-subtitle">所有顾客的充值、消费与审批记录</div>
+      <div class="search-bar">
+        <input type="text" class="search-input" id="historySearch" placeholder="搜索顾客ID或交易描述...">
+        <button type="button" class="btn btn-outline" id="refreshHistoryBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr><th>顾客</th><th>类型</th><th>描述</th><th>金额</th><th>时间</th></tr>
+          </thead>
+          <tbody id="historyTable">
+            <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 发放礼券弹窗 -->
+<div class="modal-overlay" id="issueVoucherModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-gift" style="color: #8b6fcb; margin-right: 8px;"></i>发放礼券</h3>
+      <button type="button" class="modal-close" id="closeIssueModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>顾客ID <span style="color:#c62828;">*</span></label>
+        <input type="text" id="issueCustomerId" placeholder="例如: customer_001">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>礼券金额 ($) <span style="color:#c62828;">*</span></label>
+          <input type="number" id="issueAmount" placeholder="50" min="1" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>最低消费 ($)</label>
+          <input type="number" id="issueMinSpend" placeholder="200" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>礼券描述</label>
+        <input type="text" id="issueDescription" placeholder="例如: 生日礼券 / 满减券">
+      </div>
+      <div class="form-group">
+        <label>有效期至</label>
+        <input type="date" id="issueExpiry">
+      </div>
+      <div class="form-group">
+        <label>礼券码 (留空自动生成)</label>
+        <input type="text" id="issueCode" placeholder="自动生成">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" id="cancelIssue">取消</button>
+      <button type="button" class="btn btn-primary" id="confirmIssue"><i class="fas fa-paper-plane"></i> 确认发放</button>
+    </div>
+  </div>
+</div>
+
+<!-- 顾客详情弹窗 -->
+<div class="modal-overlay" id="customerDetailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-circle" style="color: #8b6fcb; margin-right: 8px;"></i>顾客详情</h3>
+      <button type="button" class="modal-close" id="closeCustomerModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="customerDetailBody">
+      <div style="text-align:center; padding:40px; color:#8b6fcb;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ================= Firebase =================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, get, set, push, update, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
+  authDomain: "restaurants-cs.firebaseapp.com",
+  databaseURL: "https://restaurants-cs-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "restaurants-cs",
+  storageBucket: "restaurants-cs.firebasestorage.app",
+  messagingSenderId: "209872919844",
+  appId: "1:209872919844:web:c1730801cd51d615e867b1",
+  measurementId: "G-12T3WGM880"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ================= 工具 =================
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${msg}`;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function formatDate(ts) {
+  if (!ts) return '---';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDateTime(ts) {
+  if (!ts) return '---';
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'LUXE';
+  for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+  return code;
+}
+
+function getInitials(name) {
+  return (name || '?').charAt(0).toUpperCase();
+}
+
+// ================= 全局状态 =================
+let allVouchers = [];
+let allCustomers = {};
+let allHistory = [];
+let allTopupRequests = [];
+let selectedVoucher = null;
+
+// ================= 页面切换 =================
+document.querySelectorAll('.sidebar-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById(`page-${page}`).style.display = 'block';
+
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'cashier') loadCashierVouchers();
+    if (page === 'topup') loadTopupRequests();
+    if (page === 'vouchers') loadAllVouchers();
+    if (page === 'customers') loadAllCustomers();
+    if (page === 'history') loadAllHistory();
+
+    document.getElementById('sidebar').classList.remove('open');
+  });
+});
+
+document.getElementById('menuToggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+});
+
+// ================= 监听待审批数量 =================
+function watchPendingCount() {
+  onValue(ref(db, 'users'), (snap) => {
+    const users = snap.val() || {};
+    let pending = 0;
+    for (const uid in users) {
+      const reqs = users[uid].topupRequests || {};
+      pending += Object.values(reqs).filter(r => r.status === 'pending').length;
+    }
+    const badge = document.getElementById('pendingCount');
+    if (pending > 0) {
+      badge.textContent = pending;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  });
+}
+
+// ================= 数据概览 =================
+async function loadDashboard() {
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    const customerIds = Object.keys(users);
+
+    let totalVouchers = 0, totalRevenue = 0, totalPending = 0;
+    let recentTransactions = [];
+
+    for (const cid of customerIds) {
+      const user = users[cid];
+      const vouchers = user.vouchers || {};
+      totalVouchers += Object.keys(vouchers).length;
+
+      const reqs = user.topupRequests || {};
+      totalPending += Object.values(reqs).filter(r => r.status === 'pending').length;
+
+      const history = user.history || {};
+      Object.entries(history).forEach(([hid, h]) => {
+        if (h.type === 'topup') totalRevenue += (h.amount || 0);
+        recentTransactions.push({ customerId: cid, customerName: user.name || cid, ...h });
+      });
+    }
+
+    recentTransactions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    recentTransactions = recentTransactions.slice(0, 10);
+
+    document.getElementById('statCustomers').textContent = customerIds.length;
+    document.getElementById('statPending').textContent = totalPending;
+    document.getElementById('statVouchers').textContent = totalVouchers;
+    document.getElementById('statRevenue').innerHTML = `$${totalRevenue.toFixed(2)}<small></small>`;
+
+    const tbody = document.getElementById('recentTransactions');
+    if (recentTransactions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无交易</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = recentTransactions.map(t => {
+      let typeText = '交易', amountClass = 'status-pending', prefix = '';
+      if (t.type === 'topup') { typeText = '充值'; amountClass = 'status-active'; prefix = '+'; }
+      else if (t.type === 'topup_pending') { typeText = '申请中'; amountClass = 'status-pending'; }
+      else if (t.type === 'topup_rejected') { typeText = '被拒'; amountClass = 'status-rejected'; }
+      else if (t.type === 'voucher_use' || t.type === 'spend') { typeText = '消费'; amountClass = 'status-expired'; prefix = '-'; }
+      else if (t.type === 'voucher_receive') { typeText = '获赠'; amountClass = 'status-active'; prefix = '+'; }
+
+      return `
+        <tr>
+          <td>
+            <div class="customer-info">
+              <div class="customer-avatar">${getInitials(t.customerName)}</div>
+              <div>
+                <div class="customer-name">${t.customerName}</div>
+                <div class="customer-id">${t.customerId}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="status-badge ${amountClass}">${typeText}</span></td>
+          <td style="font-weight:700; color:${prefix === '+' ? '#2e7d32' : prefix === '-' ? '#c62828' : '#f9a825'};">${prefix}$${Math.abs(t.amount || 0).toFixed(2)}</td>
+          <td style="color:#9b8bb5; font-size:0.78rem;">${formatDateTime(t.createdAt)}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error(e);
+    showToast('加载数据失败', 'error');
+  }
+}
+
+// ================= 二维码收银台 =================
+async function loadCashierVouchers() {
+  const picker = document.getElementById('voucherPicker');
+  picker.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><i class="fas fa-spinner fa-spin"></i><p style="margin-top:10px; font-size:0.8rem;">加载中...</p></div>';
+
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    const now = Date.now();
+    const availableVouchers = [];
+
+    for (const [cid, user] of Object.entries(users)) {
+      const vouchers = user.vouchers || {};
+      for (const [vid, v] of Object.entries(vouchers)) {
+        // 只显示可用（未使用且未过期）
+        if (v.used) continue;
+        if (v.expiry && v.expiry < now) continue;
+        availableVouchers.push({
+          customerId: cid,
+          customerName: user.name || cid,
+          voucherId: vid,
+          ...v
+        });
+      }
+    }
+
+    availableVouchers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderCashierPicker(availableVouchers);
+  } catch (e) {
+    console.error(e);
+    picker.innerHTML = '<div class="empty-state" style="padding:30px 20px; color:#c62828;"><i class="fas fa-exclamation-circle"></i><p style="margin-top:10px; font-size:0.8rem;">加载失败</p></div>';
+  }
+}
+
+function renderCashierPicker(vouchers) {
+  const picker = document.getElementById('voucherPicker');
+  if (vouchers.length === 0) {
+    picker.innerHTML = '<div class="empty-state" style="padding:30px 20px;"><i class="fas fa-ticket-alt" style="font-size:2rem; opacity:0.4;"></i><p style="margin-top:10px; font-size:0.8rem;">暂无可用礼券</p></div>';
+    return;
+  }
+
+  picker.innerHTML = vouchers.map(v => `
+    <div class="voucher-pick-item" data-vid="${v.voucherId}" data-cid="${v.customerId}" data-code="${v.code || ''}" data-amount="${v.amount || 0}" data-customer="${v.customerName}">
+      <div class="vp-left">
+        <div class="vp-code">${v.code || '----'}</div>
+        <div class="vp-customer">${v.customerName} · ${v.customerId}</div>
+      </div>
+      <div class="vp-amount">$${(v.amount || 0).toFixed(2)}</div>
+    </div>
+  `).join('');
+
+  picker.querySelectorAll('.voucher-pick-item').forEach(item => {
+    item.addEventListener('click', () => {
+      picker.querySelectorAll('.voucher-pick-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      selectVoucher({
+        voucherId: item.dataset.vid,
+        customerId: item.dataset.cid,
+        code: item.dataset.code,
+        amount: parseFloat(item.dataset.amount),
+        customerName: item.dataset.customer
+      });
+    });
+  });
+}
+
+function selectVoucher(v) {
+  selectedVoucher = v;
+  showQRCode(v.code, v.amount);
+}
+
+function showQRCode(code, amount) {
+  const container = document.getElementById('qrcode-container');
+  const placeholder = document.getElementById('qrPlaceholder');
+  const qrDisplay = document.getElementById('qrDisplay');
+  const scanDisplay = document.getElementById('scanCodeDisplay');
+
+  container.innerHTML = '';
+  container.style.display = 'block';
+  placeholder.style.display = 'none';
+  qrDisplay.classList.add('active');
+  scanDisplay.style.display = 'block';
+
+  document.getElementById('scanCodeText').textContent = code;
+  document.getElementById('scanAmountText').textContent = `抵扣 $${amount.toFixed(2)}`;
+
+  // 二维码内容格式: VOUCHER:券码
+  const qrContent = `VOUCHER:${code}`;
+  new QRCode(container, {
+    text: qrContent,
+    width: 240,
+    height: 240,
+    colorDark: '#1e1b2f',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+// 手动输入券码
+document.getElementById('manualCodeBtn').addEventListener('click', async () => {
+  const code = document.getElementById('manualCodeInput').value.trim().toUpperCase();
+  if (!code) { showToast('请输入券码', 'error'); return; }
+
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    let found = null;
+    for (const [cid, user] of Object.entries(users)) {
+      const vouchers = user.vouchers || {};
+      for (const [vid, v] of Object.entries(vouchers)) {
+        if ((v.code || '').toUpperCase() === code) {
+          found = { customerId: cid, customerName: user.name || cid, voucherId: vid, ...v };
+          break;
+        }
+      }
+      if (found) break;
+    }
+
+    if (!found) { showToast('未找到此券码', 'error'); return; }
+    if (found.used) { showToast('此券已被使用', 'error'); return; }
+    if (found.expiry && found.expiry < Date.now()) { showToast('此券已过期', 'error'); return; }
+
+    selectVoucher(found);
+    showToast('已生成二维码', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('查询失败', 'error');
+  }
+});
+
+// 搜索过滤
+document.getElementById('cashierSearch').addEventListener('input', async (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { loadCashierVouchers(); return; }
+
+  const usersSnap = await get(ref(db, 'users'));
+  const users = usersSnap.val() || {};
+  const now = Date.now();
+  const filtered = [];
+  for (const [cid, user] of Object.entries(users)) {
+    const vouchers = user.vouchers || {};
+    for (const [vid, v] of Object.entries(vouchers)) {
+      if (v.used) continue;
+      if (v.expiry && v.expiry < now) continue;
+      if (
+        cid.toLowerCase().includes(q) ||
+        (user.name && user.name.toLowerCase().includes(q)) ||
+        (v.code && v.code.toLowerCase().includes(q))
+      ) {
+        filtered.push({ customerId: cid, customerName: user.name || cid, voucherId: vid, ...v });
+      }
+    }
+  }
+  renderCashierPicker(filtered);
+});
+
+document.getElementById('refreshCashierBtn').addEventListener('click', loadCashierVouchers);
+
+// ================= 充值审批 =================
+async function loadTopupRequests() {
+  const tbody = document.getElementById('topupTable');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
+
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    allTopupRequests = [];
+
+    for (const [cid, user] of Object.entries(users)) {
+      const reqs = user.topupRequests || {};
+      for (const [rid, r] of Object.entries(reqs)) {
+        allTopupRequests.push({
+          customerId: cid, customerName: user.name || cid,
+          requestId: rid, ...r
+        });
+      }
+    }
+
+    allTopupRequests.sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+
+    renderTopupTable(allTopupRequests);
+  } catch (e) {
+    console.error(e);
+    showToast('加载失败', 'error');
+  }
+}
+
+function renderTopupTable(items) {
+  const tbody = document.getElementById('topupTable');
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无充值申请</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(r => {
+    let statusText = '待审批', statusClass = 'status-pending';
+    if (r.status === 'approved') { statusText = '已通过'; statusClass = 'status-active'; }
+    else if (r.status === 'rejected') { statusText = '已拒绝'; statusClass = 'status-rejected'; }
+
+    return `
+      <tr>
+        <td>
+          <div class="customer-info">
+            <div class="customer-avatar">${getInitials(r.customerName)}</div>
+            <div>
+              <div class="customer-name">${r.customerName}</div>
+              <div class="customer-id">${r.customerId}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-weight:700; color:#2d2642; font-size:1rem;">$${(r.amount || 0).toFixed(2)}</td>
+        <td style="font-size:0.78rem; color:#8b7aa8;">${formatDateTime(r.createdAt)}</td>
+        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+        <td>
+          ${r.status === 'pending' ? `
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn btn-success btn-sm" data-action="approve" data-cid="${r.customerId}" data-rid="${r.requestId}">
+                <i class="fas fa-check"></i> 通过
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" data-action="reject" data-cid="${r.customerId}" data-rid="${r.requestId}">
+                <i class="fas fa-times"></i> 拒绝
+              </button>
+            </div>
+          ` : '<span style="color:#9b8bb5; font-size:0.78rem;">已处理</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('[data-action="approve"]').forEach(btn => {
+    btn.addEventListener('click', () => approveTopup(btn.dataset.cid, btn.dataset.rid));
+  });
+  tbody.querySelectorAll('[data-action="reject"]').forEach(btn => {
+    btn.addEventListener('click', () => rejectTopup(btn.dataset.cid, btn.dataset.rid));
+  });
+}
+
+async function approveTopup(customerId, requestId) {
+  if (!confirm('确认通过此充值申请吗？')) return;
+  try {
+    const reqRef = ref(db, `users/${customerId}/topupRequests/${requestId}`);
+    const snap = await get(reqRef);
+    const req = snap.val();
+    if (!req || req.status !== 'pending') { showToast('申请已处理', 'error'); return; }
+
+    await update(reqRef, { status: 'approved', approvedAt: serverTimestamp(), approvedBy: 'admin' });
+
+    const userRef = ref(db, `users/${customerId}`);
+    const userSnap = await get(userRef);
+    const user = userSnap.val() || {};
+    await update(userRef, { balance: (user.balance || 0) + (req.amount || 0) });
+
+    await push(ref(db, `users/${customerId}/history`), {
+      type: 'topup', amount: req.amount, requestId,
+      description: `充值 $${req.amount.toFixed(2)} 已到账`,
+      createdAt: serverTimestamp()
+    });
+
+    showToast(`已通过，$${req.amount.toFixed(2)} 已到账`, 'success');
+    loadTopupRequests();
+  } catch (e) {
+    console.error(e);
+    showToast('操作失败', 'error');
+  }
+}
+
+async function rejectTopup(customerId, requestId) {
+  if (!confirm('确认拒绝此充值申请吗？')) return;
+  try {
+    const reqRef = ref(db, `users/${customerId}/topupRequests/${requestId}`);
+    const snap = await get(reqRef);
+    const req = snap.val();
+    if (!req || req.status !== 'pending') { showToast('申请已处理', 'error'); return; }
+
+    await update(reqRef, { status: 'rejected', rejectedAt: serverTimestamp(), rejectedBy: 'admin' });
+
+    await push(ref(db, `users/${customerId}/history`), {
+      type: 'topup_rejected', amount: req.amount, requestId,
+      description: `充值申请 $${req.amount.toFixed(2)} 被拒绝`,
+      createdAt: serverTimestamp()
+    });
+
+    showToast('已拒绝该申请', 'success');
+    loadTopupRequests();
+  } catch (e) {
+    console.error(e);
+    showToast('操作失败', 'error');
+  }
+}
+
+// ================= 礼券管理 =================
+async function loadAllVouchers() {
+  const tbody = document.getElementById('voucherTable');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    allVouchers = [];
+
+    for (const [cid, user] of Object.entries(users)) {
+      const vouchers = user.vouchers || {};
+      for (const [vid, v] of Object.entries(vouchers)) {
+        allVouchers.push({ customerId: cid, customerName: user.name || cid, voucherId: vid, ...v });
+      }
+    }
+
+    allVouchers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderVoucherTable(allVouchers);
+  } catch (e) {
+    console.error(e);
+    showToast('加载礼券失败', 'error');
+  }
+}
+
+function renderVoucherTable(vouchers) {
+  const tbody = document.getElementById('voucherTable');
+  if (vouchers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无礼券</td></tr>';
+    return;
+  }
+
+  const now = Date.now();
+  tbody.innerHTML = vouchers.map(v => {
+    let statusText = '可用', statusClass = 'status-active';
+    if (v.used) { statusText = '已使用'; statusClass = 'status-used'; }
+    else if (v.expiry && v.expiry < now) { statusText = '已过期'; statusClass = 'status-expired'; }
+
+    return `
+      <tr>
+        <td>
+          <div class="customer-info">
+            <div class="customer-avatar">${getInitials(v.customerName)}</div>
+            <div>
+              <div class="customer-name">${v.customerName}</div>
+              <div class="customer-id">${v.customerId}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-family:monospace; font-weight:600; color:#6b4fa8;">${v.code || '----'}</td>
+        <td style="font-weight:700;">$${(v.amount || 0).toFixed(2)}</td>
+        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+        <td style="font-size:0.78rem; color:#8b7aa8;">${formatDate(v.expiry)}</td>
+        <td>
+          ${!v.used && !(v.expiry && v.expiry < now) ?
+            `<button type="button" class="btn btn-danger btn-sm" data-action="void" data-cid="${v.customerId}" data-vid="${v.voucherId}"><i class="fas fa-ban"></i> 作废</button>` :
+            '<span style="color:#9b8bb5; font-size:0.78rem;">—</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('[data-action="void"]').forEach(btn => {
+    btn.addEventListener('click', () => voidVoucher(btn.dataset.cid, btn.dataset.vid));
+  });
+}
+
+async function voidVoucher(customerId, voucherId) {
+  if (!confirm('确认作废此礼券吗？')) return;
+  try {
+    await update(ref(db, `users/${customerId}/vouchers/${voucherId}`), {
+      used: true, voided: true, voidedAt: serverTimestamp()
+    });
+    showToast('礼券已作废', 'success');
+    loadAllVouchers();
+  } catch (e) {
+    showToast('作废失败', 'error');
+  }
+}
+
+document.getElementById('voucherSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { renderVoucherTable(allVouchers); return; }
+  renderVoucherTable(allVouchers.filter(v =>
+    v.customerId.toLowerCase().includes(q) ||
+    (v.code && v.code.toLowerCase().includes(q)) ||
+    (v.customerName && v.customerName.toLowerCase().includes(q))
+  ));
+});
+
+document.getElementById('refreshVouchersBtn').addEventListener('click', loadAllVouchers);
+
+// 发放礼券
+document.getElementById('issueVoucherBtn').addEventListener('click', () => {
+  document.getElementById('issueVoucherModal').classList.add('show');
+  document.getElementById('issueExpiry').value = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
+});
+
+document.getElementById('closeIssueModal').addEventListener('click', () =>
+  document.getElementById('issueVoucherModal').classList.remove('show'));
+document.getElementById('cancelIssue').addEventListener('click', () =>
+  document.getElementById('issueVoucherModal').classList.remove('show'));
+
+document.getElementById('confirmIssue').addEventListener('click', async () => {
+  const customerId = document.getElementById('issueCustomerId').value.trim();
+  const amount = parseFloat(document.getElementById('issueAmount').value);
+  const minSpend = parseFloat(document.getElementById('issueMinSpend').value) || 0;
+  const description = document.getElementById('issueDescription').value.trim() || `满$${minSpend}减$${amount}`;
+  const expiry = document.getElementById('issueExpiry').value;
+  let code = document.getElementById('issueCode').value.trim();
+
+  if (!customerId) { showToast('请输入顾客ID', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  if (!expiry) { showToast('请选择有效期', 'error'); return; }
+  if (!code) code = generateCode();
+
+  try {
+    const userRef = ref(db, `users/${customerId}`);
+    const userSnap = await get(userRef);
+    if (!userSnap.exists()) {
+      await set(userRef, { name: customerId, balance: 0, createdAt: serverTimestamp() });
+    }
+
+    const vRef = push(ref(db, `users/${customerId}/vouchers`));
+    await set(vRef, {
+      code, amount, minSpend, description,
+      expiry: new Date(expiry).getTime(),
+      used: false,
+      createdAt: serverTimestamp()
+    });
+
+    await push(ref(db, `users/${customerId}/history`), {
+      type: 'voucher_receive', amount, code,
+      description: `获得礼券 $${amount} (${description})`,
+      createdAt: serverTimestamp()
+    });
+
+    showToast(`礼券 $${amount} 已发放，券码：${code}`, 'success');
+    document.getElementById('issueVoucherModal').classList.remove('show');
+    ['issueCustomerId','issueAmount','issueMinSpend','issueDescription','issueCode'].forEach(id =>
+      document.getElementById(id).value = '');
+    loadAllVouchers();
+  } catch (e) {
+    console.error(e);
+    showToast('发放失败', 'error');
+  }
+});
+
+// ================= 顾客管理 =================
+async function loadAllCustomers() {
+  const tbody = document.getElementById('customerTable');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    allCustomers = usersSnap.val() || {};
+
+    const rows = Object.entries(allCustomers).map(([cid, user]) => {
+      const voucherCount = Object.keys(user.vouchers || {}).length;
+      const historyCount = Object.keys(user.history || {}).filter(
+        hid => user.history[hid].type === 'voucher_use' || user.history[hid].type === 'spend'
+      ).length;
+      return `
+        <tr>
+          <td>
+            <div class="customer-info">
+              <div class="customer-avatar">${getInitials(user.name)}</div>
+              <div>
+                <div class="customer-name">${user.name || cid}</div>
+                <div class="customer-id">${cid}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:700; color:#2d2642;">$${(user.balance || 0).toFixed(2)}</td>
+          <td>${voucherCount}</td>
+          <td>${historyCount}</td>
+          <td>
+            <button type="button" class="btn btn-outline btn-sm" data-action="detail" data-cid="${cid}">
+              <i class="fas fa-eye"></i> 详情
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.innerHTML = rows || '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无顾客</td></tr>';
+
+    tbody.querySelectorAll('[data-action="detail"]').forEach(btn => {
+      btn.addEventListener('click', () => showCustomerDetail(btn.dataset.cid));
+    });
+  } catch (e) {
+    console.error(e);
+    showToast('加载失败', 'error');
+  }
+}
+
+async function showCustomerDetail(customerId) {
+  const modal = document.getElementById('customerDetailModal');
+  const body = document.getElementById('customerDetailBody');
+  modal.classList.add('show');
+  body.innerHTML = '<div style="text-align:center; padding:40px; color:#8b6fcb;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i></div>';
+
+  try {
+    const snap = await get(ref(db, `users/${customerId}`));
+    const user = snap.val();
+    if (!user) { body.innerHTML = '<p style="text-align:center; color:#9b8bb5;">顾客不存在</p>'; return; }
+
+    const vouchers = user.vouchers || {};
+    const voucherList = Object.entries(vouchers).map(([vid, v]) => {
+      const status = v.used ? '已使用' : (v.expiry && v.expiry < Date.now() ? '已过期' : '可用');
+      return `<div class="detail-row">
+        <span class="detail-label">${v.code || vid}</span>
+        <span class="detail-value">$${(v.amount||0).toFixed(2)} · ${status}</span>
+      </div>`;
+    }).join('') || '<div style="text-align:center; padding:20px; color:#9b8bb5;">暂无礼券</div>';
+
+    const history = user.history || {};
+    const historyList = Object.entries(history)
+      .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
+      .slice(0, 10)
+      .map(([hid, h]) => {
+        const isPlus = h.type === 'topup' || h.type === 'voucher_receive';
+        const isPending = h.type === 'topup_pending';
+        const color = isPending ? '#f9a825' : (isPlus ? '#2e7d32' : '#c62828');
+        return `<div class="detail-row">
+          <span class="detail-label">${h.description || '交易'}<br><small style="color:#b0a0c5;">${formatDateTime(h.createdAt)}</small></span>
+          <span class="detail-value" style="color:${color};">${isPending ? '' : (isPlus ? '+' : '-')}$${Math.abs(h.amount||0).toFixed(2)}</span>
+        </div>`;
+      }).join('') || '<div style="text-align:center; padding:20px; color:#9b8bb5;">暂无记录</div>';
+
+    body.innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+        <div class="customer-avatar" style="width:56px; height:56px; font-size:1.4rem;">${getInitials(user.name)}</div>
+        <div>
+          <div style="font-size:1.2rem; font-weight:700; color:#1e1b2f;">${user.name || customerId}</div>
+          <div style="font-size:0.78rem; color:#9b8bb5; font-family:monospace;">${customerId}</div>
+        </div>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">账户余额</span>
+        <span class="detail-value" style="font-size:1.3rem; color:#2d2642;">$${(user.balance||0).toFixed(2)}</span>
+      </div>
+      <div style="margin-top:20px;">
+        <div style="font-size:0.8rem; font-weight:700; color:#4c3b7a; margin-bottom:10px;">礼券 (${Object.keys(vouchers).length})</div>
+        ${voucherList}
+      </div>
+      <div style="margin-top:20px;">
+        <div style="font-size:0.8rem; font-weight:700; color:#4c3b7a; margin-bottom:10px;">最近交易</div>
+        ${historyList}
+      </div>
+    `;
+  } catch (e) {
+    console.error(e);
+    body.innerHTML = '<p style="text-align:center; color:#c62828;">加载失败</p>';
+  }
+}
+
+document.getElementById('closeCustomerModal').addEventListener('click', () =>
+  document.getElementById('customerDetailModal').classList.remove('show'));
+
+document.getElementById('customerSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  const filtered = Object.entries(allCustomers).filter(([cid, user]) =>
+    cid.toLowerCase().includes(q) || (user.name && user.name.toLowerCase().includes(q))
+  );
+  const tbody = document.getElementById('customerTable');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">未找到</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(([cid, user]) => {
+    const voucherCount = Object.keys(user.vouchers || {}).length;
+    const historyCount = Object.keys(user.history || {}).filter(
+      hid => user.history[hid].type === 'voucher_use' || user.history[hid].type === 'spend'
+    ).length;
+    return `
+      <tr>
+        <td>
+          <div class="customer-info">
+            <div class="customer-avatar">${getInitials(user.name)}</div>
+            <div>
+              <div class="customer-name">${user.name || cid}</div>
+              <div class="customer-id">${cid}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-weight:700;">$${(user.balance || 0).toFixed(2)}</td>
+        <td>${voucherCount}</td>
+        <td>${historyCount}</td>
+        <td><button type="button" class="btn btn-outline btn-sm" data-action="detail" data-cid="${cid}"><i class="fas fa-eye"></i> 详情</button></td>
+      </tr>
+    `;
+  }).join('');
+  tbody.querySelectorAll('[data-action="detail"]').forEach(btn => {
+    btn.addEventListener('click', () => showCustomerDetail(btn.dataset.cid));
+  });
+});
+
+document.getElementById('refreshCustomersBtn').addEventListener('click', loadAllCustomers);
+
+// ================= 消费历史 =================
+async function loadAllHistory() {
+  const tbody = document.getElementById('historyTable');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    allHistory = [];
+
+    for (const [cid, user] of Object.entries(users)) {
+      const history = user.history || {};
+      for (const [hid, h] of Object.entries(history)) {
+        allHistory.push({ customerId: cid, customerName: user.name || cid, historyId: hid, ...h });
+      }
+    }
+
+    allHistory.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderHistoryTable(allHistory);
+  } catch (e) {
+    console.error(e);
+    showToast('加载失败', 'error');
+  }
+}
+
+function renderHistoryTable(items) {
+  const tbody = document.getElementById('historyTable');
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无记录</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.slice(0, 200).map(h => {
+    let typeText = '交易', typeClass = 'status-pending', prefix = '';
+    if (h.type === 'topup') { typeText = '充值'; typeClass = 'status-active'; prefix = '+'; }
+    else if (h.type === 'topup_pending') { typeText = '申请中'; typeClass = 'status-pending'; }
+    else if (h.type === 'topup_rejected') { typeText = '被拒'; typeClass = 'status-rejected'; }
+    else if (h.type === 'voucher_use' || h.type === 'spend') { typeText = '消费'; typeClass = 'status-expired'; prefix = '-'; }
+    else if (h.type === 'voucher_receive') { typeText = '获赠'; typeClass = 'status-active'; prefix = '+'; }
+
+    return `
+      <tr>
+        <td>
+          <div class="customer-info">
+            <div class="customer-avatar">${getInitials(h.customerName)}</div>
+            <div>
+              <div class="customer-name">${h.customerName}</div>
+              <div class="customer-id">${h.customerId}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="status-badge ${typeClass}">${typeText}</span></td>
+        <td style="font-size:0.8rem; color:#6b5b8a;">${h.description || '---'}</td>
+        <td style="font-weight:700; color:${prefix === '+' ? '#2e7d32' : prefix === '-' ? '#c62828' : '#f9a825'};">${prefix}$${Math.abs(h.amount || 0).toFixed(2)}</td>
+        <td style="font-size:0.78rem; color:#9b8bb5; white-space:nowrap;">${formatDateTime(h.createdAt)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+document.getElementById('historySearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { renderHistoryTable(allHistory); return; }
+  renderHistoryTable(allHistory.filter(h =>
+    h.customerId.toLowerCase().includes(q) ||
+    (h.customerName && h.customerName.toLowerCase().includes(q)) ||
+    (h.description && h.description.toLowerCase().includes(q))
+  ));
+});
+
+document.getElementById('refreshHistoryBtn').addEventListener('click', loadAllHistory);
+
+// ================= 初始化 =================
+loadDashboard();
+watchPendingCount();
+</script>
+</body>
+</html>
