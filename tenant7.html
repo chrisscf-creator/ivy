@@ -126,7 +126,7 @@ tr:hover td { background: #fdfbff; }
 .toast.error { border: 1px solid rgba(198, 40, 40, 0.4); color: #ffb3b3; }
 .menu-toggle { display: none; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; padding: 8px; }
 
-/* ============ 二维码收银台 ============ */
+/* 二维码收银台 */
 .cashier-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 @media (max-width: 900px) { .cashier-layout { grid-template-columns: 1fr; } }
 .cashier-card {
@@ -148,7 +148,6 @@ tr:hover td { background: #fdfbff; }
 }
 #qrcode-container img, #qrcode-container canvas { display: block; }
 
-/* ============ 顾客余额消费扣款二维码 ============ */
 .pay-qr-card {
   margin-top: 24px;
   background: white; border-radius: 24px; padding: 28px;
@@ -281,7 +280,6 @@ tr:hover td { background: #fdfbff; }
           <div class="stat-value" id="statVouchers">--</div>
           <i class="fas fa-ticket-alt stat-icon"></i>
         </div>
-        <!-- ★ 修改点 1：卡片标题 -->
         <div class="stat-card">
           <div class="stat-label">累计充值 / 累计消费</div>
           <div class="stat-value" id="statRevenue">$--</div>
@@ -308,7 +306,6 @@ tr:hover td { background: #fdfbff; }
       <div class="page-subtitle">选择顾客的礼券，生成二维码让顾客扫码核销</div>
 
       <div class="cashier-layout">
-        <!-- 左侧：二维码显示 -->
         <div class="cashier-card">
           <h3><i class="fas fa-qrcode" style="color: #8b6fcb;"></i> 待核销二维码</h3>
           <div class="subtitle">顾客使用顾客端「扫码支付」扫描下方二维码</div>
@@ -326,7 +323,6 @@ tr:hover td { background: #fdfbff; }
           </div>
         </div>
 
-        <!-- 右侧：礼券选择 -->
         <div class="cashier-card">
           <h3><i class="fas fa-list" style="color: #8b6fcb;"></i> 选择礼券</h3>
           <div class="subtitle">仅显示当前可用的礼券</div>
@@ -354,7 +350,6 @@ tr:hover td { background: #fdfbff; }
         </div>
       </div>
 
-      <!-- 顾客余额消费扣款二维码 -->
       <div class="pay-qr-card">
         <div class="page-title" style="font-size:1.05rem; margin-bottom:4px;">
           <i class="fas fa-wallet" style="color:#8b6fcb;"></i> 顾客消费扣款二维码
@@ -643,21 +638,20 @@ function watchPendingCount() {
   });
 }
 
-// ================= 数据概览 =================
+// ================= 数据概览（含双重统计兜底） =================
 async function loadDashboard() {
   try {
     const usersSnap = await get(ref(db, 'users'));
     const users = usersSnap.val() || {};
     const customerIds = Object.keys(users);
 
-    // ★ 修改点 2：新增 totalSpent
-    let totalVouchers = 0, totalRevenue = 0, totalPending = 0, totalSpent = 0;
+    let totalVouchers = 0, totalRevenue = 0, totalPending = 0;
+    let spentFromHistory = 0;      // 兜底：从 users/{cid}/history 统计
+    let spentFromMerchant = 0;     // 优先：从 merchantTransactions 统计
     let recentTransactions = [];
+    const seenKeys = new Set();
 
-    // ★ 商户实际消费记录
-    const merchantSnap = await get(ref(db, 'merchantTransactions'));
-    const merchantTransactions = merchantSnap.val() || {};
-
+    // ---- 第一步：遍历 users 节点 ----
     for (const cid of customerIds) {
       const user = users[cid];
       const vouchers = user.vouchers || {};
@@ -668,23 +662,38 @@ async function loadDashboard() {
 
       const history = user.history || {};
       Object.entries(history).forEach(([hid, h]) => {
-        if (h.type === 'topup') totalRevenue += (h.amount || 0);
-        // voucher_use/payment 改由商户交易记录统一显示，避免重复
-        if (h.type !== 'voucher_use' && h.type !== 'payment') {
-          recentTransactions.push({ customerId: cid, customerName: user.name || cid, ...h });
+        // 充值
+        if (h.type === 'topup') {
+          totalRevenue += Number(h.amount || 0);
+        }
+        // ★ 兜底消费统计
+        if (h.type === 'payment' || h.type === 'voucher_use' || h.type === 'spend') {
+          spentFromHistory += Number(h.amount || 0);
+        }
+        // 加入最近交易（history 里的记录）
+        const key = `${cid}_${hid}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          recentTransactions.push({
+            customerId: cid,
+            customerName: user.name || cid,
+            historyId: hid,
+            ...h
+          });
         }
       });
     }
 
-    // ★ 修改点 2：统计商户实际消费金额（来自 customer7.html 的 directPay / 礼券核销）
-    Object.entries(merchantTransactions).forEach(([tid, t]) => {
-      if (t.merchantId && t.merchantId !== 'LUXE_CO') return;
-      totalSpent += Number(t.amount || 0);
-    });
+    // ---- 第二步：遍历 merchantTransactions 节点 ----
+    const merchantSnap = await get(ref(db, 'merchantTransactions'));
+    const merchantTransactions = merchantSnap.val() || {};
+    let merchantHasData = false;
 
-    // ★ 加入商户实际消费
     Object.entries(merchantTransactions).forEach(([tid, t]) => {
       if (t.merchantId && t.merchantId !== 'LUXE_CO') return;
+      merchantHasData = true;
+      spentFromMerchant += Number(t.amount || 0);
+
       recentTransactions.push({
         transactionId: tid,
         customerId: t.customerId || '---',
@@ -697,16 +706,23 @@ async function loadDashboard() {
       });
     });
 
+    // ---- 决定 totalSpent 用哪个 ----
+    // 优先用 merchantTransactions（更权威）
+    // 如果 merchantTransactions 为空，则回退到 users/{cid}/history 统计
+    const totalSpent = merchantHasData ? spentFromMerchant : spentFromHistory;
+
+    // 排序取最近 10 条（如果同时有两边数据，优先保留 merchantTransactions）
     recentTransactions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     recentTransactions = recentTransactions.slice(0, 10);
 
+    // ---- 渲染统计卡片 ----
     document.getElementById('statCustomers').textContent = customerIds.length;
     document.getElementById('statPending').textContent = totalPending;
     document.getElementById('statVouchers').textContent = totalVouchers;
-    // ★ 修改点 3：单卡片双数值
     document.getElementById('statRevenue').innerHTML =
       `$${totalRevenue.toFixed(2)} <small style="color:#2e7d32; font-size:0.85rem; font-weight:700;">/ +$${totalSpent.toFixed(2)}</small>`;
 
+    // ---- 渲染最近交易表 ----
     const tbody = document.getElementById('recentTransactions');
     if (recentTransactions.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无交易</td></tr>';
@@ -758,7 +774,6 @@ async function loadCashierVouchers() {
     for (const [cid, user] of Object.entries(users)) {
       const vouchers = user.vouchers || {};
       for (const [vid, v] of Object.entries(vouchers)) {
-        // 只显示可用（未使用且未过期）
         if (v.used) continue;
         if (v.expiry && v.expiry < now) continue;
         availableVouchers.push({
@@ -830,8 +845,6 @@ function showQRCode(code, amount) {
   document.getElementById('scanCodeText').textContent = code;
   document.getElementById('scanAmountText').textContent = `抵扣 $${amount.toFixed(2)}`;
 
-  // 二维码内容格式：VOUCHER:券码|MERCHANT:LUXE_CO
-  // 顾客扫码后，消费金额会写入 merchantTransactions。
   const qrContent = `VOUCHER:${code}|MERCHANT:LUXE_CO`;
   new QRCode(container, {
     text: qrContent,
@@ -869,8 +882,6 @@ function generateCustomerPayQRCode() {
   statusEl.style.display = 'block';
   amountEl.textContent = `$${roundedAmount.toFixed(2)}`;
 
-  // customer7.html 会识别 PAY:金额，并从顾客余额直接扣款。
-  // MERCHANT:LUXE_CO 用于把消费记录归属到本商户。
   const qrContent = `PAY:${roundedAmount.toFixed(2)}|MERCHANT:LUXE_CO`;
 
   new QRCode(container, {
@@ -941,7 +952,6 @@ document.getElementById('manualCodeBtn').addEventListener('click', async () => {
   }
 });
 
-// 搜索过滤
 document.getElementById('cashierSearch').addEventListener('input', async (e) => {
   const q = e.target.value.toLowerCase().trim();
   if (!q) { loadCashierVouchers(); return; }
@@ -1196,7 +1206,6 @@ document.getElementById('voucherSearch').addEventListener('input', (e) => {
 
 document.getElementById('refreshVouchersBtn').addEventListener('click', loadAllVouchers);
 
-// 发放礼券
 document.getElementById('issueVoucherBtn').addEventListener('click', () => {
   document.getElementById('issueVoucherModal').classList.add('show');
   document.getElementById('issueExpiry').value = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
