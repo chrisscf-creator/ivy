@@ -834,7 +834,6 @@ async function onScanSuccess(decodedText) {
     const amountPart = (payParts[0] || '').trim();
     scannedAmount = parseFloat(amountPart);
 
-    // 读取商户编号：PAY:10.00|MERCHANT:LUXE_CO
     let merchantId = 'LUXE_CO';
     payParts.slice(1).forEach(part => {
       const p = part.trim();
@@ -851,9 +850,6 @@ async function onScanSuccess(decodedText) {
     }
   } else if (text.startsWith('VOUCHER:')) {
     qrType = 'VOUCHER';
-
-    // 支持新二维码：VOUCHER:券码|MERCHANT:LUXE_CO
-    // 旧二维码 VOUCHER:券码 仍然可以使用。
     const voucherPayload = text.substring(8).trim();
     const voucherParts = voucherPayload.split('|');
     voucherCode = (voucherParts[0] || '').trim();
@@ -900,13 +896,13 @@ async function onScanSuccess(decodedText) {
     textEl.textContent = `💰 消费支付：$${scannedAmount.toFixed(2)}`;
     showToast(`识别成功，正在扣款 $${scannedAmount.toFixed(2)}`, 'success');
 
-      const merchantId = window.__scanMerchantId || 'LUXE_CO';
+    const merchantId = window.__scanMerchantId || 'LUXE_CO';
     window.__scanMerchantId = null;
 
     setTimeout(async () => {
       closeScanner();
       document.getElementById('scanResult').classList.remove('show');
-      await directPay(scannedAmount, merchantId);   // ★ 真正扣款
+      await directPay(scannedAmount, merchantId);
     }, 800);
     return;
   }
@@ -921,11 +917,13 @@ async function onScanSuccess(decodedText) {
   textEl.textContent = `🎁 礼券：${voucherCode}`;
   showToast(`识别成功：礼券 ${voucherCode}`, 'success');
 
-  setTimeout(() => {
+  const voucherMerchantId = window.__scanMerchantId || 'LUXE_CO';
+  window.__scanMerchantId = null;
+
+  setTimeout(async () => {
     closeScanner();
     document.getElementById('scanResult').classList.remove('show');
-    handleVoucherReceive(voucherCode, window.__scanMerchantId || 'LUXE_CO');
-    window.__scanMerchantId = null;
+    await handleVoucherReceive(voucherCode, voucherMerchantId);
   }, 800);
 }
 
@@ -941,8 +939,7 @@ document.getElementById('scanPayBtn').addEventListener('click', openScanner);
 document.getElementById('closeScanModal').addEventListener('click', closeScanner);
 
 // ============================================
-// ★ 直接扣款函数（不使用礼券）
-// 如果要用礼券，请用 openPayConfirm() 版本
+// ★ 直接扣款函数（get + set 方式，避免 runTransaction 缓存问题）
 // ============================================
 async function directPay(amount, merchantId = 'LUXE_CO') {
   try {
@@ -1062,7 +1059,6 @@ async function handleVoucherReceive(code, merchantId = 'LUXE_CO') {
 
       const usedAt = serverTimestamp();
 
-      // 顾客消费记录
       await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
         type: 'voucher_use',
         voucherId: foundVoucherId,
@@ -1073,7 +1069,6 @@ async function handleVoucherReceive(code, merchantId = 'LUXE_CO') {
         createdAt: usedAt
       });
 
-      // ★ 商户消费记录：tenants.html 从这里读取实际消费金额
       await push(ref(db, 'merchantTransactions'), {
         merchantId,
         customerId: CURRENT_CUSTOMER_ID,
