@@ -405,8 +405,6 @@ body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh;
 <script type="module">
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, set, push, update, remove, onValue, serverTimestamp, runTransaction }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
@@ -900,12 +898,13 @@ async function onScanSuccess(decodedText) {
     textEl.textContent = `💰 消费支付：$${scannedAmount.toFixed(2)}`;
     showToast(`识别成功，正在扣款 $${scannedAmount.toFixed(2)}`, 'success');
 
-    setTimeout(() => {
+      const merchantId = window.__scanMerchantId || 'LUXE_CO';
+    window.__scanMerchantId = null;
+
+    setTimeout(async () => {
       closeScanner();
       document.getElementById('scanResult').classList.remove('show');
-      const merchantId = window.__scanMerchantId || 'LUXE_CO';
-      directPay(scannedAmount, merchantId);   // ★ 真正扣款
-      window.__scanMerchantId = null;
+      await directPay(scannedAmount, merchantId);   // ★ 真正扣款
     }, 800);
     return;
   }
@@ -945,12 +944,19 @@ document.getElementById('closeScanModal').addEventListener('click', closeScanner
 // ============================================
 async function directPay(amount, merchantId = 'LUXE_CO') {
   try {
+    if (!CURRENT_CUSTOMER_ID) {
+      showToast('请先登录', 'error');
+      return;
+    }
+
+    console.log('[直接扣款] 开始，顾客:', CURRENT_CUSTOMER_ID, '金额:', amount, '商户:', merchantId);
+
     // 1. 从服务器拉最新余额
     const userSnap = await get(ref(db, `users/${CURRENT_CUSTOMER_ID}`));
     const userData = userSnap.val() || {};
-    const currentBal = userData.balance || 0;
+    const currentBal = Number(userData.balance || 0);
 
-    console.log('[直接扣款] 金额:', amount, '当前余额:', currentBal);
+    console.log('[直接扣款] 当前余额:', currentBal);
 
     // 2. 检查余额
     if (amount > currentBal) {
@@ -958,22 +964,11 @@ async function directPay(amount, merchantId = 'LUXE_CO') {
       return;
     }
 
-    // 3. 扣款（使用 Firebase transaction，避免重复扫描/并发造成余额错误）
-    const balanceRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/balance`);
-    const txResult = await runTransaction(balanceRef, current => {
-      const bal = Number(current || 0);
-      if (amount > bal) return;
-      return Math.round((bal - amount) * 100) / 100;
-    });
+    // 3. 直接更新余额（get + set 方式，简单可靠）
+    const newBalance = Math.round((currentBal - amount) * 100) / 100;
+    await set(ref(db, `users/${CURRENT_CUSTOMER_ID}/balance`), newBalance);
 
-    if (!txResult.committed) {
-      const latestSnap = await get(balanceRef);
-      const latestBalance = Number(latestSnap.val() || 0);
-      showToast(`余额不足！当前 $${latestBalance.toFixed(2)}，需 $${amount.toFixed(2)}`, 'error');
-      return;
-    }
-
-    const newBalance = Number(txResult.snapshot.val() || 0);
+    console.log('[直接扣款] 新余额:', newBalance);
 
     // 4. 记录历史
     await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
