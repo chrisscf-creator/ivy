@@ -147,6 +147,25 @@ body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh;
 .scan-result.show { display: flex; }
 .scan-result i { font-size: 1.5rem; }
 
+/* 支付确认弹窗 */
+.pay-summary { background: #faf8fe; border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid #ede6f7; }
+.pay-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.85rem; }
+.pay-row.total { border-top: 1px dashed #e0d4f0; margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 1rem; }
+.pay-row .label { color: #7e6a9e; }
+.pay-row .value { color: #2d2642; font-weight: 600; }
+.pay-row .value.highlight { color: #2e7d32; }
+.pay-row .value.danger { color: #c62828; }
+
+.voucher-selector { max-height: 220px; overflow-y: auto; border-radius: 12px; border: 1px solid #f0eaf8; padding: 6px; background: #fdfbff; margin-bottom: 16px; }
+.voucher-option { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1.5px solid transparent; margin-bottom: 4px; transition: all 0.15s; }
+.voucher-option:hover { background: #f5f0ff; }
+.voucher-option.selected { background: #2d2642; border-color: #2d2642; }
+.voucher-option.selected .v-code, .voucher-option.selected .v-amount { color: white; }
+.voucher-option .v-code { font-family: monospace; font-weight: 700; font-size: 0.8rem; color: #6b4fa8; }
+.voucher-option .v-amount { font-weight: 800; color: #2d2642; font-size: 0.9rem; }
+.voucher-option.none { justify-content: center; color: #9b8bb5; font-size: 0.8rem; }
+.voucher-option.none.selected { color: white; }
+
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; font-weight: 500; font-size: 0.85rem; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.4); opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 2000; display: flex; align-items: center; gap: 8px; max-width: 90%; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.success { border: 1px solid rgba(46, 125, 50, 0.4); }
@@ -337,12 +356,56 @@ body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh;
   </div>
 </div>
 
+<!-- 支付确认弹窗（保留但默认自动处理） -->
+<div class="modal-overlay" id="payConfirmModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-receipt" style="color:#8b6fcb; margin-right:8px;"></i>确认支付</h3>
+      <button type="button" class="modal-close" id="closePayConfirmModal"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pay-summary">
+        <div class="pay-row">
+          <span class="label">消费金额</span>
+          <span class="value" id="payTotalAmount">$0.00</span>
+        </div>
+        <div class="pay-row">
+          <span class="label">礼券抵扣</span>
+          <span class="value highlight" id="payVoucherAmount">$0.00</span>
+        </div>
+        <div class="pay-row">
+          <span class="label">余额支付</span>
+          <span class="value danger" id="payBalanceAmount">$0.00</span>
+        </div>
+        <div class="pay-row total">
+          <span class="label">实付合计</span>
+          <span class="value" id="payActualAmount">$0.00</span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 8px;">
+        <label>选择礼券（可选）</label>
+      </div>
+      <div class="voucher-selector" id="voucherSelector"></div>
+
+      <div id="balanceWarning" style="background:#ffebee; border-radius:12px; padding:12px; font-size:0.78rem; color:#c62828; display:none; gap:8px; margin-bottom:16px;">
+        <i class="fas fa-exclamation-triangle" style="margin-top:2px;"></i>
+        <span id="balanceWarningText">余额不足</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" id="cancelPayConfirm">取消</button>
+      <button type="button" class="btn btn-primary" id="confirmPayBtn"><i class="fas fa-check-circle"></i> 确认支付</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
 // ================= Firebase =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, set, push, update, remove, onValue, serverTimestamp }
+import { getDatabase, ref, get, set, push, update, remove, onValue, serverTimestamp, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -771,6 +834,7 @@ async function onScanSuccess(decodedText) {
     const amountPart = (payParts[0] || '').trim();
     scannedAmount = parseFloat(amountPart);
 
+    // 读取商户编号：PAY:10.00|MERCHANT:LUXE_CO
     let merchantId = 'LUXE_CO';
     payParts.slice(1).forEach(part => {
       const p = part.trim();
@@ -787,6 +851,9 @@ async function onScanSuccess(decodedText) {
     }
   } else if (text.startsWith('VOUCHER:')) {
     qrType = 'VOUCHER';
+
+    // 支持新二维码：VOUCHER:券码|MERCHANT:LUXE_CO
+    // 旧二维码 VOUCHER:券码 仍然可以使用。
     const voucherPayload = text.substring(8).trim();
     const voucherParts = voucherPayload.split('|');
     voucherCode = (voucherParts[0] || '').trim();
@@ -833,13 +900,13 @@ async function onScanSuccess(decodedText) {
     textEl.textContent = `💰 消费支付：$${scannedAmount.toFixed(2)}`;
     showToast(`识别成功，正在扣款 $${scannedAmount.toFixed(2)}`, 'success');
 
-    const merchantId = window.__scanMerchantId || 'LUXE_CO';
+      const merchantId = window.__scanMerchantId || 'LUXE_CO';
     window.__scanMerchantId = null;
 
     setTimeout(async () => {
       closeScanner();
       document.getElementById('scanResult').classList.remove('show');
-      await directPay(scannedAmount, merchantId);
+      await directPay(scannedAmount, merchantId);   // ★ 真正扣款
     }, 800);
     return;
   }
@@ -854,13 +921,11 @@ async function onScanSuccess(decodedText) {
   textEl.textContent = `🎁 礼券：${voucherCode}`;
   showToast(`识别成功：礼券 ${voucherCode}`, 'success');
 
-  const voucherMerchantId = window.__scanMerchantId || 'LUXE_CO';
-  window.__scanMerchantId = null;
-
-  setTimeout(async () => {
+  setTimeout(() => {
     closeScanner();
     document.getElementById('scanResult').classList.remove('show');
-    await handleVoucherReceive(voucherCode, voucherMerchantId);
+    handleVoucherReceive(voucherCode, window.__scanMerchantId || 'LUXE_CO');
+    window.__scanMerchantId = null;
   }, 800);
 }
 
@@ -876,75 +941,94 @@ document.getElementById('scanPayBtn').addEventListener('click', openScanner);
 document.getElementById('closeScanModal').addEventListener('click', closeScanner);
 
 // ============================================
-// ★ 直接扣款函数（get + set 方式，避免 runTransaction 缓存问题）
+// ★ 直接扣款函数（不使用礼券）
+// 如果要用礼券，请用 openPayConfirm() 版本
 // ============================================
 async function directPay(amount, merchantId = 'LUXE_CO') {
+  let balanceCommitted = false;
   try {
     if (!CURRENT_CUSTOMER_ID) {
       showToast('请先登录', 'error');
       return;
     }
 
-    console.log('[直接扣款] 开始，顾客:', CURRENT_CUSTOMER_ID, '金额:', amount, '商户:', merchantId);
-
-    // 1. 从服务器拉最新余额
-    const userSnap = await get(ref(db, `users/${CURRENT_CUSTOMER_ID}`));
-    const userData = userSnap.val() || {};
-    const currentBal = Number(userData.balance || 0);
-
-    console.log('[直接扣款] 当前余额:', currentBal);
-
-    // 2. 检查余额
-    if (amount > currentBal) {
-      showToast(`余额不足！当前 $${currentBal.toFixed(2)}，需 $${amount.toFixed(2)}`, 'error');
+    const payAmount = Math.round(Number(amount) * 100) / 100;
+    if (!Number.isFinite(payAmount) || payAmount <= 0) {
+      showToast('支付金额无效', 'error');
       return;
     }
 
-    // 3. 直接更新余额（get + set 方式，简单可靠）
-    const newBalance = Math.round((currentBal - amount) * 100) / 100;
-    await set(ref(db, `users/${CURRENT_CUSTOMER_ID}/balance`), newBalance);
+    const balanceRef = ref(db, `users/${CURRENT_CUSTOMER_ID}/balance`);
 
-    console.log('[直接扣款] 新余额:', newBalance);
-
-    // 4. 记录历史
-    await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
-      type: 'payment',
-      amount: amount,
-      balanceUsed: amount,
-      voucherUsed: 0,
-      description: `消费 $${amount.toFixed(2)}（余额 -$${amount.toFixed(2)}）`,
-      createdAt: serverTimestamp()
+    // 使用 Firebase transaction，避免 get + set 造成并发覆盖余额。
+    const result = await runTransaction(balanceRef, (oldBalance) => {
+      const balance = Number(oldBalance || 0);
+      if (!Number.isFinite(balance) || balance < payAmount) return;
+      return Math.round((balance - payAmount) * 100) / 100;
     });
 
-    // 5. 全局交易记录
-    const paymentCreatedAt = serverTimestamp();
+    if (!result.committed) {
+      const latest = Number(result.snapshot.val() || 0);
+      showToast(`支付未完成：余额不足或余额更新冲突。当前余额 $${latest.toFixed(2)}`, 'error');
+      return;
+    }
 
+    const newBalance = Number(result.snapshot.val() || 0);
+    balanceCommitted = true;
+
+    // 立即更新本机界面，随后 Firebase onValue 也会同步更新。
+    currentBalance = newBalance;
+    document.getElementById('userBalance').innerHTML =
+      `$${newBalance.toFixed(2)}<span></span>`;
+
+    const userSnap = await get(ref(db, `users/${CURRENT_CUSTOMER_ID}`));
+    const userData = userSnap.val() || {};
+    const createdAt = serverTimestamp();
+    const customerName = userData.name || CURRENT_CUSTOMER_ID;
+
+    // 写顾客交易历史
+    await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
+      type: 'payment',
+      amount: payAmount,
+      balanceUsed: payAmount,
+      voucherUsed: 0,
+      balanceAfter: newBalance,
+      description: `消费 $${payAmount.toFixed(2)}（余额 -$${payAmount.toFixed(2)}）`,
+      createdAt
+    });
+
+    // 写入商户交易记录
     await push(ref(db, 'transactions'), {
       customerId: CURRENT_CUSTOMER_ID,
-      customerName: userData.name || CURRENT_CUSTOMER_ID,
-      amount: Number(amount),
-      balanceUsed: Number(amount),
+      customerName,
+      amount: payAmount,
+      balanceUsed: payAmount,
       voucherUsed: 0,
+      balanceAfter: newBalance,
       type: 'payment',
       merchantId: merchantId || 'LUXE_CO',
-      createdAt: paymentCreatedAt
+      createdAt
     });
 
     await push(ref(db, 'merchantTransactions'), {
       merchantId: merchantId || 'LUXE_CO',
       customerId: CURRENT_CUSTOMER_ID,
-      customerName: userData.name || CURRENT_CUSTOMER_ID,
-      amount: Number(amount),
+      customerName,
+      amount: payAmount,
       type: 'payment',
-      description: `顾客 ${CURRENT_CUSTOMER_ID} 消费 $${Number(amount).toFixed(2)}`,
-      createdAt: paymentCreatedAt
+      description: `顾客 ${CURRENT_CUSTOMER_ID} 消费 $${payAmount.toFixed(2)}`,
+      createdAt
     });
 
-    console.log('[直接扣款] 成功，新余额:', newBalance);
-    showToast(`支付成功！已扣除 $${amount.toFixed(2)}`, 'success');
+    showToast(`支付成功！已扣除 $${payAmount.toFixed(2)}，余额 $${newBalance.toFixed(2)}`, 'success');
   } catch (e) {
     console.error('[直接扣款] 出错:', e);
-    showToast('支付失败：' + (e.message || '请重试'), 'error');
+    if (balanceCommitted) {
+      // 余额已成功扣除，但后续交易日志写入失败时，不要误报支付失败。
+      showToast('余额已扣除，但部分交易记录写入失败，请检查 Firebase 交易记录。', 'error');
+    } else {
+      showToast('支付失败：' + (e.message || '请重试'), 'error');
+    }
   }
 }
 
@@ -996,6 +1080,7 @@ async function handleVoucherReceive(code, merchantId = 'LUXE_CO') {
 
       const usedAt = serverTimestamp();
 
+      // 顾客消费记录
       await push(ref(db, `users/${CURRENT_CUSTOMER_ID}/history`), {
         type: 'voucher_use',
         voucherId: foundVoucherId,
@@ -1006,6 +1091,7 @@ async function handleVoucherReceive(code, merchantId = 'LUXE_CO') {
         createdAt: usedAt
       });
 
+      // ★ 商户消费记录：tenants.html 从这里读取实际消费金额
       await push(ref(db, 'merchantTransactions'), {
         merchantId,
         customerId: CURRENT_CUSTOMER_ID,
