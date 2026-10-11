@@ -147,25 +147,6 @@ body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh;
 .scan-result.show { display: flex; }
 .scan-result i { font-size: 1.5rem; }
 
-/* 支付确认弹窗 */
-.pay-summary { background: #faf8fe; border-radius: 16px; padding: 18px; margin-bottom: 18px; border: 1px solid #ede6f7; }
-.pay-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.85rem; }
-.pay-row.total { border-top: 1px dashed #e0d4f0; margin-top: 8px; padding-top: 12px; font-weight: 700; font-size: 1rem; }
-.pay-row .label { color: #7e6a9e; }
-.pay-row .value { color: #2d2642; font-weight: 600; }
-.pay-row .value.highlight { color: #2e7d32; }
-.pay-row .value.danger { color: #c62828; }
-
-.voucher-selector { max-height: 220px; overflow-y: auto; border-radius: 12px; border: 1px solid #f0eaf8; padding: 6px; background: #fdfbff; margin-bottom: 16px; }
-.voucher-option { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 10px; cursor: pointer; border: 1.5px solid transparent; margin-bottom: 4px; transition: all 0.15s; }
-.voucher-option:hover { background: #f5f0ff; }
-.voucher-option.selected { background: #2d2642; border-color: #2d2642; }
-.voucher-option.selected .v-code, .voucher-option.selected .v-amount { color: white; }
-.voucher-option .v-code { font-family: monospace; font-weight: 700; font-size: 0.8rem; color: #6b4fa8; }
-.voucher-option .v-amount { font-weight: 800; color: #2d2642; font-size: 0.9rem; }
-.voucher-option.none { justify-content: center; color: #9b8bb5; font-size: 0.8rem; }
-.voucher-option.none.selected { color: white; }
-
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; font-weight: 500; font-size: 0.85rem; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.4); opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 2000; display: flex; align-items: center; gap: 8px; max-width: 90%; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.success { border: 1px solid rgba(46, 125, 50, 0.4); }
@@ -352,50 +333,6 @@ body { font-family: 'Inter', sans-serif; background: #f5f3f9; min-height: 100vh;
         <i class="fas fa-check-circle"></i>
         <span id="scanResultText">识别成功</span>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- 支付确认弹窗（保留但默认自动处理） -->
-<div class="modal-overlay" id="payConfirmModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3><i class="fas fa-receipt" style="color:#8b6fcb; margin-right:8px;"></i>确认支付</h3>
-      <button type="button" class="modal-close" id="closePayConfirmModal"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="pay-summary">
-        <div class="pay-row">
-          <span class="label">消费金额</span>
-          <span class="value" id="payTotalAmount">$0.00</span>
-        </div>
-        <div class="pay-row">
-          <span class="label">礼券抵扣</span>
-          <span class="value highlight" id="payVoucherAmount">$0.00</span>
-        </div>
-        <div class="pay-row">
-          <span class="label">余额支付</span>
-          <span class="value danger" id="payBalanceAmount">$0.00</span>
-        </div>
-        <div class="pay-row total">
-          <span class="label">实付合计</span>
-          <span class="value" id="payActualAmount">$0.00</span>
-        </div>
-      </div>
-
-      <div class="form-group" style="margin-bottom: 8px;">
-        <label>选择礼券（可选）</label>
-      </div>
-      <div class="voucher-selector" id="voucherSelector"></div>
-
-      <div id="balanceWarning" style="background:#ffebee; border-radius:12px; padding:12px; font-size:0.78rem; color:#c62828; display:none; gap:8px; margin-bottom:16px;">
-        <i class="fas fa-exclamation-triangle" style="margin-top:2px;"></i>
-        <span id="balanceWarningText">余额不足</span>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-outline" id="cancelPayConfirm">取消</button>
-      <button type="button" class="btn btn-primary" id="confirmPayBtn"><i class="fas fa-check-circle"></i> 确认支付</button>
     </div>
   </div>
 </div>
