@@ -1,1326 +1,551 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>商户后台 · 充值审批与礼券管理</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #f0f2f5;
-      min-height: 100vh;
-      color: #1a1528;
-    }
-    .admin-header {
-      background: linear-gradient(135deg, #1e1b2f, #2d2642);
-      color: white;
-      padding: 0 24px;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 20px -4px rgba(0,0,0,0.3);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .admin-logo {
-      font-size: 1.2rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .admin-logo i { color: #f9e076; }
-    .admin-badge {
-      font-size: 0.7rem;
-      background: rgba(249, 224, 118, 0.2);
-      color: #f9e076;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    .pending-badge {
-      background: #c62828;
-      color: white;
-      font-size: 0.7rem;
-      padding: 2px 8px;
-      border-radius: 20px;
-      font-weight: 700;
-      margin-left: 6px;
-    }
-    .admin-layout {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      min-height: calc(100vh - 64px);
-    }
-    .sidebar {
-      background: white;
-      border-right: 1px solid #e8e0f0;
-      padding: 20px 12px;
-      position: sticky;
-      top: 64px;
-      height: calc(100vh - 64px);
-      overflow-y: auto;
-    }
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 12px;
-      color: #6b5b8a;
-      font-weight: 500;
-      font-size: 0.88rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 4px;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
-    }
-    .sidebar-item:hover { background: #f5f0ff; color: #4c3b7a; }
-    .sidebar-item.active {
-      background: #2d2642;
-      color: white;
-    }
-    .sidebar-item.active i { color: #f9e076; }
-    .sidebar-item i { width: 20px; text-align: center; }
-    .main-content {
-      padding: 24px;
-      overflow-y: auto;
-      max-height: calc(100vh - 64px);
-    }
-    .page-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #1e1b2f;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .page-subtitle {
-      font-size: 0.82rem;
-      color: #8b7aa8;
-      margin-bottom: 24px;
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
-    }
-    .stat-card {
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 2px 12px -4px rgba(88, 28, 135, 0.08);
-      border: 1px solid #f0eaf8;
-      position: relative;
-      overflow: hidden;
-    }
-    .stat-label {
-      font-size: 0.75rem;
-      color: #8b7aa8;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-    .stat-value {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #1e1b2f;
-    }
-    .stat-value small { font-size: 0.9rem; color: #8b6fcb; }
-    .stat-icon {
-      position: absolute;
-      right: 20px; bottom: 20px;
-      font-size: 1.8rem;
-      color: #ede0ff;
-    }
-    .search-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .search-input {
-      flex: 1;
-      min-width: 200px;
-      padding: 12px 18px;
-      border-radius: 14px;
-      border: 1.5px solid #e8e0f0;
-      font-size: 0.9rem;
-      font-family: inherit;
-      background: white;
-    }
-    .search-input:focus {
-      outline: none;
-      border-color: #8b6fcb;
-      box-shadow: 0 0 0 4px rgba(139, 111, 203, 0.1);
-    }
-    .btn {
-      padding: 12px 24px;
-      border-radius: 14px;
-      border: none;
-      font-weight: 600;
-      font-size: 0.88rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #2d2642, #1e1b2f);
-      color: white;
-    }
-    .btn-primary:hover { transform: translateY(-1px); }
-    .btn-outline {
-      background: white;
-      border: 1.5px solid #e0d4f0;
-      color: #4c3b7a;
-    }
-    .btn-outline:hover { background: #f9f6fe; }
-    .btn-sm { padding: 8px 14px; font-size: 0.78rem; border-radius: 10px; }
-    .btn-success {
-      background: #e8f5e9;
-      color: #2e7d32;
-      border: 1px solid #a5d6a7;
-    }
-    .btn-success:hover { background: #c8e6c9; }
-    .btn-danger {
-      background: #ffebee;
-      color: #c62828;
-      border: 1px solid #ffcdd2;
-    }
-    .btn-danger:hover { background: #ffcdd2; }
-    .table-container {
-      background: white;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px -4px rgba(88, 28, 135, 0.08);
-      border: 1px solid #f0eaf8;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    thead {
-      background: #faf8fe;
-      border-bottom: 1px solid #ede6f7;
-    }
-    th {
-      text-align: left;
-      padding: 14px 18px;
-      font-weight: 600;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #7e6a9e;
-      white-space: nowrap;
-    }
-    td {
-      padding: 14px 18px;
-      border-bottom: 1px solid #f5f0ff;
-      color: #2d2642;
-      vertical-align: middle;
-    }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #fdfbff; }
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 600;
-    }
-    .status-active { background: #e8f5e9; color: #2e7d32; }
-    .status-used { background: #f0f0f0; color: #757575; }
-    .status-expired { background: #ffebee; color: #c62828; }
-    .status-pending { background: #fff8e1; color: #f9a825; }
-    .status-rejected { background: #ffebee; color: #c62828; }
-    .customer-info { display: flex; align-items: center; gap: 10px; }
-    .customer-avatar {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      background: linear-gradient(145deg, #ede0ff, #d9c9f0);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700;
-      font-size: 0.8rem;
-      color: #6b4fa8;
-      flex-shrink: 0;
-    }
-    .customer-name { font-weight: 600; font-size: 0.85rem; }
-    .customer-id { font-size: 0.7rem; color: #9b8bb5; font-family: monospace; }
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(30, 27, 47, 0.6);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: white;
-      border-radius: 24px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 90vh;
-      overflow-y: auto;
-      animation: modalIn 0.2s ease;
-    }
-    @keyframes modalIn {
-      from { opacity: 0; transform: scale(0.96) translateY(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .modal-header {
-      padding: 24px 24px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .modal-header h3 { font-size: 1.2rem; font-weight: 700; color: #1e1b2f; }
-    .modal-close {
-      background: none; border: none;
-      font-size: 1.4rem; color: #9b8bb5;
-      cursor: pointer;
-    }
-    .modal-body { padding: 24px; }
-    .form-group { margin-bottom: 18px; }
-    .form-group label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #4c3b7a;
-      margin-bottom: 6px;
-    }
-    .form-group input, .form-group select {
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      border: 1.5px solid #e8e0f0;
-      font-size: 0.9rem;
-      font-family: inherit;
-      background: #fdfbff;
-    }
-    .form-group input:focus, .form-group select:focus {
-      outline: none;
-      border-color: #8b6fcb;
-      background: white;
-    }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .modal-footer {
-      padding: 0 24px 24px;
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-    }
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #f5f0ff;
-      font-size: 0.85rem;
-    }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-label { color: #8b7aa8; }
-    .detail-value { color: #1e1b2f; font-weight: 600; text-align: right; }
-    .empty-state { text-align: center; padding: 60px 20px; color: #9b8bb5; }
-    .empty-state i { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
-    .toast {
-      position: fixed;
-      bottom: 30px; left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #1e1b2f;
-      color: #f9e076;
-      padding: 14px 24px;
-      border-radius: 60px;
-      font-weight: 500;
-      font-size: 0.85rem;
-      box-shadow: 0 10px 30px -8px rgba(0,0,0,0.4);
-      opacity: 0;
-      transition: all 0.3s;
-      pointer-events: none;
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .toast.success { border: 1px solid rgba(46, 125, 50, 0.4); }
-    .toast.error { border: 1px solid rgba(198, 40, 40, 0.4); color: #ffb3b3; }
-    .menu-toggle {
-      display: none;
-      background: none; border: none;
-      color: white; font-size: 1.2rem;
-      cursor: pointer; padding: 8px;
-    }
-    @media (max-width: 900px) {
-      .admin-layout { grid-template-columns: 1fr; }
-      .sidebar {
-        position: fixed;
-        left: -280px;
-        top: 64px;
-        width: 260px;
-        z-index: 200;
-        transition: left 0.3s;
-      }
-      .sidebar.open { left: 0; }
-      .menu-toggle { display: flex; }
-      .main-content { padding: 16px; }
-    }
-    @media (max-width: 600px) {
-      .form-row { grid-template-columns: 1fr; }
-      th, td { padding: 10px 12px; font-size: 0.78rem; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin 管理后台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f0eef6; min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 40px 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.2); max-width: 440px; margin: 80px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; width: 100%; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { padding: 8px 14px; font-size: 0.85rem; margin: 2px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.header h2 { font-size: 1.4rem; }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { padding: 12px 20px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; }
+.tab.active { background: #2d2642; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0eef6; font-size: 0.9rem; }
+th { background: #f9f6fc; font-weight: 600; color: #4c3b7a; }
+tr:hover { background: #faf8fc; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 20px; padding: 24px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h3 { color: #2d2642; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.search-input { padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e8e0f0; flex: 1; min-width: 200px; }
+</style>
 </head>
 <body>
-  <header class="admin-header">
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
-      <div class="admin-logo"><i class="fas fa-store"></i> 商户后台</div>
-    </div>
-    <div class="admin-badge"><i class="fas fa-shield-alt"></i> 管理员</div>
-  </header>
-
-  <div class="admin-layout">
-    <aside class="sidebar" id="sidebar">
-      <button class="sidebar-item active" data-page="dashboard">
-        <i class="fas fa-chart-pie"></i> 数据概览
-      </button>
-      <button class="sidebar-item" data-page="topup">
-        <i class="fas fa-clock"></i> 充值审批 <span class="pending-badge" id="pendingCount" style="display:none;">0</span>
-      </button>
-      <button class="sidebar-item" data-page="vouchers">
-        <i class="fas fa-ticket-alt"></i> 礼券管理
-      </button>
-      <button class="sidebar-item" data-page="customers">
-        <i class="fas fa-users"></i> 顾客管理
-      </button>
-      <button class="sidebar-item" data-page="history">
-        <i class="fas fa-history"></i> 消费历史
-      </button>
-    </aside>
-
-    <main class="main-content">
-      <!-- 数据概览 -->
-      <div id="page-dashboard" class="page">
-        <div class="page-title"><i class="fas fa-chart-pie" style="color: #8b6fcb;"></i> 数据概览</div>
-        <div class="page-subtitle">实时掌握顾客消费与礼券使用情况</div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">顾客总数</div>
-            <div class="stat-value" id="statCustomers">--</div>
-            <i class="fas fa-users stat-icon"></i>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">待审批充值</div>
-            <div class="stat-value" id="statPending">--</div>
-            <i class="fas fa-hourglass-half stat-icon"></i>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">已发放礼券</div>
-            <div class="stat-value" id="statVouchers">--</div>
-            <i class="fas fa-ticket-alt stat-icon"></i>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">累计充值金额</div>
-            <div class="stat-value" id="statRevenue">$--</div>
-            <i class="fas fa-dollar-sign stat-icon"></i>
-          </div>
-        </div>
-
-        <div class="page-title" style="font-size: 1.1rem; margin-top: 8px;">
-          <i class="fas fa-clock" style="color: #8b6fcb;"></i> 最近交易
-        </div>
-        <div class="table-container" style="margin-top: 14px;">
-          <table>
-            <thead>
-              <tr>
-                <th>顾客</th>
-                <th>类型</th>
-                <th>金额</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody id="recentTransactions">
-              <tr><td colspan="4" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
+<div class="container">
+  <!-- 登录界面 - 固定账号密码 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-shield-alt"></i> 管理员登录</h2>
+    <div class="error" id="authError"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="adminUser" required placeholder="请输入用户名">
       </div>
-
-      <!-- 充值审批 -->
-      <div id="page-topup" class="page" style="display: none;">
-        <div class="page-title"><i class="fas fa-clock" style="color: #8b6fcb;"></i> 充值审批</div>
-        <div class="page-subtitle">审批顾客的充值申请，通过后余额才会到账</div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>顾客</th>
-                <th>申请金额</th>
-                <th>申请时间</th>
-                <th>状态</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="topupTable">
-              <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="adminPass" required placeholder="请输入密码">
       </div>
-
-      <!-- 礼券管理 -->
-      <div id="page-vouchers" class="page" style="display: none;">
-        <div class="page-title"><i class="fas fa-ticket-alt" style="color: #8b6fcb;"></i> 礼券管理</div>
-        <div class="page-subtitle">发放、查看和管理顾客礼券</div>
-
-        <div class="search-bar">
-          <input type="text" class="search-input" id="voucherSearch" placeholder="搜索顾客ID或礼券码...">
-          <button class="btn btn-primary" id="issueVoucherBtn"><i class="fas fa-plus"></i> 发放礼券</button>
-          <button class="btn btn-outline" id="refreshVouchersBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>顾客</th>
-                <th>礼券码</th>
-                <th>金额</th>
-                <th>状态</th>
-                <th>有效期</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="voucherTable">
-              <tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 顾客管理 -->
-      <div id="page-customers" class="page" style="display: none;">
-        <div class="page-title"><i class="fas fa-users" style="color: #8b6fcb;"></i> 顾客管理</div>
-        <div class="page-subtitle">查看顾客余额、礼券与消费记录</div>
-
-        <div class="search-bar">
-          <input type="text" class="search-input" id="customerSearch" placeholder="搜索顾客ID或姓名...">
-          <button class="btn btn-outline" id="refreshCustomersBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>顾客</th>
-                <th>余额</th>
-                <th>礼券数</th>
-                <th>消费次数</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="customerTable">
-              <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 消费历史 -->
-      <div id="page-history" class="page" style="display: none;">
-        <div class="page-title"><i class="fas fa-history" style="color: #8b6fcb;"></i> 消费历史</div>
-        <div class="page-subtitle">所有顾客的充值、消费与审批记录</div>
-
-        <div class="search-bar">
-          <input type="text" class="search-input" id="historySearch" placeholder="搜索顾客ID或交易描述...">
-          <button class="btn btn-outline" id="refreshHistoryBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>顾客</th>
-                <th>类型</th>
-                <th>描述</th>
-                <th>金额</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody id="historyTable">
-              <tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+      <button type="submit" class="btn btn-primary">登录管理后台</button>
+      <p style="margin-top:16px; font-size:0.85rem; color:#2e7d32; text-align:center;">
+        ✅ 用户名：admin123 &nbsp;|&nbsp; 密码：123321
+      </p>
+    </form>
   </div>
 
-  <!-- 发放礼券弹窗 -->
-  <div class="modal-overlay" id="issueVoucherModal">
-    <div class="modal">
+  <!-- 主界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <div>
+        <h2><i class="fas fa-tachometer-alt"></i> 管理后台</h2>
+        <p style="opacity:0.8; font-size:0.9rem; margin-top:4px;">admin123 已登录</p>
+      </div>
+      <button class="btn btn-sm btn-outline" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出
+      </button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-pane="customers">顾客账号</button>
+      <button class="tab" data-pane="merchants">商户账号</button>
+      <button class="tab" data-pane="alltx">全部交易</button>
+    </div>
+
+    <!-- 顾客列表 -->
+    <div class="tab-pane active" id="pane-customers">
+      <div class="top-bar">
+        <h3>顾客账号列表</h3>
+        <input type="text" class="search-input" id="custSearch" placeholder="搜索姓名/邮箱...">
+      </div>
+      <div class="card">
+        <table id="custTable">
+          <thead>
+            <tr>
+              <th>姓名</th>
+              <th>邮箱</th>
+              <th>余额</th>
+              <th>UID</th>
+              <th>注册时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="custList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 商户列表 -->
+    <div class="tab-pane" id="pane-merchants">
+      <div class="top-bar">
+        <h3>商户账号列表</h3>
+        <input type="text" class="search-input" id="merSearch" placeholder="搜索名称/邮箱...">
+      </div>
+      <div class="card">
+        <table id="merTable">
+          <thead>
+            <tr>
+              <th>商户名称</th>
+              <th>邮箱</th>
+              <th>余额</th>
+              <th>UID</th>
+              <th>注册时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="merList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 全部交易 -->
+    <div class="tab-pane" id="pane-alltx">
+      <div class="top-bar">
+        <h3>全部交易记录</h3>
+        <div>
+          <button class="btn btn-sm btn-success" id="exportAllBtn">
+            <i class="fas fa-download"></i> 导出 Excel
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>类型</th>
+              <th>金额</th>
+              <th>付款方</th>
+              <th>收款方</th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody id="allTxList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户详情弹窗 -->
+  <div class="modal" id="detailModal">
+    <div class="modal-content">
       <div class="modal-header">
-        <h3><i class="fas fa-gift" style="color: #8b6fcb; margin-right: 8px;"></i>发放礼券</h3>
-        <button class="modal-close" id="closeIssueModal"><i class="fas fa-times"></i></button>
+        <h3 id="detailUserName">用户详情</h3>
+        <button class="close-btn" id="closeDetailModal">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>顾客ID <span style="color:#c62828;">*</span></label>
-          <input type="text" id="issueCustomerId" placeholder="例如: customer_001">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>礼券金额 ($) <span style="color:#c62828;">*</span></label>
-            <input type="number" id="issueAmount" placeholder="50" min="1" step="0.01">
-          </div>
-          <div class="form-group">
-            <label>最低消费 ($)</label>
-            <input type="number" id="issueMinSpend" placeholder="200" min="0" step="0.01">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>礼券描述</label>
-          <input type="text" id="issueDescription" placeholder="例如: 生日礼券 / 满减券">
-        </div>
-        <div class="form-group">
-          <label>有效期至</label>
-          <input type="date" id="issueExpiry">
-        </div>
-        <div class="form-group">
-          <label>礼券码 (留空自动生成)</label>
-          <input type="text" id="issueCode" placeholder="自动生成">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" id="cancelIssue">取消</button>
-        <button class="btn btn-primary" id="confirmIssue"><i class="fas fa-paper-plane"></i> 确认发放</button>
-      </div>
+      <div id="detailBody"></div>
     </div>
   </div>
 
-  <!-- 顾客详情弹窗 -->
-  <div class="modal-overlay" id="customerDetailModal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3><i class="fas fa-user-circle" style="color: #8b6fcb; margin-right: 8px;"></i>顾客详情</h3>
-        <button class="modal-close" id="closeCustomerModal"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body" id="customerDetailBody">
-        <div style="text-align:center; padding:40px; color:#8b6fcb;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i></div>
+  <!-- 删除确认弹窗 -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="max-width:400px;">
+      <h3 style="color:#c62828; margin-bottom:16px;"><i class="fas fa-exclamation-triangle"></i> 确认删除</h3>
+      <p style="margin-bottom:20px;">确定要删除此账号及所有相关数据吗？<br><strong style="color:#c62828;">此操作不可恢复！</strong></p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="background:#eee; flex:1;" id="cancelDeleteBtn">取消</button>
+        <button class="btn btn-danger" style="flex:1;" id="confirmDeleteBtn">确认删除</button>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="toast" id="toast"></div>
+<div class="toast" id="toast"></div>
 
-  <script type="module">
-    // ============ Firebase ============
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, onValue, get, set, push, update, serverTimestamp, remove }
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getDatabase, ref, get, remove 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDrrk3exoaA4PjYVlNnlIr1-qZcHYfXZtk",
-      authDomain: "restaurants-cs.firebaseapp.com",
-      databaseURL: "https://restaurants-cs-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "restaurants-cs",
-      storageBucket: "restaurants-cs.firebasestorage.app",
-      messagingSenderId: "209872919844",
-      appId: "1:209872919844:web:c1730801cd51d615e867b1",
-      measurementId: "G-12T3WGM880"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-    // ============ 工具 ============
-    function showToast(msg, type = 'info') {
-      const t = document.getElementById('toast');
-      t.className = 'toast ' + type;
-      t.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${msg}`;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2500);
-    }
+// ========== 固定管理员账号密码 ==========
+const ADMIN_USERNAME = "admin123";
+const ADMIN_PASSWORD = "123321";
 
-    function formatDate(ts) {
-      if (!ts) return '---';
-      const d = new Date(ts);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }
+let isLoggedIn = false;
+let allCustomers = {};
+let allMerchants = {};
+let allTransactions = [];
+let pendingDelete = { type: '', uid: '' };
+let isProcessing = false;
 
-    function formatDateTime(ts) {
-      if (!ts) return '---';
-      const d = new Date(ts);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-    }
+// ========== 工具函数 ==========
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+function escapeCsv(s) {
+  if (s === null || s === undefined) return '';
+  const str = String(s);
+  if (/[,"\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
 
-    function generateCode() {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = 'LUXE';
-      for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-      return code;
-    }
+// ========== 登录验证 - 固定账号密码 ==========
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  
+  const username = document.getElementById('adminUser').value.trim();
+  const password = document.getElementById('adminPass').value;
+  
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+  
+  // 验证固定账号密码
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    isLoggedIn = true;
+    showToast('登录成功', 'success');
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    await loadAllData();
+  } else {
+    showError('用户名或密码错误！请使用：admin123 / 123321');
+  }
+  
+  btn.disabled = false;
+  btn.innerHTML = '登录管理后台';
+  isProcessing = false;
+});
 
-    function getInitials(name) {
-      return (name || '?').charAt(0).toUpperCase();
-    }
+// 退出
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  isLoggedIn = false;
+  allCustomers = {};
+  allMerchants = {};
+  allTransactions = [];
+  document.getElementById('authScreen').style.display = 'block';
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('adminUser').value = '';
+  document.getElementById('adminPass').value = '';
+  showToast('已退出', 'success');
+});
 
-    // ============ 全局状态 ============
-    let allVouchers = [];
-    let allCustomers = {};
-    let allHistory = [];
-    let allTopupRequests = [];
+// ========== 加载全部数据 ==========
+async function loadAllData() {
+  try {
+    // 顾客
+    const custSnap = await get(ref(db, 'users'));
+    allCustomers = custSnap.val() || {};
+    renderCustomers();
 
-    // ============ 页面切换 ============
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-      item.addEventListener('click', () => {
-        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        const page = item.dataset.page;
-        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-        document.getElementById(`page-${page}`).style.display = 'block';
-        
-        if (page === 'dashboard') loadDashboard();
-        if (page === 'topup') loadTopupRequests();
-        if (page === 'vouchers') loadAllVouchers();
-        if (page === 'customers') loadAllCustomers();
-        if (page === 'history') loadAllHistory();
+    // 商户
+    const merSnap = await get(ref(db, 'merchants'));
+    allMerchants = merSnap.val() || {};
+    renderMerchants();
 
-        document.getElementById('sidebar').classList.remove('open');
-      });
-    });
-
-    document.getElementById('menuToggle').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.toggle('open');
-    });
-
-    // ============ 监听待审批数量 ============
-    function watchPendingCount() {
-      const usersRef = ref(db, 'users');
-      onValue(usersRef, (snap) => {
-        const users = snap.val() || {};
-        let pending = 0;
-        for (const uid in users) {
-          const reqs = users[uid].topupRequests || {};
-          pending += Object.values(reqs).filter(r => r.status === 'pending').length;
-        }
-        const badge = document.getElementById('pendingCount');
-        if (pending > 0) {
-          badge.textContent = pending;
-          badge.style.display = 'inline-block';
-        } else {
-          badge.style.display = 'none';
-        }
-      });
-    }
-
-    // ============ 数据概览 ============
-    async function loadDashboard() {
-      try {
-        const usersSnap = await get(ref(db, 'users'));
-        const users = usersSnap.val() || {};
-        const customerIds = Object.keys(users);
-
-        let totalVouchers = 0, usedVouchers = 0, totalRevenue = 0, totalPending = 0;
-        let recentTransactions = [];
-
-        for (const cid of customerIds) {
-          const user = users[cid];
-          const vouchers = user.vouchers || {};
-          totalVouchers += Object.keys(vouchers).length;
-          usedVouchers += Object.values(vouchers).filter(v => v.used).length;
-
-          const reqs = user.topupRequests || {};
-          totalPending += Object.values(reqs).filter(r => r.status === 'pending').length;
-
-          const history = user.history || {};
-          Object.entries(history).forEach(([hid, h]) => {
-            if (h.type === 'topup') totalRevenue += (h.amount || 0);
-            recentTransactions.push({ customerId: cid, customerName: user.name || cid, ...h });
+    // 整理全部交易
+    allTransactions = [];
+    for (const [uid, user] of Object.entries(allCustomers)) {
+      if (user.history) {
+        for (const [hid, h] of Object.entries(user.history)) {
+          allTransactions.push({
+            time: h.createdAt || 0,
+            type: h.type,
+            amount: h.amount,
+            from: user.name || uid,
+            fromUid: uid,
+            to: h.merchantUid ? (allMerchants[h.merchantUid]?.name || h.merchantUid) : '-',
+            toUid: h.merchantUid || '-',
+            desc: h.description || ''
           });
         }
-
-        recentTransactions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        recentTransactions = recentTransactions.slice(0, 10);
-
-        document.getElementById('statCustomers').textContent = customerIds.length;
-        document.getElementById('statPending').textContent = totalPending;
-        document.getElementById('statVouchers').textContent = totalVouchers;
-        document.getElementById('statRevenue').innerHTML = `$${totalRevenue.toFixed(2)}<small></small>`;
-
-        const tbody = document.getElementById('recentTransactions');
-        if (recentTransactions.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无交易</td></tr>';
-          return;
+      }
+    }
+    for (const [uid, merch] of Object.entries(allMerchants)) {
+      if (merch.history) {
+        for (const [hid, h] of Object.entries(merch.history)) {
+          if (h.description && h.description.includes('来自')) continue;
+          allTransactions.push({
+            time: h.createdAt || 0,
+            type: 'receive',
+            amount: h.amount,
+            from: h.customerUid ? (allCustomers[h.customerUid]?.name || h.customerUid) : '-',
+            fromUid: h.customerUid || '-',
+            to: merch.name || uid,
+            toUid: uid,
+            desc: h.description || ''
+          });
         }
-
-        tbody.innerHTML = recentTransactions.map(t => {
-          let typeText = '交易', amountClass = 'status-pending', prefix = '';
-          if (t.type === 'topup') { typeText = '充值'; amountClass = 'status-active'; prefix = '+'; }
-          else if (t.type === 'topup_pending') { typeText = '申请中'; amountClass = 'status-pending'; }
-          else if (t.type === 'topup_rejected') { typeText = '被拒'; amountClass = 'status-rejected'; }
-          else if (t.type === 'voucher_use' || t.type === 'spend') { typeText = '消费'; amountClass = 'status-expired'; prefix = '-'; }
-          else if (t.type === 'voucher_receive') { typeText = '获赠'; amountClass = 'status-active'; prefix = '+'; }
-
-          return `
-            <tr>
-              <td>
-                <div class="customer-info">
-                  <div class="customer-avatar">${getInitials(t.customerName)}</div>
-                  <div>
-                    <div class="customer-name">${t.customerName}</div>
-                    <div class="customer-id">${t.customerId}</div>
-                  </div>
-                </div>
-              </td>
-              <td><span class="status-badge ${amountClass}">${typeText}</span></td>
-              <td style="font-weight:700; color:${prefix === '+' ? '#2e7d32' : prefix === '-' ? '#c62828' : '#f9a825'};">${prefix}$${Math.abs(t.amount || 0).toFixed(2)}</td>
-              <td style="color:#9b8bb5; font-size:0.78rem;">${formatDateTime(t.createdAt)}</td>
-            </tr>
-          `;
-        }).join('');
-      } catch (e) {
-        console.error(e);
-        showToast('加载数据失败', 'error');
       }
     }
+    allTransactions.sort((a,b) => (b.time||0) - (a.time||0));
+    renderAllTx();
+  } catch (e) {
+    console.error('Load data error:', e);
+    showToast('数据加载失败：' + e.message, 'error');
+  }
+}
 
-    // ============ 充值审批 ============
-    async function loadTopupRequests() {
-      const tbody = document.getElementById('topupTable');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
+// ========== 渲染顾客列表 ==========
+function renderCustomers(filter='') {
+  const tbody = document.getElementById('custList');
+  const f = filter.toLowerCase();
+  let html = '';
+  for (const [uid, u] of Object.entries(allCustomers)) {
+    if (f && !(u.name||'').toLowerCase().includes(f) && !(u.email||'').toLowerCase().includes(f)) continue;
+    html += `
+      <tr>
+        <td><strong>${u.name||'-'}</strong></td>
+        <td>${u.email||'-'}</td>
+        <td style="font-weight:bold; color:#2e7d32;">${formatMoney(u.balance)}</td>
+        <td style="font-size:0.8rem; color:#888;">${uid.slice(0,8)}...</td>
+        <td style="font-size:0.85rem;">${formatTime(u.createdAt)}</td>
+        <td>
+          <button class="btn-sm btn-outline" onclick="viewDetail('customer','${uid}')"><i class="fas fa-eye"></i> 详情</button>
+          <button class="btn-sm btn-danger" onclick="askDelete('customer','${uid}')"><i class="fas fa-trash"></i> 删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+}
+document.getElementById('custSearch').addEventListener('input', e => renderCustomers(e.target.value));
 
-      try {
-        const usersSnap = await get(ref(db, 'users'));
-        const users = usersSnap.val() || {};
-        allTopupRequests = [];
+// ========== 渲染商户列表 ==========
+function renderMerchants(filter='') {
+  const tbody = document.getElementById('merList');
+  const f = filter.toLowerCase();
+  let html = '';
+  for (const [uid, m] of Object.entries(allMerchants)) {
+    if (f && !(m.name||'').toLowerCase().includes(f) && !(m.email||'').toLowerCase().includes(f)) continue;
+    html += `
+      <tr>
+        <td><strong>${m.name||'-'}</strong></td>
+        <td>${m.email||'-'}</td>
+        <td style="font-weight:bold; color:#2e7d32;">${formatMoney(m.balance)}</td>
+        <td style="font-size:0.8rem; color:#888;">${uid.slice(0,8)}...</td>
+        <td style="font-size:0.85rem;">${formatTime(m.createdAt)}</td>
+        <td>
+          <button class="btn-sm btn-outline" onclick="viewDetail('merchant','${uid}')"><i class="fas fa-eye"></i> 详情</button>
+          <button class="btn-sm btn-danger" onclick="askDelete('merchant','${uid}')"><i class="fas fa-trash"></i> 删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+}
+document.getElementById('merSearch').addEventListener('input', e => renderMerchants(e.target.value));
 
-        for (const [cid, user] of Object.entries(users)) {
-          const reqs = user.topupRequests || {};
-          for (const [rid, r] of Object.entries(reqs)) {
-            allTopupRequests.push({
-              customerId: cid,
-              customerName: user.name || cid,
-              requestId: rid,
-              ...r
-            });
-          }
-        }
+// ========== 渲染全部交易 ==========
+function renderAllTx() {
+  const tbody = document.getElementById('allTxList');
+  let html = '';
+  for (const tx of allTransactions) {
+    const typeText = {
+      payment: '付款', topup: '充值', topup_rejected: '驳回',
+      voucher_receive: '礼券', receive: '收款'
+    }[tx.type] || tx.type;
+    html += `
+      <tr>
+        <td style="font-size:0.85rem;">${formatTime(tx.time)}</td>
+        <td>${typeText}</td>
+        <td style="font-weight:bold; ${tx.type==='payment'?'color:#c62828;':'color:#2e7d32;'}">${formatMoney(tx.amount)}</td>
+        <td>${tx.from}</td>
+        <td>${tx.to}</td>
+        <td style="font-size:0.85rem; color:#666;">${tx.desc}</td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无交易记录</td></tr>';
+}
 
-        // 排序：pending优先，然后按时间倒序
-        allTopupRequests.sort((a, b) => {
-          if (a.status === 'pending' && b.status !== 'pending') return -1;
-          if (a.status !== 'pending' && b.status === 'pending') return 1;
-          return (b.createdAt || 0) - (a.createdAt || 0);
-        });
+// ========== 导出Excel ==========
+document.getElementById('exportAllBtn').addEventListener('click', () => {
+  if (!allTransactions.length) {
+    showToast('暂无数据可导出', 'error');
+    return;
+  }
+  const header = ['时间','类型','金额','付款方','收款方','备注'];
+  const rows = allTransactions.map(tx => [
+    formatTime(tx.time),
+    {payment:'付款',topup:'充值',topup_rejected:'驳回',voucher_receive:'礼券',receive:'收款'}[tx.type]||tx.type,
+    tx.amount,
+    tx.from,
+    tx.to,
+    tx.desc
+  ]);
+  const csv = [header, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `交易记录_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('导出成功', 'success');
+});
 
-        renderTopupTable(allTopupRequests);
-      } catch (e) {
-        console.error(e);
-        showToast('加载失败', 'error');
-      }
-    }
+// ========== 用户详情 ==========
+window.viewDetail = function(type, uid) {
+  const data = type==='customer' ? allCustomers[uid] : allMerchants[uid];
+  if (!data) return;
+  document.getElementById('detailUserName').textContent = `${data.name||'用户'} - 详情`;
+  
+  let historyHtml = '';
+  if (data.history) {
+    const items = Object.values(data.history).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    historyHtml = items.length ? items.map(h => `
+      <div style="padding:10px 0; border-bottom:1px solid #eee;">
+        <p style="font-size:0.85rem; color:#888;">${formatTime(h.createdAt)}</p>
+        <p>${h.description||'交易'}</p>
+        <p style="font-weight:bold; ${h.type==='payment'?'color:#c62828':'color:#2e7d32'};">${formatMoney(h.amount)}</p>
+      </div>
+    `).join('') : '<p class="empty">暂无历史记录</p>';
+  } else {
+    historyHtml = '<p class="empty">暂无历史记录</p>';
+  }
 
-    function renderTopupTable(items) {
-      const tbody = document.getElementById('topupTable');
-      if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无充值申请</td></tr>';
-        return;
-      }
+  let extraHtml = '';
+  if (type==='customer' && data.topupRequests) {
+    extraHtml += `<h4 style="margin:20px 0 10px;">充值申请</h4>`;
+    extraHtml += Object.entries(data.topupRequests).map(([id, r]) => `
+      <div style="padding:8px 0; border-bottom:1px solid #eee;">
+        <p>金额: ${formatMoney(r.amount)} · 
+          <span style="color:${r.status==='approved'?'#2e7d32':r.status==='rejected'?'#c62828':'#f57c00'};">
+            ${r.status==='pending'?'待审批':r.status==='approved'?'已通过':'已驳回'}
+          </span>
+        </p>
+      </div>
+    `).join('');
+  }
+  if (type==='customer' && data.vouchers) {
+    extraHtml += `<h4 style="margin:20px 0 10px;">礼券</h4>`;
+    extraHtml += Object.entries(data.vouchers).map(([code, v]) => `
+      <div style="padding:8px 0; border-bottom:1px solid #eee;">
+        <p><strong>${code}</strong> · ${formatMoney(v.amount)} · 最低消费 ${formatMoney(v.minSpend)}</p>
+        <p style="font-size:0.8rem; color:#888;">有效期至: ${formatTime(v.expiry)}</p>
+      </div>
+    `).join('');
+  }
 
-      tbody.innerHTML = items.map(r => {
-        let statusText = '待审批', statusClass = 'status-pending';
-        if (r.status === 'approved') { statusText = '已通过'; statusClass = 'status-active'; }
-        else if (r.status === 'rejected') { statusText = '已拒绝'; statusClass = 'status-rejected'; }
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+      <div><strong>姓名</strong><br>${data.name||'-'}</div>
+      <div><strong>邮箱</strong><br>${data.email||'-'}</div>
+      <div><strong>余额</strong><br><span style="font-size:1.2rem; font-weight:bold; color:#2e7d32;">${formatMoney(data.balance)}</span></div>
+      <div><strong>UID</strong><br><code style="background:#f5f5f5; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${uid}</code></div>
+      <div><strong>角色</strong><br>${type==='customer'?'顾客':'商户'}</div>
+      <div><strong>注册时间</strong><br>${formatTime(data.createdAt)}</div>
+    </div>
+    <h4 style="margin:20px 0 10px;">交易历史</h4>
+    ${historyHtml}
+    ${extraHtml}
+  `;
+  document.getElementById('detailModal').classList.add('show');
+};
+document.getElementById('closeDetailModal').addEventListener('click', () => {
+  document.getElementById('detailModal').classList.remove('show');
+});
 
-        return `
-          <tr>
-            <td>
-              <div class="customer-info">
-                <div class="customer-avatar">${getInitials(r.customerName)}</div>
-                <div>
-                  <div class="customer-name">${r.customerName}</div>
-                  <div class="customer-id">${r.customerId}</div>
-                </div>
-              </div>
-            </td>
-            <td style="font-weight:700; color:#2d2642; font-size:1rem;">$${(r.amount || 0).toFixed(2)}</td>
-            <td style="font-size:0.78rem; color:#8b7aa8;">${formatDateTime(r.createdAt)}</td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td>
-              ${r.status === 'pending' ? `
-                <div style="display:flex; gap:6px;">
-                  <button class="btn btn-success btn-sm" onclick="approveTopup('${r.customerId}','${r.requestId}')">
-                    <i class="fas fa-check"></i> 通过
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="rejectTopup('${r.customerId}','${r.requestId}')">
-                    <i class="fas fa-times"></i> 拒绝
-                  </button>
-                </div>
-              ` : '<span style="color:#9b8bb5; font-size:0.78rem;">已处理</span>'}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
+// ========== 删除账号 ==========
+window.askDelete = function(type, uid) {
+  pendingDelete = { type, uid };
+  document.getElementById('deleteModal').classList.add('show');
+};
+document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+  pendingDelete = { type:'', uid:'' };
+  document.getElementById('deleteModal').classList.remove('show');
+});
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!pendingDelete.uid || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = '删除中...';
+  try {
+    const path = pendingDelete.type === 'customer' 
+      ? `users/${pendingDelete.uid}` 
+      : `merchants/${pendingDelete.uid}`;
+    await remove(ref(db, path));
+    showToast('✅ 账号已删除', 'success');
+    document.getElementById('deleteModal').classList.remove('show');
+    pendingDelete = { type:'', uid:'' };
+    await loadAllData();
+  } catch (e) {
+    console.error('Delete error:', e);
+    showToast('删除失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认删除';
+    isProcessing = false;
+  }
+});
 
-    // 审批通过（全局函数）
-    window.approveTopup = async function(customerId, requestId) {
-      if (!confirm('确认通过此充值申请吗？')) return;
-      try {
-        const reqRef = ref(db, `users/${customerId}/topupRequests/${requestId}`);
-        const snap = await get(reqRef);
-        const req = snap.val();
-        if (!req || req.status !== 'pending') { showToast('申请已处理', 'error'); return; }
-
-        // 更新申请状态
-        await update(reqRef, {
-          status: 'approved',
-          approvedAt: serverTimestamp(),
-          approvedBy: 'admin'
-        });
-
-        // 更新顾客余额
-        const userRef = ref(db, `users/${customerId}`);
-        const userSnap = await get(userRef);
-        const user = userSnap.val() || {};
-        const newBalance = (user.balance || 0) + (req.amount || 0);
-        await update(userRef, { balance: newBalance });
-
-        // 记录充值历史
-        const hRef = ref(db, `users/${customerId}/history`);
-        await push(hRef, {
-          type: 'topup',
-          amount: req.amount,
-          requestId: requestId,
-          description: `充值 $${req.amount.toFixed(2)} 已到账`,
-          createdAt: serverTimestamp()
-        });
-
-        showToast(`已通过，$${req.amount.toFixed(2)} 已到账`, 'success');
-        loadTopupRequests();
-        loadDashboard();
-      } catch (e) {
-        console.error(e);
-        showToast('操作失败', 'error');
-      }
-    };
-
-    // 审批拒绝（全局函数）
-    window.rejectTopup = async function(customerId, requestId) {
-      if (!confirm('确认拒绝此充值申请吗？')) return;
-      try {
-        const reqRef = ref(db, `users/${customerId}/topupRequests/${requestId}`);
-        const snap = await get(reqRef);
-        const req = snap.val();
-        if (!req || req.status !== 'pending') { showToast('申请已处理', 'error'); return; }
-
-        await update(reqRef, {
-          status: 'rejected',
-          rejectedAt: serverTimestamp(),
-          rejectedBy: 'admin'
-        });
-
-        // 记录被拒历史
-        const hRef = ref(db, `users/${customerId}/history`);
-        await push(hRef, {
-          type: 'topup_rejected',
-          amount: req.amount,
-          requestId: requestId,
-          description: `充值申请 $${req.amount.toFixed(2)} 被拒绝`,
-          createdAt: serverTimestamp()
-        });
-
-        showToast('已拒绝该申请', 'success');
-        loadTopupRequests();
-        loadDashboard();
-      } catch (e) {
-        console.error(e);
-        showToast('操作失败', 'error');
-      }
-    };
-
-    // ============ 礼券管理 ============
-    async function loadAllVouchers() {
-      const tbody = document.getElementById('voucherTable');
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
-      try {
-        const usersSnap = await get(ref(db, 'users'));
-        const users = usersSnap.val() || {};
-        allVouchers = [];
-
-        for (const [cid, user] of Object.entries(users)) {
-          const vouchers = user.vouchers || {};
-          for (const [vid, v] of Object.entries(vouchers)) {
-            allVouchers.push({ customerId: cid, customerName: user.name || cid, voucherId: vid, ...v });
-          }
-        }
-
-        allVouchers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        renderVoucherTable(allVouchers);
-      } catch (e) {
-        console.error(e);
-        showToast('加载礼券失败', 'error');
-      }
-    }
-
-    function renderVoucherTable(vouchers) {
-      const tbody = document.getElementById('voucherTable');
-      if (vouchers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无礼券</td></tr>';
-        return;
-      }
-
-      const now = Date.now();
-      tbody.innerHTML = vouchers.map(v => {
-        let statusText = '可用', statusClass = 'status-active';
-        if (v.used) { statusText = '已使用'; statusClass = 'status-used'; }
-        else if (v.expiry && v.expiry < now) { statusText = '已过期'; statusClass = 'status-expired'; }
-
-        return `
-          <tr>
-            <td>
-              <div class="customer-info">
-                <div class="customer-avatar">${getInitials(v.customerName)}</div>
-                <div>
-                  <div class="customer-name">${v.customerName}</div>
-                  <div class="customer-id">${v.customerId}</div>
-                </div>
-              </div>
-            </td>
-            <td style="font-family:monospace; font-weight:600; color:#6b4fa8;">${v.code || '----'}</td>
-            <td style="font-weight:700;">$${(v.amount || 0).toFixed(2)}</td>
-            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td style="font-size:0.78rem; color:#8b7aa8;">${formatDate(v.expiry)}</td>
-            <td>
-              ${!v.used && !(v.expiry && v.expiry < now) ? 
-                `<button class="btn btn-danger btn-sm" onclick="voidVoucher('${v.customerId}','${v.voucherId}')"><i class="fas fa-ban"></i> 作废</button>` : 
-                '<span style="color:#9b8bb5; font-size:0.78rem;">—</span>'}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    window.voidVoucher = async function(customerId, voucherId) {
-      if (!confirm('确认作废此礼券吗？')) return;
-      try {
-        await update(ref(db, `users/${customerId}/vouchers/${voucherId}`), {
-          used: true, voided: true, voidedAt: serverTimestamp()
-        });
-        showToast('礼券已作废', 'success');
-        loadAllVouchers();
-      } catch (e) {
-        showToast('作废失败', 'error');
-      }
-    };
-
-    document.getElementById('voucherSearch').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      if (!q) { renderVoucherTable(allVouchers); return; }
-      renderVoucherTable(allVouchers.filter(v => 
-        v.customerId.toLowerCase().includes(q) || 
-        (v.code && v.code.toLowerCase().includes(q)) ||
-        (v.customerName && v.customerName.toLowerCase().includes(q))
-      ));
-    });
-
-    document.getElementById('refreshVouchersBtn').addEventListener('click', loadAllVouchers);
-
-    // 发放礼券
-    document.getElementById('issueVoucherBtn').addEventListener('click', () => {
-      document.getElementById('issueVoucherModal').classList.add('show');
-      document.getElementById('issueExpiry').value = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
-    });
-
-    document.getElementById('closeIssueModal').addEventListener('click', () => 
-      document.getElementById('issueVoucherModal').classList.remove('show'));
-    document.getElementById('cancelIssue').addEventListener('click', () => 
-      document.getElementById('issueVoucherModal').classList.remove('show'));
-
-    document.getElementById('confirmIssue').addEventListener('click', async () => {
-      const customerId = document.getElementById('issueCustomerId').value.trim();
-      const amount = parseFloat(document.getElementById('issueAmount').value);
-      const minSpend = parseFloat(document.getElementById('issueMinSpend').value) || 0;
-      const description = document.getElementById('issueDescription').value.trim() || `满$${minSpend}减$${amount}`;
-      const expiry = document.getElementById('issueExpiry').value;
-      let code = document.getElementById('issueCode').value.trim();
-      
-      if (!customerId) { showToast('请输入顾客ID', 'error'); return; }
-      if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
-      if (!expiry) { showToast('请选择有效期', 'error'); return; }
-      if (!code) code = generateCode();
-
-      try {
-        const userRef = ref(db, `users/${customerId}`);
-        const userSnap = await get(userRef);
-        if (!userSnap.exists()) {
-          await set(userRef, { name: customerId, balance: 0, createdAt: serverTimestamp() });
-        }
-
-        const vRef = push(ref(db, `users/${customerId}/vouchers`));
-        await set(vRef, {
-          code, amount, minSpend, description,
-          expiry: new Date(expiry).getTime(),
-          used: false,
-          createdAt: serverTimestamp()
-        });
-
-        await push(ref(db, `users/${customerId}/history`), {
-          type: 'voucher_receive',
-          amount, code,
-          description: `获得礼券 $${amount} (${description})`,
-          createdAt: serverTimestamp()
-        });
-
-        showToast(`礼券 $${amount} 已发放`, 'success');
-        document.getElementById('issueVoucherModal').classList.remove('show');
-        ['issueCustomerId','issueAmount','issueMinSpend','issueDescription','issueCode'].forEach(id => 
-          document.getElementById(id).value = '');
-        loadAllVouchers();
-      } catch (e) {
-        console.error(e);
-        showToast('发放失败', 'error');
-      }
-    });
-
-    // ============ 顾客管理 ============
-    async function loadAllCustomers() {
-      const tbody = document.getElementById('customerTable');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
-      try {
-        const usersSnap = await get(ref(db, 'users'));
-        allCustomers = usersSnap.val() || {};
-
-        const rows = Object.entries(allCustomers).map(([cid, user]) => {
-          const voucherCount = Object.keys(user.vouchers || {}).length;
-          const historyCount = Object.keys(user.history || {}).filter(
-            hid => user.history[hid].type === 'voucher_use' || user.history[hid].type === 'spend'
-          ).length;
-          return `
-            <tr>
-              <td>
-                <div class="customer-info">
-                  <div class="customer-avatar">${getInitials(user.name)}</div>
-                  <div>
-                    <div class="customer-name">${user.name || cid}</div>
-                    <div class="customer-id">${cid}</div>
-                  </div>
-                </div>
-              </td>
-              <td style="font-weight:700; color:#2d2642;">$${(user.balance || 0).toFixed(2)}</td>
-              <td>${voucherCount}</td>
-              <td>${historyCount}</td>
-              <td>
-                <button class="btn btn-outline btn-sm" onclick="showCustomerDetail('${cid}')">
-                  <i class="fas fa-eye"></i> 详情
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-
-        tbody.innerHTML = rows || '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无顾客</td></tr>';
-      } catch (e) {
-        console.error(e);
-        showToast('加载失败', 'error');
-      }
-    }
-
-    window.showCustomerDetail = async function(customerId) {
-      const modal = document.getElementById('customerDetailModal');
-      const body = document.getElementById('customerDetailBody');
-      modal.classList.add('show');
-      body.innerHTML = '<div style="text-align:center; padding:40px; color:#8b6fcb;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;"></i></div>';
-
-      try {
-        const snap = await get(ref(db, `users/${customerId}`));
-        const user = snap.val();
-        if (!user) { body.innerHTML = '<p style="text-align:center; color:#9b8bb5;">顾客不存在</p>'; return; }
-
-        const vouchers = user.vouchers || {};
-        const voucherList = Object.entries(vouchers).map(([vid, v]) => {
-          const status = v.used ? '已使用' : (v.expiry && v.expiry < Date.now() ? '已过期' : '可用');
-          return `<div class="detail-row">
-            <span class="detail-label">${v.code || vid}</span>
-            <span class="detail-value">$${(v.amount||0).toFixed(2)} · ${status}</span>
-          </div>`;
-        }).join('') || '<div style="text-align:center; padding:20px; color:#9b8bb5;">暂无礼券</div>';
-
-        const history = user.history || {};
-        const historyList = Object.entries(history)
-          .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0))
-          .slice(0, 10)
-          .map(([hid, h]) => {
-            const isPlus = h.type === 'topup' || h.type === 'voucher_receive';
-            const isPending = h.type === 'topup_pending';
-            const color = isPending ? '#f9a825' : (isPlus ? '#2e7d32' : '#c62828');
-            return `<div class="detail-row">
-              <span class="detail-label">${h.description || '交易'}<br><small style="color:#b0a0c5;">${formatDateTime(h.createdAt)}</small></span>
-              <span class="detail-value" style="color:${color};">${isPending ? '' : (isPlus ? '+' : '-')}$${Math.abs(h.amount||0).toFixed(2)}</span>
-            </div>`;
-          }).join('') || '<div style="text-align:center; padding:20px; color:#9b8bb5;">暂无记录</div>';
-
-        body.innerHTML = `
-          <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-            <div class="customer-avatar" style="width:56px; height:56px; font-size:1.4rem;">${getInitials(user.name)}</div>
-            <div>
-              <div style="font-size:1.2rem; font-weight:700; color:#1e1b2f;">${user.name || customerId}</div>
-              <div style="font-size:0.78rem; color:#9b8bb5; font-family:monospace;">${customerId}</div>
-            </div>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">账户余额</span>
-            <span class="detail-value" style="font-size:1.3rem; color:#2d2642;">$${(user.balance||0).toFixed(2)}</span>
-          </div>
-          <div style="margin-top:20px;">
-            <div style="font-size:0.8rem; font-weight:700; color:#4c3b7a; margin-bottom:10px;">礼券 (${Object.keys(vouchers).length})</div>
-            ${voucherList}
-          </div>
-          <div style="margin-top:20px;">
-            <div style="font-size:0.8rem; font-weight:700; color:#4c3b7a; margin-bottom:10px;">最近交易</div>
-            ${historyList}
-          </div>
-        `;
-      } catch (e) {
-        console.error(e);
-        body.innerHTML = '<p style="text-align:center; color:#c62828;">加载失败</p>';
-      }
-    };
-
-    document.getElementById('closeCustomerModal').addEventListener('click', () => 
-      document.getElementById('customerDetailModal').classList.remove('show'));
-
-    document.getElementById('customerSearch').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      const filtered = Object.entries(allCustomers).filter(([cid, user]) =>
-        cid.toLowerCase().includes(q) || (user.name && user.name.toLowerCase().includes(q))
-      );
-      const tbody = document.getElementById('customerTable');
-      if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">未找到</td></tr>';
-        return;
-      }
-      tbody.innerHTML = filtered.map(([cid, user]) => {
-        const voucherCount = Object.keys(user.vouchers || {}).length;
-        const historyCount = Object.keys(user.history || {}).filter(
-          hid => user.history[hid].type === 'voucher_use' || user.history[hid].type === 'spend'
-        ).length;
-        return `
-          <tr>
-            <td>
-              <div class="customer-info">
-                <div class="customer-avatar">${getInitials(user.name)}</div>
-                <div>
-                  <div class="customer-name">${user.name || cid}</div>
-                  <div class="customer-id">${cid}</div>
-                </div>
-              </div>
-            </td>
-            <td style="font-weight:700;">$${(user.balance || 0).toFixed(2)}</td>
-            <td>${voucherCount}</td>
-            <td>${historyCount}</td>
-            <td><button class="btn btn-outline btn-sm" onclick="showCustomerDetail('${cid}')"><i class="fas fa-eye"></i> 详情</button></td>
-          </tr>
-        `;
-      }).join('');
-    });
-
-    document.getElementById('refreshCustomersBtn').addEventListener('click', loadAllCustomers);
-
-    // ============ 消费历史 ============
-    async function loadAllHistory() {
-      const tbody = document.getElementById('historyTable');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">加载中...</td></tr>';
-      try {
-        const usersSnap = await get(ref(db, 'users'));
-        const users = usersSnap.val() || {};
-        allHistory = [];
-
-        for (const [cid, user] of Object.entries(users)) {
-          const history = user.history || {};
-          for (const [hid, h] of Object.entries(history)) {
-            allHistory.push({ customerId: cid, customerName: user.name || cid, historyId: hid, ...h });
-          }
-        }
-
-        allHistory.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        renderHistoryTable(allHistory);
-      } catch (e) {
-        console.error(e);
-        showToast('加载失败', 'error');
-      }
-    }
-
-    function renderHistoryTable(items) {
-      const tbody = document.getElementById('historyTable');
-      if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color:#9b8bb5;">暂无记录</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = items.slice(0, 200).map(h => {
-        let typeText = '交易', typeClass = 'status-pending', prefix = '';
-        if (h.type === 'topup') { typeText = '充值'; typeClass = 'status-active'; prefix = '+'; }
-        else if (h.type === 'topup_pending') { typeText = '申请中'; typeClass = 'status-pending'; }
-        else if (h.type === 'topup_rejected') { typeText = '被拒'; typeClass = 'status-rejected'; }
-        else if (h.type === 'voucher_use' || h.type === 'spend') { typeText = '消费'; typeClass = 'status-expired'; prefix = '-'; }
-        else if (h.type === 'voucher_receive') { typeText = '获赠'; typeClass = 'status-active'; prefix = '+'; }
-
-        return `
-          <tr>
-            <td>
-              <div class="customer-info">
-                <div class="customer-avatar">${getInitials(h.customerName)}</div>
-                <div>
-                  <div class="customer-name">${h.customerName}</div>
-                  <div class="customer-id">${h.customerId}</div>
-                </div>
-              </div>
-            </td>
-            <td><span class="status-badge ${typeClass}">${typeText}</span></td>
-            <td style="font-size:0.8rem; color:#6b5b8a;">${h.description || '---'}</td>
-            <td style="font-weight:700; color:${prefix === '+' ? '#2e7d32' : prefix === '-' ? '#c62828' : '#f9a825'};">${prefix}$${Math.abs(h.amount || 0).toFixed(2)}</td>
-            <td style="font-size:0.78rem; color:#9b8bb5; white-space:nowrap;">${formatDateTime(h.createdAt)}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    document.getElementById('historySearch').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      if (!q) { renderHistoryTable(allHistory); return; }
-      renderHistoryTable(allHistory.filter(h =>
-        h.customerId.toLowerCase().includes(q) ||
-        (h.customerName && h.customerName.toLowerCase().includes(q)) ||
-        (h.description && h.description.toLowerCase().includes(q))
-      ));
-    });
-
-    document.getElementById('refreshHistoryBtn').addEventListener('click', loadAllHistory);
-
-    // ============ 初始化 ============
-    loadDashboard();
-    watchPendingCount();
-  </script>
+// ========== 标签切换 ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+</script>
 </body>
 </html>
