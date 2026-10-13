@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商户管理后台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 700px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); max-width: 420px; margin: 60px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { width: auto; padding: 8px 14px; font-size: 0.9rem; margin: 4px; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
+.balance { font-size: 2.5rem; font-weight: 800; margin: 8px 0; }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; }
+.tab { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; }
+.tab.active { background: #2d2642; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 20px; padding: 24px; max-width: 420px; width: 90%; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.empty { text-align: center; padding: 40px; color: #999; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-store"></i> 商户后台</h2>
+    <div class="error" id="authError"></div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2d2642; color: white;">登录</button>
+      <button class="tab" id="regTabBtn" style="flex:1;">注册</button>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="loginEmail" required>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+    
+    <form id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="regEmail" required>
+      </div>
+      <div class="form-group">
+        <label>商户名称</label>
+        <input type="text" id="merchantName" required>
+      </div>
+      <div class="form-group">
+        <label>密码（至少6位）</label>
+        <input type="password" id="regPassword" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary">注册商户账号</button>
+    </form>
+  </div>
+
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <h3 id="merchantNameDisplay">商户</h3>
+      <div class="balance" id="balanceDisplay">$0.00</div>
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出
+      </button>
+      <div style="margin-top:16px;">
+        <button class="btn-sm btn-success" id="genPayBtn">生成收款码</button>
+        <button class="btn-sm btn-primary" id="genVoucherBtn">发放礼券</button>
+      </div>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab active" data-pane="requests">充值审批</button>
+      <button class="tab" data-pane="payments">收款记录</button>
+      <button class="tab" data-pane="vouchers">礼券管理</button>
+    </div>
+    
+    <div class="tab-pane active" id="pane-requests"><div id="reqList"></div></div>
+    <div class="tab-pane" id="pane-payments"><div id="payList"></div></div>
+    <div class="tab-pane" id="pane-vouchers"><div id="voucherList"></div></div>
+  </div>
+</div>
+
+<div class="modal" id="payModal">
+  <div class="modal-content">
+    <h3>生成收款码</h3>
+    <div class="form-group">
+      <label>收款金额 ($)</label>
+      <input type="number" id="payAmount" min="1" step="0.01">
+    </div>
+    <div id="qrcodeDisplay" style="text-align:center; margin:16px 0;"></div>
+    <button class="btn btn-primary" id="doGenPay">生成</button>
+    <button class="btn" style="background:#eee;" id="closePayModal">关闭</button>
+  </div>
+</div>
+
+<div class="modal" id="voucherModal">
+  <div class="modal-content">
+    <h3>发放礼券</h3>
+    <div class="form-group">
+      <label>顾客UID</label>
+      <input type="text" id="customerUid" placeholder="用户的UID">
+    </div>
+    <div class="form-group">
+      <label>券金额 ($)</label>
+      <input type="number" id="voucherAmount" min="1" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>最低消费 ($)</label>
+      <input type="number" id="minSpend" min="0" step="0.01" value="0">
+    </div>
+    <div class="form-group">
+      <label>有效期至</label>
+      <input type="date" id="expiryDate">
+    </div>
+    <button class="btn btn-success" id="doGenVoucher">发放</button>
+    <button class="btn" style="background:#eee;" id="closeVoucherModal">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getDatabase, ref, set, push, update, get, onValue,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentMerchant = null;
+let unsubs = [];
+let isProcessing = false;
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+
+function clearListeners() {
+  unsubs.forEach(fn => { try { fn() } catch(e) {} });
+  unsubs = [];
+}
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentMerchant = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('merchantNameDisplay').textContent = user.displayName || '商户';
+    initMerchantData();
+  } else {
+    currentMerchant = null;
+    clearListeners();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('mainApp').classList.remove('active');
+  }
+});
+
+document.getElementById('loginTabBtn').addEventListener('click', () => {
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('loginTabBtn').style.background = '#2d2642';
+  document.getElementById('loginTabBtn').style.color = 'white';
+  document.getElementById('regTabBtn').classList.remove('active');
+  document.getElementById('regTabBtn').style.background = 'transparent';
+  document.getElementById('regTabBtn').style.color = '#8b7aa8';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+document.getElementById('regTabBtn').addEventListener('click', () => {
+  document.getElementById('regTabBtn').classList.add('active');
+  document.getElementById('regTabBtn').style.background = '#2d2642';
+  document.getElementById('regTabBtn').style.color = 'white';
+  document.getElementById('loginTabBtn').classList.remove('active');
+  document.getElementById('loginTabBtn').style.background = 'transparent';
+  document.getElementById('loginTabBtn').style.color = '#8b7aa8';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
+  
+  try {
+    const email = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('merchantName').value.trim();
+    const pwd = document.getElementById('regPassword').value;
+    
+    const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await set(ref(db, `merchants/${userCred.user.uid}`), {
+      name, email, balance: 0, role: 'merchant', createdAt: serverTimestamp()
+    });
+    await userCred.user.updateProfile({ displayName: name });
+    showToast('商户注册成功！', 'success');
+  } catch (err) {
+    console.error('Register error:', err);
+    showError('注册失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '注册商户账号';
+    isProcessing = false;
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+  
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+    await signInWithEmailAndPassword(auth, email, pwd);
+    showToast('登录成功！', 'success');
+  } catch (err) {
+    console.error('Login error:', err);
+    showError('登录失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '登录';
+    isProcessing = false;
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  await signOut(auth);
+  showToast('已退出', 'success');
+  isProcessing = false;
+});
+
+function initMerchantData() {
+  const merchRef = ref(db, `merchants/${currentMerchant.uid}`);
+  
+  unsubs.push(onValue(merchRef, snap => {
+    const d = snap.val() || {};
+    document.getElementById('balanceDisplay').textContent = `$${(d.balance||0).toFixed(2)}`;
+  }));
+  
+  unsubs.push(onValue(ref(db, 'users'), snap => {
+    const users = snap.val() || {};
+    let html = '';
+    for (const [uid, user] of Object.entries(users)) {
+      if (!user.topupRequests) continue;
+      for (const [rid, req] of Object.entries(user.topupRequests)) {
+        if (req.status === 'pending') {
+          html += `
+            <div class="card">
+              <p><strong>${user.name || uid}</strong></p>
+              <p>申请金额: $${req.amount.toFixed(2)}</p>
+              <button class="btn-sm btn-success" onclick="window.approve('${uid}', '${rid}', ${req.amount})">通过</button>
+              <button class="btn-sm btn-danger" onclick="window.reject('${uid}', '${rid}')">驳回</button>
+            </div>
+          `;
+        }
+      }
+    }
+    document.getElementById('reqList').innerHTML = html || '<p class="empty">暂无待审批申请</p>';
+  }));
+  
+  unsubs.push(onValue(ref(db, `merchants/${currentMerchant.uid}/history`), snap => {
+    const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('payList').innerHTML = items.length ? items.map(h => `
+      <div class="card">
+        <p>${h.description || '收款'}</p>
+        <p style="font-weight:bold; color:#2e7d32;">+$${h.amount.toFixed(2)}</p>
+      </div>
+    `).join('') : '<p class="empty">暂无收款记录</p>';
+  }));
+}
+
+// ✅ 修复：不用 runTransaction，改用直接读取+更新，避免 pieceNum_ 错误
+window.approve = async function(uid, rid, amount) {
+  if (!confirm(`确认通过 $${amount.toFixed(2)} 充值？`)) return;
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  try {
+    const userRef = ref(db, `users/${uid}`);
+    const snap = await get(userRef);
+    const userData = snap.val() || {};
+    const currentBalance = Number(userData.balance || 0);
+    const newBalance = currentBalance + amount;
+    
+    // 批量更新：余额 + 审批状态 + 历史记录
+    await update(userRef, {
+      balance: newBalance
+    });
+    
+    await update(ref(db, `users/${uid}/topupRequests/${rid}`), {
+      status: 'approved',
+      approvedAt: serverTimestamp()
+    });
+    
+    await push(ref(db, `users/${uid}/history`), {
+      type: 'topup',
+      amount: amount,
+      description: `充值到账 $${amount.toFixed(2)}`,
+      createdAt: serverTimestamp()
+    });
+    
+    showToast('✅ 已通过', 'success');
+  } catch (e) {
+    console.error('Approve error:', e);
+    showToast('失败：' + (e.message || '未知错误'), 'error');
+  } finally {
+    isProcessing = false;
+  }
+};
+
+window.reject = async function(uid, rid) {
+  if (!confirm('确认驳回？')) return;
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  try {
+    await update(ref(db, `users/${uid}/topupRequests/${rid}`), { 
+      status: 'rejected', 
+      rejectedAt: serverTimestamp() 
+    });
+    await push(ref(db, `users/${uid}/history`), {
+      type: 'topup_rejected', 
+      amount: 0, 
+      description: '充值申请已驳回', 
+      createdAt: serverTimestamp()
+    });
+    showToast('✅ 已驳回', 'success');
+  } catch (e) {
+    console.error('Reject error:', e);
+    showToast('失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+};
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.remove('active');
+      t.style.background = 'transparent';
+      t.style.color = '#8b7aa8';
+    });
+    tab.classList.add('active');
+    tab.style.background = '#2d2642';
+    tab.style.color = 'white';
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+
+document.getElementById('genPayBtn').addEventListener('click', () => {
+  document.getElementById('payModal').classList.add('show');
+  document.getElementById('qrcodeDisplay').innerHTML = '';
+  document.getElementById('payAmount').value = '';
+});
+
+document.getElementById('closePayModal').addEventListener('click', () => {
+  document.getElementById('payModal').classList.remove('show');
+});
+
+document.getElementById('doGenPay').addEventListener('click', async () => {
+  const amt = parseFloat(document.getElementById('payAmount').value);
+  if (!amt || amt <= 0) return showToast('请输入有效金额', 'error');
+  document.getElementById('qrcodeDisplay').innerHTML = '';
+  await QRCode.toCanvas(document.getElementById('qrcodeDisplay'), `PAY:${amt}:${currentMerchant.uid}`, { width: 250 });
+  showToast('✅ 收款码已生成', 'success');
+});
+
+document.getElementById('genVoucherBtn').addEventListener('click', () => {
+  document.getElementById('voucherModal').classList.add('show');
+});
+
+document.getElementById('closeVoucherModal').addEventListener('click', () => {
+  document.getElementById('voucherModal').classList.remove('show');
+});
+
+document.getElementById('doGenVoucher').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  
+  const cid = document.getElementById('customerUid').value.trim();
+  const amt = parseFloat(document.getElementById('voucherAmount').value);
+  const min = parseFloat(document.getElementById('minSpend').value) || 0;
+  const expDate = document.getElementById('expiryDate').value;
+  
+  if (!cid || !amt || !expDate) {
+    showToast('请填写完整信息', 'error');
+    isProcessing = false;
+    return;
+  }
+  
+  const code = 'V' + Date.now() + Math.random().toString(36).slice(2,6).toUpperCase();
+  const expiryTs = new Date(expDate).getTime();
+  
+  try {
+    await set(ref(db, `users/${cid}/vouchers/${code}`), {
+      code, amount: amt, minSpend, expiry: expiryTs,
+      merchantId: currentMerchant.uid, createdAt: serverTimestamp()
+    });
+    await push(ref(db, `users/${cid}/history`), {
+      type: 'voucher_receive', amount: amt, description: `收到礼券 $${amt.toFixed(2)}`, createdAt: serverTimestamp()
+    });
+    showToast(`✅ 发放成功！券码：${code}`, 'success');
+    document.getElementById('voucherModal').classList.remove('show');
+  } catch (e) {
+    console.error('Voucher error:', e);
+    showToast('失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+});
+</script>
+</body>
+</html>
