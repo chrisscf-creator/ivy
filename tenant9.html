@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商户端 - 收款 & 礼券核销</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 480px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); margin: 60px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { width: auto; padding: 10px 16px; font-size: 0.9rem; margin: 4px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
+.balance { font-size: 2.5rem; font-weight: 800; margin: 8px 0; }
+.qr-box { background: white; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; }
+#qrCanvas { margin: 0 auto; display: block; }
+.scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
+#reader { width: 100%; min-height: 300px; }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
+.tab.active { background: #2e7d32; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.confirm-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.confirm-modal.show { display: flex; }
+.modal-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+.modal-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+.badge-voucher { background: #e8f5e9; color: #2e7d32; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 登录界面 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-store"></i> 商户登录</h2>
+    <div class="error" id="authError"></div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2e7d32; color: white;">登录</button>
+      <button class="tab" id="regTabBtn" style="flex:1;">注册</button>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="loginEmail" required>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+    
+    <form id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="regEmail" required>
+      </div>
+      <div class="form-group">
+        <label>商户名称</label>
+        <input type="text" id="merchantName" required>
+      </div>
+      <div class="form-group">
+        <label>密码（至少6位）</label>
+        <input type="password" id="regPassword" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary">注册商户</button>
+    </form>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <h3>欢迎, <span id="merchantNameDisplay">商户</span></h3>
+      <p style="opacity:0.8; font-size:0.9rem; margin:4px 0;" id="merchantEmailDisplay"></p>
+      <div class="balance" id="balanceDisplay">$0.00</div>
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px; margin-top:12px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出登录
+      </button>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab active" data-pane="receive">收款码</button>
+      <button class="tab" data-pane="scan">扫码核销</button>
+      <button class="tab" data-pane="history">交易记录</button>
+      <button class="tab" data-pane="issue">发放礼券</button>
+    </div>
+    
+    <!-- 收款码 -->
+    <div class="tab-pane active" id="pane-receive">
+      <div class="form-group">
+        <label>收款金额 ($)</label>
+        <input type="number" id="amountInput" min="0.01" step="0.01" placeholder="输入金额生成收款码">
+      </div>
+      <button class="btn btn-success" id="generateQrBtn">生成收款码</button>
+      <div class="qr-box" id="qrContainer" style="display:none;">
+        <p style="font-weight:600; margin-bottom:12px;">请顾客扫码支付</p>
+        <canvas id="qrCanvas"></canvas>
+        <p style="margin-top:12px; font-size:1.1rem; font-weight:bold; color:#2e7d32;" id="qrAmountText"></p>
+      </div>
+    </div>
+    
+    <!-- ✅ 扫码核销（新增） -->
+    <div class="tab-pane" id="pane-scan">
+      <div class="scanner-box">
+        <div id="reader"></div>
+      </div>
+      <button class="btn btn-success" id="startScanBtn">
+        <i class="fas fa-qrcode"></i> 开启扫码
+      </button>
+      <button class="btn" style="background:#ddd; display:none;" id="stopScanBtn">
+        <i class="fas fa-stop"></i> 停止扫码
+      </button>
+      <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
+        扫描顾客礼券码或付款码
+      </p>
+    </div>
+    
+    <!-- 交易记录 -->
+    <div class="tab-pane" id="pane-history">
+      <div id="historyList"></div>
+    </div>
+    
+    <!-- 发放礼券 -->
+    <div class="tab-pane" id="pane-issue">
+      <div class="card">
+        <h4 style="margin-bottom:16px;">发放礼券给顾客</h4>
+        <div class="form-group">
+          <label>顾客邮箱</label>
+          <input type="email" id="custEmail" placeholder="customer@example.com">
+        </div>
+        <div class="form-group">
+          <label>礼券面值 ($)</label>
+          <input type="number" id="voucherAmount" min="1" step="0.01" placeholder="例如：10">
+        </div>
+        <div class="form-group">
+          <label>最低消费 ($)</label>
+          <input type="number" id="minSpend" min="0" step="0.01" placeholder="0 表示无限制">
+        </div>
+        <div class="form-group">
+          <label>有效期（小时）</label>
+          <input type="number" id="validHours" min="1" value="168" placeholder="默认7天=168小时">
+        </div>
+        <button class="btn btn-success" id="issueVoucherBtn">发放礼券</button>
+      </div>
+      <div id="issueResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="modal-content">
+    <h3 style="text-align:center;" id="modalTitle">确认收款</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;" id="modalSubtext"></p>
+    <div class="modal-amount" id="modalAmount">$0.00</div>
+    <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:16px;" id="modalUserInfo"></p>
+    <button class="btn btn-success" id="confirmBtn">确认</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closeModalBtn">取消</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getDatabase, ref, set, push, update, get, onValue,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentMerchant = null;
+let unsubs = [];
+let html5QrCode = null;
+let pendingAction = null;
+let isProcessing = false;
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function clearListeners() {
+  unsubs.forEach(fn => { try { fn() } catch(e) {} });
+  unsubs = [];
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+
+// 认证状态
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentMerchant = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('merchantNameDisplay').textContent = user.displayName || '商户';
+    document.getElementById('merchantEmailDisplay').textContent = user.email || '';
+    initMerchantData();
+  } else {
+    stopScanner();
+    currentMerchant = null;
+    clearListeners();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('mainApp').classList.remove('active');
+  }
+});
+
+// 登录/注册切换
+document.getElementById('loginTabBtn').addEventListener('click', () => {
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('loginTabBtn').style.background = '#2e7d32';
+  document.getElementById('loginTabBtn').style.color = 'white';
+  document.getElementById('regTabBtn').classList.remove('active');
+  document.getElementById('regTabBtn').style.background = 'transparent';
+  document.getElementById('regTabBtn').style.color = '#8b7aa8';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+document.getElementById('regTabBtn').addEventListener('click', () => {
+  document.getElementById('regTabBtn').classList.add('active');
+  document.getElementById('regTabBtn').style.background = '#2e7d32';
+  document.getElementById('regTabBtn').style.color = 'white';
+  document.getElementById('loginTabBtn').classList.remove('active');
+  document.getElementById('loginTabBtn').style.background = 'transparent';
+  document.getElementById('loginTabBtn').style.color = '#8b7aa8';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+// 注册商户
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
+  try {
+    const email = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('merchantName').value.trim();
+    const pwd = document.getElementById('regPassword').value;
+    const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await set(ref(db, `merchants/${userCred.user.uid}`), {
+      name, email, balance: 0, role: 'merchant', createdAt: serverTimestamp()
+    });
+    await userCred.user.updateProfile({ displayName: name });
+    showToast('商户注册成功！', 'success');
+  } catch (err) {
+    showError('注册失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '注册商户';
+    isProcessing = false;
+  }
+});
+
+// 登录
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+    await signInWithEmailAndPassword(auth, email, pwd);
+    showToast('登录成功！', 'success');
+  } catch (err) {
+    showError('登录失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '登录';
+    isProcessing = false;
+  }
+});
+
+// 退出
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  await signOut(auth);
+  showToast('已退出', 'success');
+  isProcessing = false;
+});
+
+// 加载商户数据
+function initMerchantData() {
+  const merchRef = ref(db, `merchants/${currentMerchant.uid}`);
+  
+  unsubs.push(onValue(merchRef, snap => {
+    const d = snap.val() || {};
+    document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
+  }));
+  
+  unsubs.push(onValue(ref(db, `merchants/${currentMerchant.uid}/history`), snap => {
+    const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('historyList').innerHTML = items.length ? items.map(h => {
+      const isVoucher = h.type === 'voucher_redeem';
+      return `
+        <div class="card">
+          <p>${h.description || '收款'}
+            ${isVoucher ? '<span class="badge badge-voucher">礼券核销</span>' : ''}
+          </p>
+          <p style="font-weight:bold; color:#2e7d32;">+${formatMoney(h.amount)}</p>
+          <p style="font-size:0.8rem; color:#888;">${formatTime(h.createdAt)}</p>
+        </div>
+      `;
+    }).join('') : '<p class="empty">暂无交易记录</p>';
+  }));
+}
+
+// 生成收款码
+document.getElementById('generateQrBtn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  
+  const qrData = `PAY:${amount}:${currentMerchant.uid}`;
+  const canvas = document.getElementById('qrCanvas');
+  
+  try {
+    await QRCode.toCanvas(canvas, qrData, { width: 240, margin: 3 });
+    document.getElementById('qrContainer').style.display = 'block';
+    document.getElementById('qrAmountText').textContent = formatMoney(amount);
+    showToast('收款码已生成', 'success');
+  } catch (e) {
+    showToast('生成失败', 'error');
+  }
+});
+
+// 标签切换
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = '#8b7aa8'; });
+    tab.classList.add('active'); tab.style.background = '#2e7d32'; tab.style.color = 'white';
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+
+// 扫码功能
+document.getElementById('startScanBtn').addEventListener('click', async () => {
+  try {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess, () => {}
+    );
+    document.getElementById('startScanBtn').style.display = 'none';
+    document.getElementById('stopScanBtn').style.display = 'block';
+    showToast('请扫描顾客二维码', 'info');
+  } catch (e) {
+    showToast('无法启动摄像头', 'error');
+  }
+});
+document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+function stopScanner() {
+  if (html5QrCode?.isScanning) html5QrCode.stop().catch(() => {});
+  document.getElementById('startScanBtn').style.display = 'block';
+  document.getElementById('stopScanBtn').style.display = 'none';
+}
+
+// ✅ 扫码成功：同时支持付款码和礼券核销码
+async function onScanSuccess(decodedText) {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  
+  try {
+    // 分支1：礼券核销码 VOUCHER:券码:顾客UID
+    if (decodedText.startsWith('VOUCHER:')) {
+      const parts = decodedText.split(':');
+      if (parts.length < 3) throw new Error('礼券码格式错误');
+      const voucherCode = parts[1];
+      const customerUid = parts[2];
+      
+      // 读取顾客信息和礼券
+      const custSnap = await get(ref(db, `users/${customerUid}`));
+      const custData = custSnap.val();
+      if (!custData) throw new Error('顾客账号不存在');
+      
+      const voucher = custData.vouchers?.[voucherCode];
+      if (!voucher) throw new Error('礼券不存在');
+      if (voucher.used === true) throw new Error('礼券已使用');
+      if (voucher.expiry && voucher.expiry < Date.now()) throw new Error('礼券已过期');
+      
+      // 检查最低消费
+      pendingAction = {
+        type: 'voucher',
+        code: voucherCode,
+        customerUid,
+        amount: voucher.amount,
+        minSpend: voucher.minSpend || 0,
+        customerName: custData.name || '顾客'
+      };
+      
+      document.getElementById('modalTitle').textContent = '礼券核销确认';
+      document.getElementById('modalSubtext').textContent = `券码：${voucherCode}`;
+      document.getElementById('modalAmount').textContent = formatMoney(voucher.amount);
+      document.getElementById('modalUserInfo').textContent = 
+        `顾客：${pendingAction.customerName} · 最低消费 ${formatMoney(pendingAction.minSpend)}`;
+      document.getElementById('confirmModal').classList.add('show');
+    }
+    // 分支2：普通付款码 PAY:金额:商户UID
+    else if (decodedText.startsWith('PAY:')) {
+      throw new Error('此为收款码，应由顾客端扫描');
+    }
+    else {
+      throw new Error('无法识别的二维码');
+    }
+  } catch (e) {
+    showToast('扫描失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// 关闭弹窗
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+  document.getElementById('confirmModal').classList.remove('show');
+  pendingAction = null;
+});
+
+// ✅ 确认核销/收款
+document.getElementById('confirmBtn').addEventListener('click', async () => {
+  if (!pendingAction || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = '处理中...';
+  
+  try {
+    if (pendingAction.type === 'voucher') {
+      // ========== 礼券核销流程 ==========
+      const voucherRef = ref(db, `users/${pendingAction.customerUid}/vouchers/${pendingAction.code}`);
+      const custRef = ref(db, `users/${pendingAction.customerUid}`);
+      const merchRef = ref(db, `merchants/${currentMerchant.uid}`);
+      
+      // 1. 标记礼券已使用
+      await update(voucherRef, {
+        used: true,
+        usedAt: serverTimestamp(),
+        merchantUid: currentMerchant.uid,
+        merchantName: currentMerchant.displayName || '本商户'
+      });
+      
+      // 2. 增加商户余额（礼券金额入账）
+      const merchSnap = await get(merchRef);
+      const merchData = merchSnap.val() || {};
+      await update(merchRef, {
+        balance: Number(merchData.balance || 0) + pendingAction.amount
+      });
+      
+      // 3. 顾客端历史记录
+      await push(ref(db, `users/${pendingAction.customerUid}/history`), {
+        type: 'voucher_used',
+        amount: pendingAction.amount,
+        description: `在 ${currentMerchant.displayName || '商户'} 使用礼券 ${pendingAction.code}`,
+        merchantUid: currentMerchant.uid,
+        createdAt: serverTimestamp()
+      });
+      
+      // 4. 商户端历史记录
+      await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+        type: 'voucher_redeem',
+        amount: pendingAction.amount,
+        description: `顾客 ${pendingAction.customerName} 核销礼券 ${pendingAction.code}`,
+        customerUid: pendingAction.customerUid,
+        voucherCode: pendingAction.code,
+        createdAt: serverTimestamp()
+      });
+      
+      showToast('✅ 礼券核销成功', 'success');
+    }
+    
+    document.getElementById('confirmModal').classList.remove('show');
+    pendingAction = null;
+    
+  } catch (e) {
+    showToast('处理失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认';
+    isProcessing = false;
+  }
+});
+
+// 发放礼券
+document.getElementById('issueVoucherBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  const custEmail = document.getElementById('custEmail').value.trim();
+  const amount = parseFloat(document.getElementById('voucherAmount').value);
+  const minSpend = parseFloat(document.getElementById('minSpend').value) || 0;
+  const validHours = parseInt(document.getElementById('validHours').value) || 168;
+  
+  if (!custEmail || !amount || amount <= 0) {
+    showToast('请填写完整信息', 'error');
+    return;
+  }
+  
+  isProcessing = true;
+  const btn = document.getElementById('issueVoucherBtn');
+  btn.disabled = true;
+  btn.textContent = '发放中...';
+  
+  try {
+    // 查找顾客UID
+    const usersSnap = await get(ref(db, 'users'));
+    const users = usersSnap.val() || {};
+    let customerUid = null;
+    let customerName = null;
+    for (const [uid, u] of Object.entries(users)) {
+      if (u.email === custEmail) {
+        customerUid = uid;
+        customerName = u.name;
+        break;
+      }
+    }
+    if (!customerUid) throw new Error('未找到该邮箱的顾客账号');
+    
+    // 生成券码
+    const code = `V${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+    const expiry = Date.now() + validHours * 3600000;
+    
+    // 发放礼券
+    await update(ref(db, `users/${customerUid}/vouchers/${code}`), {
+      amount,
+      minSpend,
+      issuedAt: serverTimestamp(),
+      expiry,
+      issuedBy: currentMerchant.uid,
+      issuedByName: currentMerchant.displayName || '商户'
+    });
+    
+    document.getElementById('issueResult').innerHTML = `
+      <div class="card" style="border-left:4px solid #2e7d32;">
+        <p style="font-weight:bold; font-size:1.1rem;">✅ 礼券发放成功</p>
+        <p>券码：<code style="background:#f5f5f5; padding:2px 6px; border-radius:4px;">${code}</code></p>
+        <p>顾客：${customerName} (${custEmail})</p>
+        <p>面值：${formatMoney(amount)} · 最低消费：${formatMoney(minSpend)}</p>
+        <p style="font-size:0.8rem; color:#888;">有效期至：${formatTime(expiry)}</p>
+      </div>
+    `;
+    
+    // 清空表单
+    document.getElementById('custEmail').value = '';
+    document.getElementById('voucherAmount').value = '';
+    document.getElementById('minSpend').value = '';
+    
+  } catch (e) {
+    document.getElementById('issueResult').innerHTML = `
+      <div class="card" style="border-left:4px solid #c62828;">
+        <p style="color:#c62828;">发放失败：${e.message}</p>
+      </div>
+    `;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '发放礼券';
+    isProcessing = false;
+  }
+});
+</script>
+</body>
+</html>
