@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顾客端 - 扫码支付 & 礼券</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 480px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); margin: 60px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { width: auto; padding: 10px 16px; font-size: 0.9rem; margin: 4px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
+.balance { font-size: 2.5rem; font-weight: 800; margin: 8px 0; }
+.voucher-balance { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 16px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+.scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
+#reader { width: 100%; min-height: 350px; }
+.pay-modal, .voucher-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.pay-modal.show, .voucher-modal.show { display: flex; }
+.pay-content, .voucher-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+.pay-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
+.tab.active { background: #2d2642; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.voucher-card { border-left: 4px solid #2e7d32; }
+.voucher-expired { border-left-color: #c62828; opacity: 0.7; }
+.voucher-used { border-left-color: #888; opacity: 0.5; }
+#voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 260px; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 登录界面 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-user"></i> 用户登录</h2>
+    <div class="error" id="authError"></div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2d2642; color: white;">登录</button>
+      <button class="tab" id="regTabBtn" style="flex:1;">注册</button>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="loginEmail" required>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+    
+    <form id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="regEmail" required>
+      </div>
+      <div class="form-group">
+        <label>姓名</label>
+        <input type="text" id="userName" required>
+      </div>
+      <div class="form-group">
+        <label>密码（至少6位）</label>
+        <input type="password" id="regPassword" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary">注册账号</button>
+    </form>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <h3>欢迎回来, <span id="userNameDisplay">用户</span></h3>
+      <p style="opacity:0.8; font-size:0.9rem; margin:4px 0;" id="userEmailDisplay"></p>
+      <div class="balance" id="balanceDisplay">$0.00</div>
+      <!-- ✅ 新增：礼券余额显示 -->
+      <div class="voucher-balance">
+        <span><i class="fas fa-ticket-alt"></i> 礼券余额</span>
+        <span style="font-weight:bold; font-size:1.1rem;" id="voucherBalanceDisplay">$0.00</span>
+      </div>
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px; margin-top:12px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出登录
+      </button>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab active" data-pane="scan">扫码支付</button>
+      <button class="tab" data-pane="vouchers">我的礼券</button>
+      <button class="tab" data-pane="history">交易记录</button>
+      <button class="tab" data-pane="topup">充值申请</button>
+    </div>
+    
+    <!-- 扫码支付 -->
+    <div class="tab-pane active" id="pane-scan">
+      <div class="scanner-box">
+        <div id="reader"></div>
+      </div>
+      <button class="btn btn-success" id="startScanBtn">
+        <i class="fas fa-qrcode"></i> 开启扫码
+      </button>
+      <button class="btn" style="background:#ddd; display:none;" id="stopScanBtn">
+        <i class="fas fa-stop"></i> 停止扫码
+      </button>
+      <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
+        扫描商户收款码或礼券核销码完成支付
+      </p>
+    </div>
+    
+    <!-- ✅ 新增：我的礼券 -->
+    <div class="tab-pane" id="pane-vouchers">
+      <div id="voucherList"></div>
+    </div>
+    
+    <!-- 交易记录 -->
+    <div class="tab-pane" id="pane-history">
+      <div id="historyList"></div>
+    </div>
+    
+    <!-- 充值申请 -->
+    <div class="tab-pane" id="pane-topup">
+      <div class="card">
+        <h4 style="margin-bottom:16px;">申请充值</h4>
+        <div class="form-group">
+          <label>充值金额 ($)</label>
+          <input type="number" id="topupAmount" min="1" step="0.01" placeholder="例如：100">
+        </div>
+        <button class="btn btn-primary" id="submitTopup">提交申请</button>
+      </div>
+      <div style="margin-top:20px;">
+        <h4 style="margin-bottom:12px;">申请记录</h4>
+        <div id="topupReqList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 支付确认弹窗 -->
+<div class="pay-modal" id="payModal">
+  <div class="pay-content">
+    <h3 style="text-align:center;">确认支付</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;" id="payTypeText">向商户付款</p>
+    <div class="pay-amount" id="payAmountText">$0.00</div>
+    <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:12px;" id="merchantInfoText"></p>
+    <!-- ✅ 礼券抵扣选项 -->
+    <div id="voucherUseSection" style="display:none; background:#f5f3f9; border-radius:12px; padding:12px; margin-bottom:16px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="useVoucherCheck">
+        <span>使用礼券抵扣 <strong id="voucherUseAmount">$0.00</strong></span>
+      </label>
+      <p style="font-size:0.8rem; color:#888; margin-top:6px;" id="voucherUseDesc"></p>
+    </div>
+    <button class="btn btn-success" id="confirmPayBtn">确认支付</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closePayModalBtn">取消</button>
+  </div>
+</div>
+
+<!-- ✅ 礼券二维码展示弹窗 -->
+<div class="voucher-modal" id="voucherQrModal">
+  <div class="voucher-content">
+    <h3 style="text-align:center;">礼券核销码</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;">向商户出示此二维码</p>
+    <div id="voucherQrDisplay"></div>
+    <p style="text-align:center; font-size:0.85rem; color:#888;" id="voucherCodeText"></p>
+    <button class="btn" style="background:#eee; margin-top:16px;" id="closeVoucherQrBtn">关闭</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getDatabase, ref, set, push, update, get, remove, onValue,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null;
+let unsubs = [];
+let html5QrCode = null;
+let pendingPayData = null;
+let isProcessing = false;
+let availableVouchers = [];
+let selectedVoucher = null;
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function clearListeners() {
+  unsubs.forEach(fn => { try { fn() } catch(e) {} });
+  unsubs = [];
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+
+// 认证状态
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('userNameDisplay').textContent = user.displayName || '用户';
+    document.getElementById('userEmailDisplay').textContent = user.email || '';
+    initUserData();
+  } else {
+    stopScanner();
+    currentUser = null;
+    clearListeners();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('mainApp').classList.remove('active');
+  }
+});
+
+// 登录/注册切换
+document.getElementById('loginTabBtn').addEventListener('click', () => {
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('loginTabBtn').style.background = '#2d2642';
+  document.getElementById('loginTabBtn').style.color = 'white';
+  document.getElementById('regTabBtn').classList.remove('active');
+  document.getElementById('regTabBtn').style.background = 'transparent';
+  document.getElementById('regTabBtn').style.color = '#8b7aa8';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+document.getElementById('regTabBtn').addEventListener('click', () => {
+  document.getElementById('regTabBtn').classList.add('active');
+  document.getElementById('regTabBtn').style.background = '#2d2642';
+  document.getElementById('regTabBtn').style.color = 'white';
+  document.getElementById('loginTabBtn').classList.remove('active');
+  document.getElementById('loginTabBtn').style.background = 'transparent';
+  document.getElementById('loginTabBtn').style.color = '#8b7aa8';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+// 注册
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
+  try {
+    const email = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('userName').value.trim();
+    const pwd = document.getElementById('regPassword').value;
+    const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await set(ref(db, `users/${userCred.user.uid}`), {
+      name, email, balance: 0, role: 'customer', createdAt: serverTimestamp()
+    });
+    await userCred.user.updateProfile({ displayName: name });
+    showToast('注册成功！', 'success');
+  } catch (err) {
+    showError('注册失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '注册账号';
+    isProcessing = false;
+  }
+});
+
+// 登录
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+    await signInWithEmailAndPassword(auth, email, pwd);
+    showToast('登录成功！', 'success');
+  } catch (err) {
+    showError('登录失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '登录';
+    isProcessing = false;
+  }
+});
+
+// 退出
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  await signOut(auth);
+  showToast('已退出', 'success');
+  isProcessing = false;
+});
+
+// 加载用户数据
+function initUserData() {
+  const userRef = ref(db, `users/${currentUser.uid}`);
+  
+  // 余额 + 礼券数据
+  unsubs.push(onValue(userRef, snap => {
+    const d = snap.val() || {};
+    document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
+    
+    // ✅ 计算可用礼券余额
+    availableVouchers = [];
+    let totalVoucherValue = 0;
+    const now = Date.now();
+    
+    if (d.vouchers) {
+      for (const [code, v] of Object.entries(d.vouchers)) {
+        if (v.used === true) continue;
+        if (v.expiry && v.expiry < now) continue;
+        availableVouchers.push({ code, ...v });
+        totalVoucherValue += Number(v.amount || 0);
+      }
+      // 按金额降序，优先用大额券
+      availableVouchers.sort((a,b) => b.amount - a.amount);
+    }
+    
+    document.getElementById('voucherBalanceDisplay').textContent = formatMoney(totalVoucherValue);
+    renderVouchers(d.vouchers || {});
+  }));
+  
+  // 交易记录
+  unsubs.push(onValue(ref(db, `users/${currentUser.uid}/history`), snap => {
+    const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('historyList').innerHTML = items.length ? items.map(h => {
+      const isOut = h.type === 'payment' || h.type === 'voucher_used';
+      return `
+        <div class="card">
+          <p>${h.description || '交易'}</p>
+          <p style="font-weight:bold; color:${isOut ? '#c62828' : '#2e7d32'};">
+            ${isOut ? '-' : '+'}${formatMoney(h.amount)}
+          </p>
+          <p style="font-size:0.8rem; color:#888;">${formatTime(h.createdAt)}</p>
+        </div>
+      `;
+    }).join('') : '<p class="empty">暂无交易记录</p>';
+  }));
+  
+  // 充值申请记录
+  unsubs.push(onValue(ref(db, `users/${currentUser.uid}/topupRequests`), snap => {
+    const reqs = Object.entries(snap.val() || {}).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('topupReqList').innerHTML = reqs.length ? reqs.map(([id, r]) => {
+      const statusText = { pending:'待审批', approved:'已通过', rejected:'已驳回' }[r.status] || r.status;
+      const statusColor = { pending:'#f57c00', approved:'#2e7d32', rejected:'#c62828' }[r.status] || '#888';
+      return `
+        <div class="card">
+          <p>金额: ${formatMoney(r.amount)}</p>
+          <p style="color:${statusColor}; font-weight:600;">状态: ${statusText}</p>
+        </div>
+      `;
+    }).join('') : '<p class="empty">暂无申请记录</p>';
+  }));
+}
+
+// ✅ 渲染礼券列表
+function renderVouchers(vouchers) {
+  const now = Date.now();
+  const container = document.getElementById('voucherList');
+  
+  if (!Object.keys(vouchers).length) {
+    container.innerHTML = '<p class="empty">暂无礼券</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  for (const [code, v] of Object.entries(vouchers)) {
+    const isExpired = v.expiry && v.expiry < now;
+    const isUsed = v.used === true;
+    let extraClass = '';
+    let statusText = '有效';
+    if (isUsed) { extraClass = 'voucher-used'; statusText = '已使用'; }
+    else if (isExpired) { extraClass = 'voucher-expired'; statusText = '已过期'; }
+    
+    container.innerHTML += `
+      <div class="card voucher-card ${extraClass}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <p style="font-weight:bold; font-size:1.1rem;">${code}</p>
+            <p style="font-size:0.9rem; color:#666; margin-top:4px;">
+              面值: ${formatMoney(v.amount)}
+              ${v.minSpend > 0 ? ` · 最低消费 ${formatMoney(v.minSpend)}` : ''}
+            </p>
+            <p style="font-size:0.8rem; color:#888; margin-top:4px;">
+              有效期至: ${formatTime(v.expiry)}
+            </p>
+          </div>
+          ${!isUsed && !isExpired ? `
+            <button class="btn-sm btn-success" onclick="showVoucherQr('${code}')">
+              <i class="fas fa-qrcode"></i> 出示核销码
+            </button>
+          ` : `<span style="color:#888; font-size:0.85rem;">${statusText}</span>`}
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ✅ 显示礼券核销二维码
+window.showVoucherQr = async function(code) {
+  const userSnap = await get(ref(db, `users/${currentUser.uid}`));
+  const userData = userSnap.val() || {};
+  const voucher = userData.vouchers?.[code];
+  
+  if (!voucher || voucher.used === true) {
+    showToast('礼券不存在或已使用', 'error');
+    return;
+  }
+  if (voucher.expiry && voucher.expiry < Date.now()) {
+    showToast('礼券已过期', 'error');
+    return;
+  }
+  
+  // 生成二维码内容：VOUCHER:券码:用户UID
+  const qrData = `VOUCHER:${code}:${currentUser.uid}`;
+  
+  document.getElementById('voucherQrDisplay').innerHTML = '';
+  document.getElementById('voucherCodeText').textContent = `券码: ${code}`;
+  document.getElementById('voucherQrModal').classList.add('show');
+  
+  try {
+    const canvas = document.createElement('canvas');
+    await QRCode.toCanvas(canvas, qrData, { width: 250, margin: 2 });
+    document.getElementById('voucherQrDisplay').appendChild(canvas);
+  } catch (e) {
+    document.getElementById('voucherQrDisplay').innerHTML = `<span style="color:red;">生成失败</span>`;
+  }
+};
+document.getElementById('closeVoucherQrBtn').addEventListener('click', () => {
+  document.getElementById('voucherQrModal').classList.remove('show');
+});
+
+// 标签切换
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = '#8b7aa8'; });
+    tab.classList.add('active'); tab.style.background = '#2d2642'; tab.style.color = 'white';
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+
+// 扫码功能
+document.getElementById('startScanBtn').addEventListener('click', async () => {
+  try {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess, () => {}
+    );
+    document.getElementById('startScanBtn').style.display = 'none';
+    document.getElementById('stopScanBtn').style.display = 'block';
+    showToast('请扫描二维码', 'info');
+  } catch (e) {
+    showToast('无法启动摄像头', 'error');
+  }
+});
+document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+function stopScanner() {
+  if (html5QrCode?.isScanning) html5QrCode.stop().catch(() => {});
+  document.getElementById('startScanBtn').style.display = 'block';
+  document.getElementById('stopScanBtn').style.display = 'none';
+}
+
+// 扫码成功 —— 同时支持 付款码 和 礼券核销码
+async function onScanSuccess(decodedText) {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  
+  try {
+    // 分支1：普通付款码 PAY:金额:商户UID
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length < 3) throw new Error('格式错误');
+      const amount = parseFloat(parts[1]);
+      const merchantUid = parts[2];
+      
+      if (!amount || amount <= 0) throw new Error('金额无效');
+      if (merchantUid === currentUser.uid) {
+        showToast('不能向自己付款', 'error');
+        return;
+      }
+      
+      const merchSnap = await get(ref(db, `merchants/${merchantUid}`));
+      const merchant = merchSnap.val();
+      if (!merchant) throw new Error('商户不存在');
+      
+      pendingPayData = { 
+        type: 'payment', 
+        amount, 
+        merchantUid, 
+        merchantName: merchant.name || '商户',
+        originalAmount: amount
+      };
+      
+      document.getElementById('payTypeText').textContent = '向商户付款';
+      document.getElementById('payAmountText').textContent = formatMoney(amount);
+      document.getElementById('merchantInfoText').textContent = `收款方：${pendingPayData.merchantName}`;
+      
+      // ✅ 检查是否有可用礼券可抵扣
+      selectedVoucher = null;
+      const eligibleVoucher = availableVouchers.find(v => v.minSpend <= amount);
+      if (eligibleVoucher) {
+        selectedVoucher = eligibleVoucher;
+        document.getElementById('voucherUseSection').style.display = 'block';
+        document.getElementById('voucherUseAmount').textContent = formatMoney(eligibleVoucher.amount);
+        document.getElementById('voucherUseDesc').textContent = 
+          eligibleVoucher.minSpend > 0 ? `最低消费 ${formatMoney(eligibleVoucher.minSpend)}` : '无最低消费限制';
+        document.getElementById('useVoucherCheck').checked = false;
+      } else {
+        document.getElementById('voucherUseSection').style.display = 'none';
+      }
+      
+      document.getElementById('payModal').classList.add('show');
+    }
+    else {
+      showToast('无法识别的二维码', 'error');
+    }
+  } catch (e) {
+    showToast('解析失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// 礼券抵扣勾选变化
+document.getElementById('useVoucherCheck').addEventListener('change', () => {
+  if (!pendingPayData) return;
+  if (document.getElementById('useVoucherCheck').checked && selectedVoucher) {
+    const finalAmount = Math.max(0, pendingPayData.originalAmount - selectedVoucher.amount);
+    pendingPayData.amount = finalAmount;
+    document.getElementById('payAmountText').textContent = formatMoney(finalAmount);
+    document.getElementById('payAmountText').style.textDecoration = 'line-through';
+    document.getElementById('payAmountText').style.opacity = '0.5';
+  } else {
+    pendingPayData.amount = pendingPayData.originalAmount;
+    document.getElementById('payAmountText').textContent = formatMoney(pendingPayData.originalAmount);
+    document.getElementById('payAmountText').style.textDecoration = 'none';
+    document.getElementById('payAmountText').style.opacity = '1';
+  }
+});
+
+// 关闭支付弹窗
+document.getElementById('closePayModalBtn').addEventListener('click', () => {
+  document.getElementById('payModal').classList.remove('show');
+  pendingPayData = null;
+  selectedVoucher = null;
+  document.getElementById('voucherUseSection').style.display = 'none';
+});
+
+// ✅ 确认支付（含礼券抵扣逻辑）
+document.getElementById('confirmPayBtn').addEventListener('click', async () => {
+  if (!pendingPayData || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('confirmPayBtn');
+  btn.disabled = true;
+  btn.textContent = '支付中...';
+  
+  try {
+    const useVoucher = document.getElementById('useVoucherCheck').checked && selectedVoucher;
+    const payAmount = pendingPayData.amount;
+    
+    // 如果有现金支付部分，先扣余额
+    if (payAmount > 0) {
+      const userRef = ref(db, `users/${currentUser.uid}`);
+      const userSnap = await get(userRef);
+      const userData = userSnap.val() || {};
+      const currentBalance = Number(userData.balance || 0);
+      
+      if (currentBalance < payAmount) {
+        showToast('余额不足', 'error');
+        return;
+      }
+      await update(userRef, { balance: currentBalance - payAmount });
+    }
+    
+    // 增加商户余额
+    const merchantRef = ref(db, `merchants/${pendingPayData.merchantUid}`);
+    const merchSnap = await get(merchantRef);
+    const merchData = merchSnap.val() || {};
+    await update(merchantRef, { balance: Number(merchData.balance || 0) + payAmount });
+    
+    // 记录支付历史
+    await push(ref(db, `users/${currentUser.uid}/history`), {
+      type: 'payment',
+      amount: payAmount,
+      description: `支付给 ${pendingPayData.merchantName}${useVoucher ? ' (含礼券抵扣)' : ''}`,
+      merchantUid: pendingPayData.merchantUid,
+      createdAt: serverTimestamp()
+    });
+    await push(ref(db, `merchants/${pendingPayData.merchantUid}/history`), {
+      amount: payAmount,
+      description: `来自 ${currentUser.displayName || '用户'} 的付款`,
+      customerUid: currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+    
+    // ✅ 标记礼券已使用
+    if (useVoucher && selectedVoucher) {
+      await update(ref(db, `users/${currentUser.uid}/vouchers/${selectedVoucher.code}`), {
+        used: true,
+        usedAt: serverTimestamp(),
+        merchantUid: pendingPayData.merchantUid
+      });
+      await push(ref(db, `users/${currentUser.uid}/history`), {
+        type: 'voucher_used',
+        amount: selectedVoucher.amount,
+        description: `使用礼券 ${selectedVoucher.code} 抵扣`,
+        createdAt: serverTimestamp()
+      });
+    }
+    
+    showToast('✅ 支付成功', 'success');
+    document.getElementById('payModal').classList.remove('show');
+    pendingPayData = null;
+    selectedVoucher = null;
+    document.getElementById('voucherUseSection').style.display = 'none';
+    
+  } catch (e) {
+    showToast('支付失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认支付';
+    isProcessing = false;
+  }
+});
+
+// 提交充值申请
+document.getElementById('submitTopup').addEventListener('click', async () => {
+  if (isProcessing) return;
+  const amount = parseFloat(document.getElementById('topupAmount').value);
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  
+  isProcessing = true;
+  const btn = document.getElementById('submitTopup');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+  
+  try {
+    await push(ref(db, `users/${currentUser.uid}/topupRequests`), {
+      amount, status: 'pending', createdAt: serverTimestamp()
+    });
+    showToast('申请已提交，请等待审批', 'success');
+    document.getElementById('topupAmount').value = '';
+  } catch (e) {
+    showToast('提交失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '提交申请';
+    isProcessing = false;
+  }
+});
+</script>
+</body>
+</html>
