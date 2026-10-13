@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>商户管理后台</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- 改用标准方式加载 QRCode 库 -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -39,6 +40,8 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .empty { text-align: center; padding: 40px; color: #999; }
+#qrcodeDisplay { min-height: 260px; display: flex; align-items: center; justify-content: center; }
+#qrcodeDisplay canvas { border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -111,11 +114,13 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     <h3>生成收款码</h3>
     <div class="form-group">
       <label>收款金额 ($)</label>
-      <input type="number" id="payAmount" min="1" step="0.01">
+      <input type="number" id="payAmount" min="1" step="0.01" placeholder="例如：30">
     </div>
-    <div id="qrcodeDisplay" style="text-align:center; margin:16px 0;"></div>
+    <div id="qrcodeDisplay" style="text-align:center; margin:16px 0;">
+      <span style="color:#999;">二维码将在此显示</span>
+    </div>
     <button class="btn btn-primary" id="doGenPay">生成</button>
-    <button class="btn" style="background:#eee;" id="closePayModal">关闭</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closePayModal">关闭</button>
   </div>
 </div>
 
@@ -139,7 +144,7 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
       <input type="date" id="expiryDate">
     </div>
     <button class="btn btn-success" id="doGenVoucher">发放</button>
-    <button class="btn" style="background:#eee;" id="closeVoucherModal">关闭</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closeVoucherModal">关闭</button>
   </div>
 </div>
 
@@ -333,7 +338,6 @@ function initMerchantData() {
   }));
 }
 
-// ✅ 修复：不用 runTransaction，改用直接读取+更新，避免 pieceNum_ 错误
 window.approve = async function(uid, rid, amount) {
   if (!confirm(`确认通过 $${amount.toFixed(2)} 充值？`)) return;
   if (isProcessing) return;
@@ -343,24 +347,14 @@ window.approve = async function(uid, rid, amount) {
     const userRef = ref(db, `users/${uid}`);
     const snap = await get(userRef);
     const userData = snap.val() || {};
-    const currentBalance = Number(userData.balance || 0);
-    const newBalance = currentBalance + amount;
+    const newBalance = Number(userData.balance || 0) + amount;
     
-    // 批量更新：余额 + 审批状态 + 历史记录
-    await update(userRef, {
-      balance: newBalance
-    });
-    
+    await update(userRef, { balance: newBalance });
     await update(ref(db, `users/${uid}/topupRequests/${rid}`), {
-      status: 'approved',
-      approvedAt: serverTimestamp()
+      status: 'approved', approvedAt: serverTimestamp()
     });
-    
     await push(ref(db, `users/${uid}/history`), {
-      type: 'topup',
-      amount: amount,
-      description: `充值到账 $${amount.toFixed(2)}`,
-      createdAt: serverTimestamp()
+      type: 'topup', amount, description: `充值到账 $${amount.toFixed(2)}`, createdAt: serverTimestamp()
     });
     
     showToast('✅ 已通过', 'success');
@@ -379,14 +373,10 @@ window.reject = async function(uid, rid) {
   
   try {
     await update(ref(db, `users/${uid}/topupRequests/${rid}`), { 
-      status: 'rejected', 
-      rejectedAt: serverTimestamp() 
+      status: 'rejected', rejectedAt: serverTimestamp() 
     });
     await push(ref(db, `users/${uid}/history`), {
-      type: 'topup_rejected', 
-      amount: 0, 
-      description: '充值申请已驳回', 
-      createdAt: serverTimestamp()
+      type: 'topup_rejected', amount: 0, description: '充值申请已驳回', createdAt: serverTimestamp()
     });
     showToast('✅ 已驳回', 'success');
   } catch (e) {
@@ -414,7 +404,7 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 document.getElementById('genPayBtn').addEventListener('click', () => {
   document.getElementById('payModal').classList.add('show');
-  document.getElementById('qrcodeDisplay').innerHTML = '';
+  document.getElementById('qrcodeDisplay').innerHTML = '<span style="color:#999;">二维码将在此显示</span>';
   document.getElementById('payAmount').value = '';
 });
 
@@ -422,12 +412,53 @@ document.getElementById('closePayModal').addEventListener('click', () => {
   document.getElementById('payModal').classList.remove('show');
 });
 
+// ✅ 修复二维码生成逻辑
 document.getElementById('doGenPay').addEventListener('click', async () => {
   const amt = parseFloat(document.getElementById('payAmount').value);
-  if (!amt || amt <= 0) return showToast('请输入有效金额', 'error');
-  document.getElementById('qrcodeDisplay').innerHTML = '';
-  await QRCode.toCanvas(document.getElementById('qrcodeDisplay'), `PAY:${amt}:${currentMerchant.uid}`, { width: 250 });
-  showToast('✅ 收款码已生成', 'success');
+  
+  if (!amt || amt <= 0) {
+    showToast('请输入有效金额', 'error');
+    return;
+  }
+  
+  if (!currentMerchant || !currentMerchant.uid) {
+    showToast('请先登录', 'error');
+    return;
+  }
+  
+  // 检查 QRCode 是否加载成功
+  if (typeof QRCode === 'undefined') {
+    showToast('二维码库加载中，请稍后再试', 'error');
+    console.error('QRCode library not loaded');
+    return;
+  }
+  
+  try {
+    document.getElementById('qrcodeDisplay').innerHTML = '<span style="color:#666;">生成中...</span>';
+    
+    // 创建 canvas 元素
+    const canvas = document.createElement('canvas');
+    const qrData = `PAY:${amt}:${currentMerchant.uid}`;
+    
+    await QRCode.toCanvas(canvas, qrData, { 
+      width: 250,
+      margin: 2,
+      color: {
+        dark: '#2d2642',
+        light: '#ffffff'
+      }
+    });
+    
+    document.getElementById('qrcodeDisplay').innerHTML = '';
+    document.getElementById('qrcodeDisplay').appendChild(canvas);
+    
+    showToast('✅ 收款码已生成', 'success');
+    console.log('QR data:', qrData);
+  } catch (e) {
+    console.error('QR generation error:', e);
+    document.getElementById('qrcodeDisplay').innerHTML = `<span style="color:red;">生成失败: ${e.message}</span>`;
+    showToast('二维码生成失败：' + e.message, 'error');
+  }
 });
 
 document.getElementById('genVoucherBtn').addEventListener('click', () => {
