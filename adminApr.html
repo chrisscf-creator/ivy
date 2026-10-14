@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 充值审批</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 720px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); margin: 60px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { padding: 12px 16px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; width: 100%; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { padding: 8px 14px; font-size: 0.85rem; margin: 2px; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.header h3 { font-size: 1.3rem; }
+.card { background: white; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+.badge-pending { background: #fff3e0; color: #e65100; }
+.badge-approved { background: #e8f5e9; color: #2e7d32; }
+.badge-rejected { background: #ffebee; color: #c62828; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-btn { background: white; border: 1.5px solid #ddd; color: #555; }
+.filter-btn.active { background: #2d2642; color: white; border-color: #2d2642; }
+.reject-note { width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #e8e0f0; margin: 8px 0; display: none; }
+.reject-note.show { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 登录界面 - 固定账号密码 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-user-shield"></i> 管理后台</h2>
+    <div class="error" id="authError"></div>
+    <form id="adminLoginForm">
+      <div class="form-group">
+        <label>管理员账号</label>
+        <input type="text" id="adminUsername" required placeholder="请输入账号">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="adminPassword" required placeholder="请输入密码">
+      </div>
+      <button type="submit" class="btn btn-primary">登录管理后台</button>
+      <p style="text-align:center; margin-top:16px; font-size:0.85rem; color:#888;">
+        账号：admin123 &nbsp;|&nbsp; 密码：123321
+      </p>
+    </form>
+  </div>
+
+  <!-- 主管理界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <div>
+        <h3>充值审批管理</h3>
+        <p style="opacity:0.8; font-size:0.9rem; margin-top:4px;" id="adminInfo">管理员已登录</p>
+      </div>
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出
+      </button>
+    </div>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+      <button class="btn-sm filter-btn active" data-filter="all">全部</button>
+      <button class="btn-sm filter-btn" data-filter="pending">待审批</button>
+      <button class="btn-sm filter-btn" data-filter="approved">已通过</button>
+      <button class="btn-sm filter-btn" data-filter="rejected">已驳回</button>
+    </div>
+
+    <!-- 申请列表 -->
+    <div id="requestList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getDatabase, ref, get, update, onValue, serverTimestamp, push
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ✅ 固定账号密码设定
+const ADMIN_USERNAME = 'admin123';
+const ADMIN_PASSWORD = '123321';
+
+let isLoggedIn = false;
+let unsubRequests = null;
+let allRequests = [];
+let currentFilter = 'all';
+let isProcessing = false;
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+
+// 登录验证 - 固定账号密码
+document.getElementById('adminLoginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  
+  const username = document.getElementById('adminUsername').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    isLoggedIn = true;
+    showToast('登录成功！', 'success');
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    listenTopupRequests();
+  } else {
+    showError('账号或密码错误！');
+  }
+});
+
+// 退出登录
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if (unsubRequests) unsubRequests();
+  isLoggedIn = false;
+  document.getElementById('authScreen').style.display = 'block';
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('adminUsername').value = '';
+  document.getElementById('adminPassword').value = '';
+  showToast('已退出登录', 'success');
+});
+
+// 监听充值申请
+function listenTopupRequests() {
+  unsubRequests = onValue(ref(db, 'users'), async usersSnap => {
+    const users = usersSnap.val() || {};
+    allRequests = [];
+    for (const [uid, userData] of Object.entries(users)) {
+      if (!userData.topupRequests) continue;
+      for (const [reqId, req] of Object.entries(userData.topupRequests)) {
+        allRequests.push({
+          uid,
+          reqId,
+          customerName: userData.name || '未知用户',
+          customerEmail: userData.email || '',
+          ...req
+        });
+      }
+    }
+    allRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderRequests();
+  });
+}
+
+// 筛选切换
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderRequests();
+  });
+});
+
+// 渲染申请列表
+function renderRequests() {
+  const filtered = currentFilter === 'all' 
+    ? allRequests 
+    : allRequests.filter(r => r.status === currentFilter);
+  const container = document.getElementById('requestList');
+  if (!filtered.length) {
+    container.innerHTML = '<p class="empty">暂无申请记录</p>';
+    return;
+  }
+  container.innerHTML = filtered.map(r => {
+    const statusText = { pending: '待审批', approved: '已通过', rejected: '已驳回' }[r.status] || r.status;
+    const badgeClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' }[r.status] || '';
+    const isPending = r.status === 'pending';
+    return `
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+          <div>
+            <p style="font-weight:600; font-size:1.05rem;">${r.customerName}</p>
+            <p style="font-size:0.85rem; color:#666;">${r.customerEmail}</p>
+            <p style="font-size:1.1rem; font-weight:bold; color:#2d2642; margin-top:6px;">
+              充值金额：${formatMoney(r.amount)}
+            </p>
+            <p style="font-size:0.8rem; color:#888; margin-top:4px;">
+              申请时间：${formatTime(r.createdAt)}
+              ${r.handledAt ? `<br>处理时间：${formatTime(r.handledAt)}` : ''}
+              ${r.handledBy ? `<br>处理人：${r.handledBy}` : ''}
+              ${r.rejectNote ? `<br>驳回原因：${r.rejectNote}` : ''}
+            </p>
+          </div>
+          <span class="badge ${badgeClass}">${statusText}</span>
+        </div>
+        ${isPending ? `
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-success" style="flex:1; min-width:100px;" onclick="approveRequest('${r.uid}', '${r.reqId}', ${r.amount})">
+              <i class="fas fa-check"></i> 通过
+            </button>
+            <button class="btn btn-danger" style="flex:1; min-width:100px;" onclick="showRejectInput('${r.uid}', '${r.reqId}')">
+              <i class="fas fa-times"></i> 驳回
+            </button>
+          </div>
+          <div id="rejectInput-${r.reqId}" class="reject-note">
+            <input type="text" id="rejectNoteText-${r.reqId}" placeholder="请输入驳回原因（选填）" 
+                   style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-bottom:8px;">
+            <button class="btn btn-danger btn-sm" onclick="confirmReject('${r.uid}', '${r.reqId}')">确认驳回</button>
+            <button class="btn btn-sm" style="background:#eee; color:#555;" onclick="hideRejectInput('${r.reqId}')">取消</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// 显示/隐藏驳回输入框
+window.showRejectInput = function(uid, reqId) {
+  document.getElementById(`rejectInput-${reqId}`).classList.add('show');
+};
+window.hideRejectInput = function(reqId) {
+  document.getElementById(`rejectInput-${reqId}`).classList.remove('show');
+};
+
+// ✅ 通过申请
+window.approveRequest = async function(uid, reqId, amount) {
+  if (isProcessing) return;
+  if (!confirm(`确认通过？将为用户账户增加 ${formatMoney(amount)}`)) return;
+  
+  isProcessing = true;
+  try {
+    const userRef = ref(db, `users/${uid}`);
+    const userSnap = await get(userRef);
+    const userData = userSnap.val() || {};
+    const currentBalance = Number(userData.balance || 0);
+    
+    // 更新余额
+    await update(userRef, { balance: currentBalance + amount });
+    
+    // 更新申请状态
+    await update(ref(db, `users/${uid}/topupRequests/${reqId}`), {
+      status: 'approved',
+      handledAt: serverTimestamp(),
+      handledBy: 'admin123'
+    });
+    
+    // 记录到用户历史
+    await push(ref(db, `users/${uid}/history`), {
+      type: 'topup',
+      amount,
+      description: '管理员审批充值',
+      handledBy: 'admin123',
+      createdAt: serverTimestamp()
+    });
+    
+    showToast('✅ 已通过，余额已到账', 'success');
+  } catch (e) {
+    showToast('操作失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+};
+
+// ✅ 驳回申请
+window.confirmReject = async function(uid, reqId) {
+  if (isProcessing) return;
+  const note = document.getElementById(`rejectNoteText-${reqId}`).value.trim() || '';
+  
+  isProcessing = true;
+  try {
+    await update(ref(db, `users/${uid}/topupRequests/${reqId}`), {
+      status: 'rejected',
+      handledAt: serverTimestamp(),
+      handledBy: 'admin123',
+      rejectNote: note || '未填写原因'
+    });
+    showToast('已驳回', 'success');
+  } catch (e) {
+    showToast('驳回失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+    hideRejectInput(reqId);
+  }
+};
+</script>
+</body>
+</html>
