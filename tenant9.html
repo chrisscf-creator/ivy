@@ -92,7 +92,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
       <button type="submit" class="btn btn-primary">注册商户</button>
     </form>
   </div>
-
   <!-- 主界面 -->
   <div class="main-app" id="mainApp">
     <div class="header">
@@ -108,7 +107,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
       <button class="tab active" data-pane="receive">收款码</button>
       <button class="tab" data-pane="scan">扫码核销</button>
       <button class="tab" data-pane="history">交易记录</button>
-      <button class="tab" data-pane="issue">发放礼券</button>
     </div>
     
     <!-- 收款码 -->
@@ -141,7 +139,7 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
       </p>
     </div>
     
-    <!-- 交易记录 - 已更新 -->
+    <!-- 交易记录 -->
     <div class="tab-pane" id="pane-history">
       <div class="top-bar">
         <h3>交易记录</h3>
@@ -157,34 +155,8 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
       <input type="text" class="search-input" id="historySearch" placeholder="搜索描述/金额..." style="margin-bottom:12px;">
       <div id="historyList"></div>
     </div>
-    
-    <!-- 发放礼券 -->
-    <div class="tab-pane" id="pane-issue">
-      <div class="card">
-        <h4 style="margin-bottom:16px;">发放礼券给顾客</h4>
-        <div class="form-group">
-          <label>顾客邮箱</label>
-          <input type="email" id="custEmail" placeholder="customer@example.com">
-        </div>
-        <div class="form-group">
-          <label>礼券面值 ($)</label>
-          <input type="number" id="voucherAmount" min="1" step="0.01" placeholder="例如：10">
-        </div>
-        <div class="form-group">
-          <label>最低消费 ($)</label>
-          <input type="number" id="minSpend" min="0" step="0.01" placeholder="0 表示无限制">
-        </div>
-        <div class="form-group">
-          <label>有效期（小时）</label>
-          <input type="number" id="validHours" min="1" value="168" placeholder="默认7天=168小时">
-        </div>
-        <button class="btn btn-success" id="issueVoucherBtn">发放礼券</button>
-      </div>
-      <div id="issueResult"></div>
-    </div>
   </div>
 </div>
-
 <!-- 确认弹窗 -->
 <div class="confirm-modal" id="confirmModal">
   <div class="modal-content">
@@ -196,7 +168,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     <button class="btn" style="background:#eee; margin-top:8px;" id="closeModalBtn">取消</button>
   </div>
 </div>
-
 <!-- 删除确认弹窗 -->
 <div class="delete-modal" id="deleteConfirmModal">
   <div class="modal-content" style="max-width:360px;">
@@ -210,9 +181,7 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { 
@@ -223,7 +192,6 @@ import {
   getDatabase, ref, set, push, update, get, remove, onValue,
   serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
   authDomain: "payment-2084a.firebaseapp.com",
@@ -233,11 +201,9 @@ const firebaseConfig = {
   messagingSenderId: "320939990652",
   appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-
 let currentMerchant = null;
 let unsubs = [];
 let html5QrCode = null;
@@ -246,7 +212,6 @@ let pendingDeleteKey = null;
 let deleteAllMode = false;
 let isProcessing = false;
 let allHistoryData = {};
-
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -273,7 +238,6 @@ function escapeCsv(s) {
   if (/[,"\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
   return str;
 }
-
 // 认证状态
 onAuthStateChanged(auth, user => {
   if (user) {
@@ -291,7 +255,6 @@ onAuthStateChanged(auth, user => {
     document.getElementById('mainApp').classList.remove('active');
   }
 });
-
 // 登录/注册切换
 document.getElementById('loginTabBtn').addEventListener('click', () => {
   document.getElementById('loginTabBtn').classList.add('active');
@@ -315,7 +278,6 @@ document.getElementById('regTabBtn').addEventListener('click', () => {
   document.getElementById('loginForm').style.display = 'none';
   document.getElementById('authError').classList.remove('show');
 });
-
 // 注册商户
 document.getElementById('registerForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -342,7 +304,6 @@ document.getElementById('registerForm').addEventListener('submit', async e => {
     isProcessing = false;
   }
 });
-
 // 登录
 document.getElementById('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -364,7 +325,6 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     isProcessing = false;
   }
 });
-
 // 退出
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   if (isProcessing) return;
@@ -374,7 +334,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   showToast('已退出', 'success');
   isProcessing = false;
 });
-
 // 加载商户数据
 function initMerchantData() {
   const merchRef = ref(db, `merchants/${currentMerchant.uid}`);
@@ -389,7 +348,6 @@ function initMerchantData() {
     renderHistory();
   }));
 }
-
 // 渲染记录 + 搜索过滤
 function renderHistory(filter='') {
   const entries = Object.entries(allHistoryData).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
@@ -423,12 +381,10 @@ function renderHistory(filter='') {
     `;
   }).join('');
 }
-
 // 搜索过滤
 document.getElementById('historySearch').addEventListener('input', e => {
   renderHistory(e.target.value);
 });
-
 // 导出全部记录为CSV
 document.getElementById('exportAllBtn').addEventListener('click', () => {
   if (!Object.keys(allHistoryData).length) {
@@ -454,7 +410,6 @@ document.getElementById('exportAllBtn').addEventListener('click', () => {
   URL.revokeObjectURL(url);
   showToast('导出成功', 'success');
 });
-
 // 单条删除 - 确认
 window.askDeleteOne = function(key) {
   pendingDeleteKey = key;
@@ -463,7 +418,6 @@ window.askDeleteOne = function(key) {
     '确定要删除这条记录吗？<br><strong style="color:#c62828;">此操作不可恢复！</strong>';
   document.getElementById('deleteConfirmModal').classList.add('show');
 };
-
 // 清空全部记录 - 确认
 document.getElementById('clearAllBtn').addEventListener('click', () => {
   if (!Object.keys(allHistoryData).length) {
@@ -476,14 +430,12 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
     '确定要删除<strong>全部</strong>交易记录吗？<br><strong style="color:#c62828;">此操作不可恢复！</strong>';
   document.getElementById('deleteConfirmModal').classList.add('show');
 });
-
 // 取消删除
 document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
   document.getElementById('deleteConfirmModal').classList.remove('show');
   pendingDeleteKey = null;
   deleteAllMode = false;
 });
-
 // 执行删除
 document.getElementById('doDeleteBtn').addEventListener('click', async () => {
   if (isProcessing) return;
@@ -512,7 +464,6 @@ document.getElementById('doDeleteBtn').addEventListener('click', async () => {
     isProcessing = false;
   }
 });
-
 // 生成收款码
 document.getElementById('generateQrBtn').addEventListener('click', async () => {
   const amount = parseFloat(document.getElementById('amountInput').value);
@@ -530,7 +481,6 @@ document.getElementById('generateQrBtn').addEventListener('click', async () => {
     showToast('生成失败', 'error');
   }
 });
-
 // 标签切换
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -540,7 +490,6 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
   });
 });
-
 // 扫码功能
 document.getElementById('startScanBtn').addEventListener('click', async () => {
   try {
@@ -563,7 +512,6 @@ function stopScanner() {
   document.getElementById('startScanBtn').style.display = 'block';
   document.getElementById('stopScanBtn').style.display = 'none';
 }
-
 // 扫码成功：同时支持付款码和礼券核销码
 async function onScanSuccess(decodedText) {
   if (isProcessing) return;
@@ -612,13 +560,11 @@ async function onScanSuccess(decodedText) {
     isProcessing = false;
   }
 }
-
 // 关闭确认弹窗
 document.getElementById('closeModalBtn').addEventListener('click', () => {
   document.getElementById('confirmModal').classList.remove('show');
   pendingAction = null;
 });
-
 // 确认核销
 document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!pendingAction || isProcessing) return;
@@ -667,73 +613,6 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   } finally {
     btn.disabled = false;
     btn.textContent = '确认';
-    isProcessing = false;
-  }
-});
-
-// 发放礼券
-document.getElementById('issueVoucherBtn').addEventListener('click', async () => {
-  if (isProcessing) return;
-  const custEmail = document.getElementById('custEmail').value.trim();
-  const amount = parseFloat(document.getElementById('voucherAmount').value);
-  const minSpend = parseFloat(document.getElementById('minSpend').value) || 0;
-  const validHours = parseInt(document.getElementById('validHours').value) || 168;
-  
-  if (!custEmail || !amount || amount <= 0) {
-    showToast('请填写完整信息', 'error');
-    return;
-  }
-  
-  isProcessing = true;
-  const btn = document.getElementById('issueVoucherBtn');
-  btn.disabled = true;
-  btn.textContent = '发放中...';
-  
-  try {
-    const usersSnap = await get(ref(db, 'users'));
-    const users = usersSnap.val() || {};
-    let customerUid = null, customerName = null;
-    for (const [uid, u] of Object.entries(users)) {
-      if (u.email === custEmail) {
-        customerUid = uid;
-        customerName = u.name;
-        break;
-      }
-    }
-    if (!customerUid) throw new Error('未找到该邮箱的顾客账号');
-    
-    const code = `V${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
-    const expiry = Date.now() + validHours * 3600000;
-    
-    await update(ref(db, `users/${customerUid}/vouchers/${code}`), {
-      amount, minSpend,
-      issuedAt: serverTimestamp(),
-      expiry,
-      issuedBy: currentMerchant.uid,
-      issuedByName: currentMerchant.displayName || '商户'
-    });
-    
-    document.getElementById('issueResult').innerHTML = `
-      <div class="card" style="border-left:4px solid #2e7d32;">
-        <p style="font-weight:bold; font-size:1.1rem;">✅ 礼券发放成功</p>
-        <p>券码：<code style="background:#f5f5f5; padding:2px 6px; border-radius:4px;">${code}</code></p>
-        <p>顾客：${customerName} (${custEmail})</p>
-        <p>面值：${formatMoney(amount)} · 最低消费：${formatMoney(minSpend)}</p>
-        <p style="font-size:0.8rem; color:#888;">有效期至：${formatTime(expiry)}</p>
-      </div>
-    `;
-    document.getElementById('custEmail').value = '';
-    document.getElementById('voucherAmount').value = '';
-    document.getElementById('minSpend').value = '';
-  } catch (e) {
-    document.getElementById('issueResult').innerHTML = `
-      <div class="card" style="border-left:4px solid #c62828;">
-        <p style="color:#c62828;">发放失败：${e.message}</p>
-      </div>
-    `;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '发放礼券';
     isProcessing = false;
   }
 });
