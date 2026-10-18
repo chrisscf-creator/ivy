@@ -29,10 +29,11 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
 .main-app.active { display: block; }
 .header { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
 .balance-section { margin: 12px 0; }
-.balance-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
-.balance-label { font-size: 0.9rem; opacity: 0.85; }
-.balance-value { font-size: 1.5rem; font-weight: 700; }
-.balance-total { font-size: 2rem; font-weight: 800; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+.balance-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.95rem; }
+.balance-label { opacity: 0.85; }
+.balance-value { font-weight: 700; }
+.balance-divider { height: 1px; background: rgba(255,255,255,0.2); margin: 8px 0; }
+.balance-total { font-size: 1.8rem; font-weight: 800; margin-top: 4px; }
 .qr-box { background: white; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; }
 #qrCanvas { margin: 0 auto; display: block; }
 .scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
@@ -52,8 +53,10 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
 .badge-voucher { background: #e8f5e9; color: #2e7d32; }
+.badge-balance { background: #e3f2fd; color: #1565c0; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .search-input { padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e8e0f0; flex: 1; min-width: 150px; }
+.payment-breakdown { font-size: 0.85rem; color: #666; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -107,9 +110,14 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
           <span class="balance-label"><i class="fas fa-ticket-alt"></i> 礼券收入</span>
           <span class="balance-value" id="voucherBalanceDisplay">$0.00</span>
         </div>
+        <div class="balance-row">
+          <span class="balance-label"><i class="fas fa-wallet"></i> 余额/现金收入</span>
+          <span class="balance-value" id="cashBalanceDisplay">$0.00</span>
+        </div>
+        <div class="balance-divider"></div>
         <div class="balance-row balance-total">
-          <span class="balance-label"><i class="fas fa-wallet"></i> 账户总额</span>
-          <span class="balance-value" id="balanceDisplay">$0.00</span>
+          <span class="balance-label"><i class="fas fa-coins"></i> 总收入</span>
+          <span class="balance-value" id="totalBalanceDisplay">$0.00</span>
         </div>
       </div>
       
@@ -150,7 +158,7 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
         <i class="fas fa-stop"></i> 停止扫码
       </button>
       <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
-        扫描顾客礼券码或付款码
+        扫描顾客付款码/礼券码
       </p>
     </div>
     
@@ -257,19 +265,21 @@ function escapeCsv(s) {
 
 // 计算并更新金额显示
 function updateBalanceDisplay(merchantData, historyData) {
-  const totalBalance = Number(merchantData.balance || 0);
-  let voucherBalance = 0;
+  let voucherTotal = 0;    // 礼券抵扣总额
+  let cashTotal = 0;       // 余额/现金支付总额
   
   if (historyData) {
     Object.values(historyData).forEach(record => {
-      if (record.type === 'voucher_redeem') {
-        voucherBalance += Number(record.amount || 0);
-      }
+      voucherTotal += Number(record.voucherAmount || 0);
+      cashTotal += Number(record.cashAmount || record.amount || 0);
     });
   }
   
-  document.getElementById('balanceDisplay').textContent = formatMoney(totalBalance);
-  document.getElementById('voucherBalanceDisplay').textContent = formatMoney(voucherBalance);
+  const grandTotal = voucherTotal + cashTotal;
+  
+  document.getElementById('voucherBalanceDisplay').textContent = formatMoney(voucherTotal);
+  document.getElementById('cashBalanceDisplay').textContent = formatMoney(cashTotal);
+  document.getElementById('totalBalanceDisplay').textContent = formatMoney(grandTotal);
 }
 
 // 认证状态
@@ -377,20 +387,9 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 function initMerchantData() {
   const merchRef = ref(db, `merchants/${currentMerchant.uid}`);
   
-  unsubs.push(onValue(merchRef, snap => {
-    const d = snap.val() || {};
-    updateBalanceDisplay(d, allHistoryData);
-  }));
-  
   unsubs.push(onValue(ref(db, `merchants/${currentMerchant.uid}/history`), snap => {
     allHistoryData = snap.val() || {};
-    const merchSnap = snap ? snap.ref.parent?.parent : null;
-    if (merchSnap) {
-      get(ref(db, `merchants/${currentMerchant.uid}`)).then(merchSnap => {
-        const merchData = merchSnap.val() || {};
-        updateBalanceDisplay(merchData, allHistoryData);
-      });
-    }
+    updateBalanceDisplay(null, allHistoryData);
     renderHistory();
   }));
 }
@@ -412,14 +411,24 @@ function renderHistory(filter='') {
   
   container.innerHTML = filtered.map(([key, h]) => {
     const isVoucher = h.type === 'voucher_redeem';
+    const hasSplit = h.voucherAmount > 0;
+    
     return `
       <div class="card" style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div style="flex:1;">
           <p>${h.description || '收款'}
-            ${isVoucher ? '<span class="badge badge-voucher">礼券核销</span>' : ''}
+            ${isVoucher ? '<span class="badge badge-voucher">礼券</span>' : ''}
           </p>
-          <p style="font-weight:bold; color:#2e7d32; font-size:1.1rem;">+${formatMoney(h.amount)}</p>
-          <p style="font-size:0.8rem; color:#888;">${formatTime(h.createdAt)}</p>
+          ${hasSplit ? `
+            <div class="payment-breakdown">
+              ${h.voucherAmount > 0 ? `<span><i class="fas fa-ticket-alt"></i> 礼券: ${formatMoney(h.voucherAmount)}</span>` : ''}
+              ${h.cashAmount > 0 ? `<span style="margin-left:10px;"><i class="fas fa-wallet"></i> 余额: ${formatMoney(h.cashAmount)}</span>` : ''}
+            </div>
+            <p style="font-weight:bold; color:#2e7d32; font-size:1.1rem; margin-top:4px;">合计 ${formatMoney((h.voucherAmount||0) + (h.cashAmount||0))}</p>
+          ` : `
+            <p style="font-weight:bold; color:#2e7d32; font-size:1.1rem;">+${formatMoney(h.amount)}</p>
+          `}
+          <p style="font-size:0.8rem; color:#888; margin-top:4px;">${formatTime(h.createdAt)}</p>
         </div>
         <button class="btn-sm btn-outline" onclick="askDeleteOne('${key}')">
           <i class="fas fa-trash-alt" style="color:#c62828;"></i>
@@ -440,11 +449,13 @@ document.getElementById('exportAllBtn').addEventListener('click', () => {
     showToast('暂无记录可导出', 'error');
     return;
   }
-  const header = ['时间', '类型', '金额', '描述', '顾客UID', '券码'];
+  const header = ['时间', '类型', '总金额', '礼券金额', '余额/现金金额', '描述', '顾客UID', '券码'];
   const rows = Object.entries(allHistoryData).map(([key, h]) => [
     formatTime(h.createdAt),
     h.type === 'voucher_redeem' ? '礼券核销' : '收款',
-    h.amount,
+    (h.voucherAmount || 0) + (h.cashAmount || h.amount || 0),
+    h.voucherAmount || 0,
+    h.cashAmount || h.amount || 0,
     h.description || '',
     h.customerUid || '-',
     h.voucherCode || '-'
@@ -569,14 +580,53 @@ function stopScanner() {
   document.getElementById('stopScanBtn').style.display = 'none';
 }
 
-// 扫码成功：同时支持付款码和礼券核销码
+// 扫码成功：同时支持付款码(含礼券+余额)和纯礼券核销码
 async function onScanSuccess(decodedText) {
   if (isProcessing) return;
   isProcessing = true;
   stopScanner();
   
   try {
-    if (decodedText.startsWith('VOUCHER:')) {
+    // 顾客端组合付款：PAY:总金额:礼券金额:余额金额:顾客UID
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length >= 5) {
+        const totalAmount = parseFloat(parts[1]);
+        const voucherAmount = parseFloat(parts[2]) || 0;
+        const cashAmount = parseFloat(parts[3]) || 0;
+        const customerUid = parts[4];
+        
+        if (voucherAmount > totalAmount || cashAmount > totalAmount || (voucherAmount + cashAmount).toFixed(2) !== totalAmount.toFixed(2)) {
+          throw new Error('支付金额数据异常');
+        }
+        
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        const custData = custSnap.val();
+        if (!custData) throw new Error('顾客账号不存在');
+        
+        pendingAction = {
+          type: 'combined_payment',
+          totalAmount,
+          voucherAmount,
+          cashAmount,
+          customerUid,
+          customerName: custData.name || '顾客'
+        };
+        
+        document.getElementById('modalTitle').textContent = '确认收款';
+        document.getElementById('modalSubtext').innerHTML = 
+          (voucherAmount > 0 ? `礼券抵扣 ${formatMoney(voucherAmount)}<br>` : '') +
+          (cashAmount > 0 ? `余额支付 ${formatMoney(cashAmount)}` : '');
+        document.getElementById('modalAmount').textContent = formatMoney(totalAmount);
+        document.getElementById('modalUserInfo').textContent = 
+          `顾客：${pendingAction.customerName}`;
+        document.getElementById('confirmModal').classList.add('show');
+      } else {
+        throw new Error('请由顾客端扫描商户收款码');
+      }
+    }
+    // 纯礼券核销：VOUCHER:券码:顾客UID
+    else if (decodedText.startsWith('VOUCHER:')) {
       const parts = decodedText.split(':');
       if (parts.length < 3) throw new Error('礼券码格式错误');
       const voucherCode = parts[1];
@@ -596,6 +646,8 @@ async function onScanSuccess(decodedText) {
         code: voucherCode,
         customerUid,
         amount: voucher.amount,
+        voucherAmount: voucher.amount,
+        cashAmount: 0,
         minSpend: voucher.minSpend || 0,
         customerName: custData.name || '顾客'
       };
@@ -606,8 +658,6 @@ async function onScanSuccess(decodedText) {
       document.getElementById('modalUserInfo').textContent = 
         `顾客：${pendingAction.customerName} · 最低消费 ${formatMoney(pendingAction.minSpend)}`;
       document.getElementById('confirmModal').classList.add('show');
-    } else if (decodedText.startsWith('PAY:')) {
-      throw new Error('此为收款码，应由顾客端扫描');
     } else {
       throw new Error('无法识别的二维码');
     }
@@ -624,7 +674,7 @@ document.getElementById('closeModalBtn').addEventListener('click', () => {
   pendingAction = null;
 });
 
-// 确认核销
+// 确认收款/核销
 document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!pendingAction || isProcessing) return;
   isProcessing = true;
@@ -633,22 +683,74 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   btn.textContent = '处理中...';
   
   try {
-    if (pendingAction.type === 'voucher') {
+    if (pendingAction.type === 'combined_payment') {
+      // 处理组合支付：礼券+余额
+      const { totalAmount, voucherAmount, cashAmount, customerUid, customerName } = pendingAction;
+      
+      // 1. 扣除顾客余额
+      if (cashAmount > 0) {
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        const custData = custSnap.val() || {};
+        const newBalance = Number(custData.balance || 0) - cashAmount;
+        if (newBalance < 0) throw new Error('顾客余额不足');
+        await update(ref(db, `users/${customerUid}`), { balance: newBalance });
+      }
+      
+      // 2. 标记礼券已使用
+      if (voucherAmount > 0 && pendingAction.voucherCode) {
+        await update(ref(db, `users/${customerUid}/vouchers/${pendingAction.voucherCode}`), {
+          used: true,
+          usedAt: serverTimestamp(),
+          merchantUid: currentMerchant.uid
+        });
+      }
+      
+      // 3. 商户余额只增加实际收到的现金部分
+      const merchSnap = await get(ref(db, `merchants/${currentMerchant.uid}`));
+      const merchData = merchSnap.val() || {};
+      await update(ref(db, `merchants/${currentMerchant.uid}`), {
+        balance: Number(merchData.balance || 0) + cashAmount
+      });
+      
+      // 4. 记录顾客端历史
+      await push(ref(db, `users/${customerUid}/history`), {
+        type: 'payment',
+        amount: totalAmount,
+        voucherAmount,
+        cashAmount,
+        description: `向 ${currentMerchant.displayName || '商户'} 付款`,
+        merchantUid: currentMerchant.uid,
+        createdAt: serverTimestamp()
+      });
+      
+      // 5. 记录商户端历史 —— 分开存储礼券和现金金额
+      await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+        type: 'combined_payment',
+        amount: totalAmount,
+        voucherAmount,
+        cashAmount,
+        description: `顾客 ${customerName} 付款`,
+        customerUid,
+        createdAt: serverTimestamp()
+      });
+      
+      showToast('✅ 收款成功', 'success');
+    }
+    else if (pendingAction.type === 'voucher') {
+      // 纯礼券核销
       await update(ref(db, `users/${pendingAction.customerUid}/vouchers/${pendingAction.code}`), {
         used: true,
         usedAt: serverTimestamp(),
         merchantUid: currentMerchant.uid
       });
       
-      const merchSnap = await get(ref(db, `merchants/${currentMerchant.uid}`));
-      const merchData = merchSnap.val() || {};
-      await update(ref(db, `merchants/${currentMerchant.uid}`), {
-        balance: Number(merchData.balance || 0) + pendingAction.amount
-      });
-      
+      // 商户余额不增加（礼券不计入现金余额，仅统计展示）
+      // 历史记录同时记录礼券金额
       await push(ref(db, `users/${pendingAction.customerUid}/history`), {
         type: 'voucher_used',
         amount: pendingAction.amount,
+        voucherAmount: pendingAction.amount,
+        cashAmount: 0,
         description: `在 ${currentMerchant.displayName || '商户'} 使用礼券 ${pendingAction.code}`,
         merchantUid: currentMerchant.uid,
         createdAt: serverTimestamp()
@@ -657,6 +759,8 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
       await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
         type: 'voucher_redeem',
         amount: pendingAction.amount,
+        voucherAmount: pendingAction.amount,
+        cashAmount: 0,
         description: `顾客 ${pendingAction.customerName} 核销礼券 ${pendingAction.code}`,
         customerUid: pendingAction.customerUid,
         voucherCode: pendingAction.code,
@@ -665,6 +769,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
       
       showToast('✅ 礼券核销成功', 'success');
     }
+    
     document.getElementById('confirmModal').classList.remove('show');
     pendingAction = null;
   } catch (e) {
