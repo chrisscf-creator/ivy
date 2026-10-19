@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商户端 - 分开提现 · 礼券/现金独立</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 480px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); margin: 40px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2e7d32; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #2e7d32; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-voucher { background: linear-gradient(135deg, #7b1fa2, #4a148c); color: white; }
+.btn-cash { background: linear-gradient(135deg, #1565c0, #0d47a1); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-warning { background: linear-gradient(135deg, #f9a825, #ef6c00); color: white; }
+.btn-sm { width: auto; padding: 8px 12px; font-size: 0.85rem; margin: 4px 2px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
+.balance-card { background: rgba(255,255,255,0.18); border-radius: 14px; padding: 14px; margin: 10px 0; }
+.balance-card.voucher { background: linear-gradient(135deg, rgba(123,31,162,0.25), rgba(74,20,140,0.25)); border-left: 4px solid #9c27b0; }
+.balance-card.cash { background: linear-gradient(135deg, rgba(21,101,192,0.25), rgba(13,71,161,0.25)); border-left: 4px solid #2196f3; }
+.balance-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 0.95rem; }
+.balance-label { opacity: 0.9; }
+.balance-value { font-weight: 700; font-size: 1.2rem; }
+.balance-divider { height: 1px; background: rgba(255,255,255,0.25); margin: 10px 0; }
+.balance-total { font-size: 1.3rem; font-weight: 800; margin-top: 6px; }
+.withdrawable-highlight { font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.qr-box { background: white; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 20px; }
+#qrCanvas { margin: 0 auto; display: block; }
+.scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
+#reader { width: 100%; min-height: 300px; }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
+.tab.active { background: #2e7d32; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.card.voucher-border { border-left: 4px solid #9c27b0; }
+.card.cash-border { border-left: 4px solid #2196f3; }
+.empty { text-align: center; padding: 40px; color: #999; }
+.confirm-modal, .delete-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.confirm-modal.show, .delete-modal.show { display: flex; }
+.modal-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+.modal-amount { font-size: 2.5rem; font-weight: 800; text-align: center; margin: 20px 0; }
+.modal-amount.voucher { color: #7b1fa2; }
+.modal-amount.cash { color: #1565c0; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
+.badge-voucher { background: #f3e5f5; color: #7b1fa2; }
+.badge-cash { background: #e3f2fd; color: #1565c0; }
+.badge-pending { background: #fff3e0; color: #e65100; }
+.badge-completed { background: #e8f5e9; color: #2e7d32; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.search-input { padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e8e0f0; flex: 1; min-width: 150px; }
+.payment-breakdown { font-size: 0.85rem; color: #666; margin-top: 4px; }
+.quick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.hint-box { background: #fff8e1; border-left: 3px solid #f9a825; padding: 10px 12px; border-radius: 8px; font-size: 0.82rem; color: #8d6e00; margin-bottom: 12px; line-height: 1.5; }
+.split-section { margin-bottom: 20px; }
+.split-section h4 { margin-bottom: 10px; font-size: 0.95rem; color: #444; }
+.two-col { display: flex; gap: 10px; }
+.two-col > div { flex: 1; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- 登录界面 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-store"></i> 商户登录</h2>
+    <div class="error" id="authError"></div>
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2e7d32; color: white;">登录</button>
+      <button class="tab" id="regTabBtn" style="flex:1;">注册</button>
+    </div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="loginEmail" required>
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPassword" required>
+      </div>
+      <button type="submit" class="btn btn-primary">登录</button>
+    </form>
+    <form id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="regEmail" required>
+      </div>
+      <div class="form-group">
+        <label>商户名称</label>
+        <input type="text" id="merchantName" required>
+      </div>
+      <div class="form-group">
+        <label>密码（至少6位）</label>
+        <input type="password" id="regPassword" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary">注册商户</button>
+    </form>
+  </div>
+
+  <!-- 主界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <h3>欢迎, <span id="merchantNameDisplay">商户</span></h3>
+      <p style="opacity:0.8; font-size:0.9rem; margin:4px 0;" id="merchantEmailDisplay"></p>
+      
+      <!-- 分开展示：礼券 / 现金 各自余额 -->
+      <div class="balance-card voucher">
+        <div class="balance-row">
+          <span class="balance-label"><i class="fas fa-ticket-alt"></i> 礼券可提现余额</span>
+          <span class="balance-value withdrawable-highlight" id="voucherWithdrawable" style="color:#e1bee7;">$0.00</span>
+        </div>
+        <div class="balance-row" style="font-size:0.85rem; opacity:0.8;">
+          <span>累计收入</span>
+          <span id="voucherTotal">$0.00</span>
+        </div>
+        <div class="balance-row" style="font-size:0.85rem; opacity:0.8;">
+          <span>已提现</span>
+          <span id="voucherWithdrawn">-$0.00</span>
+        </div>
+      </div>
+      
+      <div class="balance-card cash">
+        <div class="balance-row">
+          <span class="balance-label"><i class="fas fa-wallet"></i> 现金可提现余额</span>
+          <span class="balance-value withdrawable-highlight" id="cashWithdrawable" style="color:#bbdefb;">$0.00</span>
+        </div>
+        <div class="balance-row" style="font-size:0.85rem; opacity:0.8;">
+          <span>累计收入</span>
+          <span id="cashTotal">$0.00</span>
+        </div>
+        <div class="balance-row" style="font-size:0.85rem; opacity:0.8;">
+          <span>已提现</span>
+          <span id="cashWithdrawn">-$0.00</span>
+        </div>
+      </div>
+      
+      <div class="balance-divider"></div>
+      <div class="balance-row balance-total">
+        <span><i class="fas fa-coins"></i> 账户总资产</span>
+        <span id="grandTotal">$0.00</span>
+      </div>
+      
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px; margin-top:12px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> 退出登录
+      </button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-pane="receive">收款码</button>
+      <button class="tab" data-pane="scan">扫码核销</button>
+      <button class="tab" data-pane="history">交易记录</button>
+      <button class="tab" data-pane="cashout">分开提现</button>
+    </div>
+
+    <!-- 收款码 -->
+    <div class="tab-pane active" id="pane-receive">
+      <div class="form-group">
+        <label>收款金额 ($)</label>
+        <input type="number" id="amountInput" min="0.01" step="0.01" placeholder="输入金额生成收款码">
+      </div>
+      <button class="btn btn-success" id="generateQrBtn">生成收款码</button>
+      <div class="qr-box" id="qrContainer" style="display:none;">
+        <p style="font-weight:600; margin-bottom:12px;">请顾客扫码支付</p>
+        <canvas id="qrCanvas"></canvas>
+        <p style="margin-top:12px; font-size:1.1rem; font-weight:bold; color:#2e7d32;" id="qrAmountText"></p>
+      </div>
+    </div>
+
+    <!-- 扫码核销 -->
+    <div class="tab-pane" id="pane-scan">
+      <div class="scanner-box">
+        <div id="reader"></div>
+      </div>
+      <button class="btn btn-success" id="startScanBtn">
+        <i class="fas fa-qrcode"></i> 开启扫码
+      </button>
+      <button class="btn" style="background:#ddd; display:none;" id="stopScanBtn">
+        <i class="fas fa-stop"></i> 停止扫码
+      </button>
+      <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
+        扫描顾客付款码/礼券码
+      </p>
+    </div>
+
+    <!-- 交易记录 -->
+    <div class="tab-pane" id="pane-history">
+      <div class="top-bar">
+        <h3>交易记录</h3>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-sm btn-success" id="exportAllBtn">
+            <i class="fas fa-download"></i> 导出
+          </button>
+          <button class="btn-sm btn-danger" id="clearAllBtn">
+            <i class="fas fa-trash"></i> 清空
+          </button>
+        </div>
+      </div>
+      <input type="text" class="search-input" id="historySearch" placeholder="搜索描述/金额..." style="margin-bottom:12px;">
+      <div id="historyList"></div>
+    </div>
+
+    <!-- 分开提现：礼券、现金 独立操作 -->
+    <div class="tab-pane" id="pane-cashout">
+      <!-- 礼券提现区 -->
+      <div class="split-section">
+        <h4 style="color:#7b1fa2;"><i class="fas fa-ticket-alt"></i> 礼券余额提现</h4>
+        <div class="card voucher-border">
+          <p style="color:#666; font-size:0.9rem;">可提现余额</p>
+          <p style="font-size:2rem; font-weight:800; color:#7b1fa2;" id="cashoutVoucherAvail">$0.00</p>
+          <div class="form-group" style="margin-top:12px;">
+            <label>提现金额 ($)</label>
+            <input type="number" id="voucherCashoutAmount" min="0.01" step="0.01" placeholder="输入礼券提现金额">
+          </div>
+          <div class="quick-row">
+            <button class="btn-sm btn-outline quick-voucher" data-val="50">$50</button>
+            <button class="btn-sm btn-outline quick-voucher" data-val="100">$100</button>
+            <button class="btn-sm btn-outline quick-voucher" data-val="500">$500</button>
+            <button class="btn-sm btn-outline" id="voucherAllBtn">全部</button>
+          </div>
+          <button class="btn btn-voucher" id="voucherCashoutBtn">
+            <i class="fas fa-hand-holding-usd"></i> 申请礼券提现
+          </button>
+        </div>
+      </div>
+
+      <!-- 现金提现区 -->
+      <div class="split-section">
+        <h4 style="color:#1565c0;"><i class="fas fa-wallet"></i> 现金余额提现</h4>
+        <div class="card cash-border">
+          <p style="color:#666; font-size:0.9rem;">可提现余额</p>
+          <p style="font-size:2rem; font-weight:800; color:#1565c0;" id="cashoutCashAvail">$0.00</p>
+          <div class="form-group" style="margin-top:12px;">
+            <label>提现金额 ($)</label>
+            <input type="number" id="cashCashoutAmount" min="0.01" step="0.01" placeholder="输入现金提现金额">
+          </div>
+          <div class="quick-row">
+            <button class="btn-sm btn-outline quick-cash" data-val="50">$50</button>
+            <button class="btn-sm btn-outline quick-cash" data-val="100">$100</button>
+            <button class="btn-sm btn-outline quick-cash" data-val="500">$500</button>
+            <button class="btn-sm btn-outline" id="cashAllBtn">全部</button>
+          </div>
+          <button class="btn btn-cash" id="cashCashoutBtn">
+            <i class="fas fa-hand-holding-usd"></i> 申请现金提现
+          </button>
+        </div>
+      </div>
+
+      <div class="hint-box">
+        <i class="fas fa-info-circle"></i> 说明：<br>
+        • 礼券收入与现金收入<strong>完全独立分开统计、分开提现、分开记录</strong><br>
+        • 礼券提现 → 从礼券余额扣除；现金提现 → 从现金余额扣除<br>
+        • 两类提现各自申请、各自到账，预计 1-3 个工作日
+      </div>
+
+      <h3 style="margin:16px 8px 8px; font-size:1rem; color:#444;"><i class="fas fa-history"></i> 提现记录</h3>
+      <div id="cashoutList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="modal-content">
+    <h3 style="text-align:center;" id="modalTitle">确认</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;" id="modalSubtext"></p>
+    <div class="modal-amount" id="modalAmount">$0.00</div>
+    <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:16px;" id="modalUserInfo"></p>
+    <button class="btn btn-success" id="confirmBtn">确认</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closeModalBtn">取消</button>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="delete-modal" id="deleteConfirmModal">
+  <div class="modal-content" style="max-width:360px;">
+    <h3 style="color:#c62828; text-align:center; margin-bottom:16px;">
+      <i class="fas fa-exclamation-triangle"></i> 确认删除
+    </h3>
+    <p style="text-align:center; margin-bottom:20px;" id="deleteConfirmText">确定删除？<br><strong style="color:#c62828;">不可恢复！</strong></p>
+    <div style="display:flex; gap:10px;">
+      <button class="btn" style="background:#eee; flex:1;" id="cancelDeleteBtn">取消</button>
+      <button class="btn btn-danger" style="flex:1;" id="doDeleteBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getDatabase, ref, set, push, update, get, remove, onValue,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentMerchant = null;
+let unsubs = [];
+let html5QrCode = null;
+let pendingAction = null;
+let pendingDeleteKey = null;
+let deleteAllMode = false;
+let isProcessing = false;
+let allHistoryData = {};
+
+// 独立余额状态
+let balances = {
+  voucherTotal: 0,
+  voucherWithdrawn: 0,
+  voucherAvailable: 0,
+  cashTotal: 0,
+  cashWithdrawn: 0,
+  cashAvailable: 0
+};
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+
+function clearListeners() {
+  unsubs.forEach(fn => { try { fn() } catch(e) {} });
+  unsubs = [];
+}
+
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+
+function formatMoney(n) { return `$${(n || 0).toFixed(2)}`; }
+
+function escapeCsv(s) {
+  if (s === null || s === undefined) return '';
+  const str = String(s);
+  if (/[,"\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+// 更新全部余额显示
+function updateAllBalances(historyData) {
+  let vt = 0, vw = 0, ct = 0, cw = 0;
+  
+  Object.values(historyData || {}).forEach(r => {
+    if (r.type === 'cashout_voucher') {
+      vw += Math.abs(Number(r.amount) || 0);
+    } else if (r.type === 'cashout_cash') {
+      cw += Math.abs(Number(r.amount) || 0);
+    } else {
+      vt += Number(r.voucherAmount || 0);
+      ct += Number(r.cashAmount || 0);
+    }
+  });
+  
+  balances = {
+    voucherTotal: vt,
+    voucherWithdrawn: vw,
+    voucherAvailable: vt - vw,
+    cashTotal: ct,
+    cashWithdrawn: cw,
+    cashAvailable: ct - cw
+  };
+  
+  // 头部显示
+  document.getElementById('voucherTotal').textContent = formatMoney(balances.voucherTotal);
+  document.getElementById('voucherWithdrawn').textContent = '-' + formatMoney(balances.voucherWithdrawn);
+  document.getElementById('voucherWithdrawable').textContent = formatMoney(balances.voucherAvailable);
+  
+  document.getElementById('cashTotal').textContent = formatMoney(balances.cashTotal);
+  document.getElementById('cashWithdrawn').textContent = '-' + formatMoney(balances.cashWithdrawn);
+  document.getElementById('cashWithdrawable').textContent = formatMoney(balances.cashAvailable);
+  
+  document.getElementById('grandTotal').textContent = formatMoney(balances.voucherAvailable + balances.cashAvailable);
+  
+  // 提现页显示
+  document.getElementById('cashoutVoucherAvail').textContent = formatMoney(balances.voucherAvailable);
+  document.getElementById('cashoutCashAvail').textContent = formatMoney(balances.cashAvailable);
+}
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentMerchant = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('merchantNameDisplay').textContent = user.displayName || '商户';
+    document.getElementById('merchantEmailDisplay').textContent = user.email || '';
+    initMerchantData();
+  } else {
+    stopScanner();
+    currentMerchant = null;
+    clearListeners();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('mainApp').classList.remove('active');
+  }
+});
+
+// 登录/注册切换
+document.getElementById('loginTabBtn').addEventListener('click', () => {
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('loginTabBtn').style.background = '#2e7d32';
+  document.getElementById('loginTabBtn').style.color = 'white';
+  document.getElementById('regTabBtn').classList.remove('active');
+  document.getElementById('regTabBtn').style.background = 'transparent';
+  document.getElementById('regTabBtn').style.color = '#8b7aa8';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+document.getElementById('regTabBtn').addEventListener('click', () => {
+  document.getElementById('regTabBtn').classList.add('active');
+  document.getElementById('regTabBtn').style.background = '#2e7d32';
+  document.getElementById('regTabBtn').style.color = 'white';
+  document.getElementById('loginTabBtn').classList.remove('active');
+  document.getElementById('loginTabBtn').style.background = 'transparent';
+  document.getElementById('loginTabBtn').style.color = '#8b7aa8';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+// 注册
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
+  try {
+    const email = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('merchantName').value.trim();
+    const pwd = document.getElementById('regPassword').value;
+    const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+    await set(ref(db, `merchants/${userCred.user.uid}`), {
+      name, email, role: 'merchant', createdAt: serverTimestamp()
+    });
+    await userCred.user.updateProfile({ displayName: name });
+    showToast('商户注册成功！', 'success');
+  } catch (err) {
+    showError('注册失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '注册商户';
+    isProcessing = false;
+  }
+});
+
+// 登录
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+    await signInWithEmailAndPassword(auth, email, pwd);
+    showToast('登录成功！', 'success');
+  } catch (err) {
+    showError('登录失败：' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '登录';
+    isProcessing = false;
+  }
+});
+
+// 退出
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  await signOut(auth);
+  showToast('已退出', 'success');
+  isProcessing = false;
+});
+
+// 加载数据
+function initMerchantData() {
+  unsubs.push(onValue(ref(db, `merchants/${currentMerchant.uid}/history`), snap => {
+    allHistoryData = snap.val() || {};
+    updateAllBalances(allHistoryData);
+    renderHistory();
+    renderCashoutList();
+  }));
+}
+
+// 渲染交易记录
+function renderHistory(filter = '') {
+  const entries = Object.entries(allHistoryData).sort(([, a], [, b]) => (b.createdAt || 0) - (a.createdAt || 0));
+  const f = filter.toLowerCase();
+  const filtered = f ? entries.filter(([, v]) =>
+    (v.description || '').toLowerCase().includes(f) || String(v.amount).includes(f)
+  ) : entries;
+  const container = document.getElementById('historyList');
+  if (!filtered.length) {
+    container.innerHTML = '<p class="empty">暂无记录</p>';
+    return;
+  }
+  container.innerHTML = filtered.map(([key, h]) => {
+    let typeLabel = '', amountColor = '#2e7d32', prefix = '+', borderClass = '';
+    if (h.type === 'cashout_voucher') {
+      typeLabel = '<span class="badge badge-voucher">礼券提现</span>';
+      amountColor = '#c62828'; prefix = '-'; borderClass = 'voucher-border';
+    } else if (h.type === 'cashout_cash') {
+      typeLabel = '<span class="badge badge-cash">现金提现</span>';
+      amountColor = '#c62828'; prefix = '-'; borderClass = 'cash-border';
+    } else if (h.type === 'voucher_redeem') {
+      typeLabel = '<span class="badge badge-voucher">礼券核销</span>';
+      borderClass = 'voucher-border';
+    } else {
+      borderClass = 'cash-border';
+    }
+    
+    const displayAmt = Math.abs(h.amount);
+    return `
+      <div class="card ${borderClass}" style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="flex:1;">
+          <p>${h.description || '收款'} ${typeLabel}</p>
+          <div class="payment-breakdown">
+            ${Number(h.voucherAmount) > 0 ? `<span class="badge badge-voucher">礼券: ${formatMoney(h.voucherAmount)}</span>` : ''}
+            ${Number(h.cashAmount) > 0 ? `<span class="badge badge-cash">现金: ${formatMoney(h.cashAmount)}</span>` : ''}
+          </div>
+          <p style="font-weight:bold; font-size:1.1rem; margin-top:4px; color:${amountColor};">
+            ${prefix}${formatMoney(displayAmt)}
+          </p>
+          <p style="font-size:0.8rem; color:#888; margin-top:4px;">${formatTime(h.createdAt)}</p>
+        </div>
+        <button class="btn-sm btn-outline" onclick="askDeleteOne('${key}')">
+          <i class="fas fa-trash-alt" style="color:#c62828;"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+// 渲染提现记录
+function renderCashoutList() {
+  const container = document.getElementById('cashoutList');
+  if (!container) return;
+  const list = Object.entries(allHistoryData)
+    .filter(([, h]) => h.type === 'cashout_voucher' || h.type === 'cashout_cash')
+    .sort(([, a], [, b]) => (b.createdAt || 0) - (a.createdAt || 0));
+  if (!list.length) {
+    container.innerHTML = '<p class="empty">暂无提现记录</p>';
+    return;
+  }
+  container.innerHTML = list.map(([, h]) => {
+    const isVoucher = h.type === 'cashout_voucher';
+    return `
+      <div class="card ${isVoucher ? 'voucher-border' : 'cash-border'}" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <p><i class="fas fa-money-check-alt" style="color:${isVoucher ? '#7b1fa2' : '#1565c0'};"></i>
+            ${isVoucher ? '礼券' : '现金'}提现
+            <span class="badge ${h.status === 'completed' ? 'badge-completed' : 'badge-pending'}">
+              ${h.status === 'completed' ? '已到账' : '处理中'}
+            </span>
+          </p>
+          <p style="font-size:0.8rem; color:#888; margin-top:4px;">${formatTime(h.createdAt)}</p>
+        </div>
+        <p style="font-weight:bold; color:#c62828; font-size:1.1rem;">-${formatMoney(Math.abs(h.amount))}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+// 搜索
+document.getElementById('historySearch').addEventListener('input', e => renderHistory(e.target.value));
+
+// 导出CSV
+document.getElementById('exportAllBtn').addEventListener('click', () => {
+  if (!Object.keys(allHistoryData).length) {
+    showToast('暂无记录可导出', 'error'); return;
+  }
+  const header = ['时间', '类型', '总金额', '礼券金额', '现金金额', '描述', '顾客UID'];
+  const rows = Object.entries(allHistoryData).map(([, h]) => [
+    formatTime(h.createdAt),
+    h.type,
+    (h.voucherAmount || 0) + (h.cashAmount || 0),
+    h.voucherAmount || 0,
+    h.cashAmount || 0,
+    h.description || '',
+    h.customerUid || '-'
+  ]);
+  const csv = [header, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `商户记录_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('导出成功', 'success');
+});
+
+// 删除
+window.askDeleteOne = function (key) {
+  pendingDeleteKey = key; deleteAllMode = false;
+  document.getElementById('deleteConfirmText').innerHTML = '确定删除？<br><strong style="color:#c62828;">不可恢复！</strong>';
+  document.getElementById('deleteConfirmModal').classList.add('show');
+};
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  if (!Object.keys(allHistoryData).length) { showToast('暂无记录', 'error'); return; }
+  pendingDeleteKey = null; deleteAllMode = true;
+  document.getElementById('deleteConfirmText').innerHTML = '确定删除<strong>全部</strong>记录？<br><strong style="color:#c62828;">不可恢复！</strong>';
+  document.getElementById('deleteConfirmModal').classList.add('show');
+});
+document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+  document.getElementById('deleteConfirmModal').classList.remove('show');
+  pendingDeleteKey = null; deleteAllMode = false;
+});
+document.getElementById('doDeleteBtn').addEventListener('click', async () => {
+  if (isProcessing) return; isProcessing = true;
+  const btn = document.getElementById('doDeleteBtn'); btn.disabled = true; btn.textContent = '删除中...';
+  try {
+    const refDel = ref(db, `merchants/${currentMerchant.uid}/history`);
+    deleteAllMode ? await remove(refDel) : await remove(ref(db, `merchants/${currentMerchant.uid}/history/${pendingDeleteKey}`));
+    document.getElementById('deleteConfirmModal').classList.remove('show');
+    showToast('✅ 删除成功', 'success');
+  } catch (e) { showToast('删除失败：' + e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = '确认删除'; isProcessing = false; }
+});
+
+// 生成收款码
+document.getElementById('generateQrBtn').addEventListener('click', async () => {
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  const qrData = `PAY:${amount}:${currentMerchant.uid}`;
+  try {
+    await QRCode.toCanvas(document.getElementById('qrCanvas'), qrData, { width: 240, margin: 3 });
+    document.getElementById('qrContainer').style.display = 'block';
+    document.getElementById('qrAmountText').textContent = formatMoney(amount);
+    showToast('收款码已生成', 'success');
+  } catch (e) { showToast('生成失败', 'error'); }
+});
+
+// 标签切换
+document.querySelectorAll('.tab[data-pane]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-pane]').forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = '#8b7aa8'; });
+    tab.classList.add('active'); tab.style.background = '#2e7d32'; tab.style.color = 'white';
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+
+// 扫码
+document.getElementById('startScanBtn').addEventListener('click', async () => {
+  try {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+    await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {});
+    document.getElementById('startScanBtn').style.display = 'none';
+    document.getElementById('stopScanBtn').style.display = 'block';
+    showToast('请扫描顾客二维码', 'info');
+  } catch (e) { showToast('无法启动摄像头', 'error'); }
+});
+document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+function stopScanner() {
+  if (html5QrCode?.isScanning) html5QrCode.stop().catch(() => {});
+  document.getElementById('startScanBtn').style.display = 'block';
+  document.getElementById('stopScanBtn').style.display = 'none';
+}
+
+// 扫码处理
+async function onScanSuccess(decodedText) {
+  if (isProcessing) return; isProcessing = true; stopScanner();
+  try {
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length >= 5) {
+        const totalAmount = parseFloat(parts[1]);
+        const voucherAmount = parseFloat(parts[2]) || 0;
+        const cashAmount = parseFloat(parts[3]) || 0;
+        const customerUid = parts[4];
+        if ((voucherAmount + cashAmount).toFixed(2) !== totalAmount.toFixed(2)) throw new Error('金额数据异常');
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        const custData = custSnap.val();
+        if (!custData) throw new Error('顾客账号不存在');
+        pendingAction = { type: 'combined', totalAmount, voucherAmount, cashAmount, customerUid, customerName: custData.name || '顾客' };
+        document.getElementById('modalTitle').textContent = '确认收款';
+        document.getElementById('modalSubtext').innerHTML =
+          (voucherAmount>0?`<span class="badge badge-voucher">礼券 ${formatMoney(voucherAmount)}</span><br>`:'') +
+          (cashAmount>0?`<span class="badge badge-cash">现金 ${formatMoney(cashAmount)}</span>`:'');
+        document.getElementById('modalAmount').className = 'modal-amount';
+        document.getElementById('modalAmount').textContent = formatMoney(totalAmount);
+        document.getElementById('modalUserInfo').textContent = `顾客：${pendingAction.customerName}`;
+        document.getElementById('confirmModal').classList.add('show');
+      } else throw new Error('请顾客端发起支付');
+    } else if (decodedText.startsWith('VOUCHER:')) {
+      const parts = decodedText.split(':');
+      if (parts.length < 3) throw new Error('礼券码格式错误');
+      const [, code, cuid] = parts;
+      const custSnap = await get(ref(db, `users/${cuid}`));
+      const custData = custSnap.val();
+      if (!custData) throw new Error('顾客账号不存在');
+      const v = custData.vouchers?.[code];
+      if (!v) throw new Error('礼券不存在');
+      if (v.used) throw new Error('礼券已使用');
+      if (v.expiry && v.expiry < Date.now()) throw new Error('礼券已过期');
+      pendingAction = { type: 'voucher', code, customerUid: cuid, amount: v.amount, voucherAmount: v.amount, cashAmount: 0, customerName: custData.name || '顾客' };
+      document.getElementById('modalTitle').textContent = '礼券核销确认';
+      document.getElementById('modalSubtext').textContent = `券码：${code}`;
+      document.getElementById('modalAmount').className = 'modal-amount voucher';
+      document.getElementById('modalAmount').textContent = formatMoney(v.amount);
+      document.getElementById('modalUserInfo').textContent = `顾客：${pendingAction.customerName}`;
+      document.getElementById('confirmModal').classList.add('show');
+    } else throw new Error('无法识别的二维码');
+  } catch (e) { showToast('扫描失败：' + e.message, 'error'); }
+  finally { isProcessing = false; }
+}
+document.getElementById('closeModalBtn').addEventListener('click', () => {
+  document.getElementById('confirmModal').classList.remove('show'); pendingAction = null;
+});
+
+// ============ 分开提现：快捷金额 + 全部 ============
+document.querySelectorAll('.quick-voucher').forEach(b => b.addEventListener('click', () => {
+  document.getElementById('voucherCashoutAmount').value = b.dataset.val;
+}));
+document.querySelectorAll('.quick-cash').forEach(b => b.addEventListener('click', () => {
+  document.getElementById('cashCashoutAmount').value = b.dataset.val;
+}));
+document.getElementById('voucherAllBtn').addEventListener('click', () => {
+  document.getElementById('voucherCashoutAmount').value = balances.voucherAvailable.toFixed(2);
+});
+document.getElementById('cashAllBtn').addEventListener('click', () => {
+  document.getElementById('cashCashoutAmount').value = balances.cashAvailable.toFixed(2);
+});
+
+// 礼券提现申请
+document.getElementById('voucherCashoutBtn').addEventListener('click', () => {
+  const amt = parseFloat(document.getElementById('voucherCashoutAmount').value);
+  if (!amt || amt <= 0) { showToast('请输入有效金额', 'error'); return; }
+  if (amt > balances.voucherAvailable) { showToast(`礼券余额不足：${formatMoney(balances.voucherAvailable)}`, 'error'); return; }
+  pendingAction = { type: 'cashout_voucher', amount: amt };
+  document.getElementById('modalTitle').textContent = '礼券提现确认';
+  document.getElementById('modalSubtext').textContent = '从礼券可提现余额扣除';
+  document.getElementById('modalAmount').className = 'modal-amount voucher';
+  document.getElementById('modalAmount').textContent = formatMoney(amt);
+  document.getElementById('modalUserInfo').textContent = '预计 1-3 个工作日到账';
+  document.getElementById('confirmModal').classList.add('show');
+});
+
+// 现金提现申请
+document.getElementById('cashCashoutBtn').addEventListener('click', () => {
+  const amt = parseFloat(document.getElementById('cashCashoutAmount').value);
+  if (!amt || amt <= 0) { showToast('请输入有效金额', 'error'); return; }
+  if (amt > balances.cashAvailable) { showToast(`现金余额不足：${formatMoney(balances.cashAvailable)}`, 'error'); return; }
+  pendingAction = { type: 'cashout_cash', amount: amt };
+  document.getElementById('modalTitle').textContent = '现金提现确认';
+  document.getElementById('modalSubtext').textContent = '从现金可提现余额扣除';
+  document.getElementById('modalAmount').className = 'modal-amount cash';
+  document.getElementById('modalAmount').textContent = formatMoney(amt);
+  document.getElementById('modalUserInfo').textContent = '预计 1-3 个工作日到账';
+  document.getElementById('confirmModal').classList.add('show');
+});
+
+// 统一确认处理
+document.getElementById('confirmBtn').addEventListener('click', async () => {
+  if (!pendingAction || isProcessing) return; isProcessing = true;
+  const btn = document.getElementById('confirmBtn'); btn.disabled = true; btn.textContent = '处理中...';
+  try {
+    if (pendingAction.type === 'combined' || pendingAction.type === 'voucher') {
+      const { totalAmount, voucherAmount, cashAmount, customerUid, customerName } = pendingAction;
+      // 扣除顾客现金/余额部分
+      if (cashAmount > 0) {
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        const custData = custSnap.val() || {};
+        const newBalance = Number(custData.balance || 0) - cashAmount;
+        if (newBalance < 0) throw new Error('顾客余额不足');
+        await update(ref(db, `users/${customerUid}`), { balance: newBalance });
+      }
+      
+      // 标记礼券已使用
+      if (voucherAmount > 0 && pendingAction.code) {
+        await update(ref(db, `users/${customerUid}/vouchers/${pendingAction.code}`), {
+          used: true, usedAt: serverTimestamp(), merchantUid: currentMerchant.uid
+        });
+      }
+      
+      // 顾客端记录
+      await push(ref(db, `users/${customerUid}/history`), {
+        type: pendingAction.type === 'voucher' ? 'voucher_used' : 'payment',
+        amount: totalAmount, voucherAmount, cashAmount,
+        description: `向 ${currentMerchant.displayName || '商户'} ${pendingAction.type === 'voucher' ? '使用礼券' : '付款'}`,
+        merchantUid: currentMerchant.uid, createdAt: serverTimestamp()
+      });
+      
+      // 商户端收入记录 —— 礼券/现金 分别入账
+      await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+        type: pendingAction.type === 'voucher' ? 'voucher_redeem' : 'combined_payment',
+        amount: totalAmount, voucherAmount, cashAmount,
+        description: `顾客 ${customerName} ${pendingAction.type === 'voucher' ? '核销礼券' : '付款'}`,
+        customerUid, voucherCode: pendingAction.code || null,
+        createdAt: serverTimestamp()
+      });
+      
+      showToast(`✅ 收款成功 · 礼券 ${formatMoney(voucherAmount)} / 现金 ${formatMoney(cashAmount)} 分别入账`, 'success');
+      
+    } else if (pendingAction.type === 'cashout_voucher') {
+      const { amount } = pendingAction;
+      
+      // 写入礼券提现记录
+      await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+        type: 'cashout_voucher',
+        amount: -Number(amount.toFixed(2)),
+        voucherAmount: -Number(amount.toFixed(2)),
+        cashAmount: 0,
+        description: `礼券提现申请 ${formatMoney(amount)}`,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      
+      document.getElementById('voucherCashoutAmount').value = '';
+      showToast('✅ 礼券提现申请已提交', 'success');
+      
+    } else if (pendingAction.type === 'cashout_cash') {
+      const { amount } = pendingAction;
+      
+      // 写入现金提现记录
+      await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+        type: 'cashout_cash',
+        amount: -Number(amount.toFixed(2)),
+        voucherAmount: 0,
+        cashAmount: -Number(amount.toFixed(2)),
+        description: `现金提现申请 ${formatMoney(amount)}`,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      
+      document.getElementById('cashCashoutAmount').value = '';
+      showToast('✅ 现金提现申请已提交', 'success');
+    }
+    
+    document.getElementById('confirmModal').classList.remove('show');
+    pendingAction = null;
+    
+  } catch (e) {
+    showToast('处理失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认';
+    isProcessing = false;
+  }
+});
+</script>
+</body>
+</html>
