@@ -1,774 +1,983 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Anjappar POS System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin 管理后台</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-/* SECTION: base */
-:root{--red:#c8244a;--ink:#202025;--muted:#71717a;--line:#e9e7e3;--cream:#fffaf2;--green:#1f6b52}
-*{box-sizing:border-box}
-body{margin:0;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",Arial,sans-serif;background:#f6f4ef}
-header{padding:20px max(20px,calc((100vw - 1200px)/2));color:#fff;background:linear-gradient(120deg,#0c4c40,#166253 55%,#bc7829)}
-.header-inner{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-header h1{margin:0;font-size:26px}
-header p{margin:5px 0 0;opacity:.88}
-#connection{margin-top:8px;font-size:13px;color:#d8f4e9}
-.header-actions{display:flex;gap:8px;flex-wrap:wrap}
-.logout-btn{padding:9px 14px;border:1px solid #ffffff66;border-radius:8px;background:#ffffff1a;color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
-.logout-btn:hover{background:#ffffff33}
-.page{width:min(1200px,calc(100% - 32px));margin:22px auto 48px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
-.menu-shell,.cart,.orders-shell{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 18px #43210a0d}
-.menu-shell,.orders-shell{padding:20px}
-h2{margin:0;font-size:20px}
-.left-col{display:flex;flex-direction:column;gap:22px;min-width:0}
-
-/* SECTION: lock-screen 密码登入 */
-.lock-screen{position:fixed;inset:0;z-index:999;display:grid;place-items:center;padding:20px;
-background:linear-gradient(140deg,#0c4c40,#166253 55%,#bc7829)}
-.lock-screen[hidden]{display:none}
-.lock-card{width:min(380px,100%);background:#fff;border-radius:18px;padding:28px 24px 22px;
-box-shadow:0 24px 60px #00000038;text-align:center}
-.lock-logo{font-size:42px;line-height:1}
-.lock-card h2{margin:10px 0 4px;font-size:22px}
-.lock-sub{margin:0 0 20px;color:var(--muted);font-size:13px}
-.lock-card input{margin-bottom:12px;text-align:center;letter-spacing:4px;font-size:18px;padding:13px 11px}
-.lock-msg{min-height:20px;margin-top:12px;font-size:13px}
-.lock-msg.error{color:var(--red)}
-.lock-msg.ok{color:var(--green)}
-.lock-hint{margin:16px 0 0;font-size:11.5px;color:#a1a1aa;line-height:1.6}
-
-/* SECTION: tabs-menu */
-.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 20px;position:relative;z-index:10}
-.tab{padding:8px 12px;border:1px solid #d9d6d0;border-radius:100px;color:#555;background:#fff;cursor:pointer;font:inherit;font-size:14px}
-.tab.active{color:#fff;border-color:var(--green);background:var(--green)}
-.menu-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.food{min-height:130px;padding:15px;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:13px;background:var(--cream)}
-.food-top{display:flex;gap:11px;align-items:flex-start}
-.emoji{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:11px;font-size:22px;background:#fff0d3}
-.name{font-weight:750;line-height:1.28}
-.desc{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.35}
-.food-footer{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px}
-.price{color:var(--red);font-size:17px;font-weight:800}
-.add{padding:8px 11px;border:0;border-radius:8px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-weight:700}
-.add:hover{background:#a91d3e}
-
-/* SECTION: printer-panel */
-.printer-panel{border:1px solid var(--line);border-radius:13px;background:#f4faf7;padding:14px 16px;margin-top:16px}
-.printer-panel h3{margin:0 0 8px;font-size:15px}
-.printer-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-#printerStatus{flex:1 1 160px;font-size:13px;color:#555;min-width:0}
-#printerStatus.ok{color:#16805b;font-weight:700}
-#printerStatus.err{color:#c8244a}
-.pbtn{padding:9px 12px;border:1px solid #b9cfc6;border-radius:8px;background:#fff;color:#173e36;cursor:pointer;font:inherit;font-size:13px;font-weight:700;min-height:38px}
-.pbtn.primary{border-color:var(--green);background:var(--green);color:#fff}
-.pbtn:disabled{opacity:.5;cursor:not-allowed}
-.auto-print{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:#444}
-.auto-print input{width:auto}
-.hint{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
-
-/* SECTION: cart —— 强制固定在右侧上方 */
-.cart{
-  position:sticky;top:16px;
-  align-self:start;
-  display:flex;flex-direction:column;
-  max-height:calc(100vh - 32px);
-  overflow:hidden;
-  z-index:30;
-}
-.cart-head{padding:18px;color:#fff;background:#173e36;flex:0 0 auto}
-.cart-head h2{display:flex;justify-content:space-between;align-items:center}
-.cart-body{padding:15px 18px 18px;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain}
-.empty{padding:23px 6px;color:var(--muted);text-align:center}
-.cart-line{display:grid;grid-template-columns:1fr auto;gap:9px;padding:12px 0;border-bottom:1px solid var(--line)}
-.cart-name{font-weight:700;font-size:14px}
-.cart-price{margin-top:3px;color:var(--red);font-size:13px}
-.quantity{display:flex;height:30px;align-items:center;border:1px solid #d8d5d0;border-radius:8px;overflow:hidden}
-.quantity button{width:29px;height:100%;border:0;background:#fff;cursor:pointer;font-size:17px}
-.quantity span{min-width:25px;text-align:center;font-size:14px}
-.summary{margin-top:13px;padding-top:12px;border-top:2px solid var(--line)}
-.summary-row{display:flex;justify-content:space-between;margin:7px 0;color:#555;font-size:14px}
-.summary-row.discount{color:#16805b}
-.summary-row.total{margin-top:12px;color:var(--ink);font-size:19px;font-weight:800}
-.summary-row.change{color:#16805b;font-weight:700}
-label{display:block;margin:16px 0 6px;font-size:14px;font-weight:700}
-input,textarea{width:100%;padding:10px 11px;border:1px solid #d8d5d0;border-radius:8px;font:inherit}
-input[type=number]{font-size:16px}
-textarea{min-height:62px;resize:vertical}
-.submit{width:100%;margin-top:15px;padding:13px;border:0;border-radius:9px;color:#fff;background:var(--red);cursor:pointer;font:inherit;font-size:16px;font-weight:800}
-.submit:disabled{opacity:.55;cursor:wait}
-#message{min-height:22px;margin:12px 0 0;text-align:center;font-size:14px}
-.ok{color:#16805b}.error{color:#c8244a}
-.reprint-bar{margin-top:10px;text-align:center}
-
-/* SECTION: orders */
-.orders-shell h2{display:flex;justify-content:space-between;align-items:center}
-.order-list{margin-top:14px;display:flex;flex-direction:column;gap:10px}
-.order-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--cream)}
-.order-top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
-.order-id{font-weight:800}
-.order-meta{font-size:12px;color:var(--muted);margin-top:4px}
-.order-items{font-size:13px;color:#444;margin-top:6px;line-height:1.5}
-.order-total{font-weight:800;color:var(--red)}
-.status-badge{font-size:11px;padding:3px 8px;border-radius:100px;background:#fde8ee;color:var(--red);font-weight:700}
-.status-badge.done{background:#e3f3ec;color:#16805b}
-
-/* SECTION: responsive */
-@media(max-width:900px){
-  .page{grid-template-columns:1fr}
-  .cart{position:sticky;top:8px;order:-1;max-height:none}
-  .cart-body{max-height:62vh}
-}
-@media(max-width:680px){
-  .page{width:min(100% - 20px,600px);margin-top:10px}
-  .menu-shell,.orders-shell{padding:15px}
-  .menu-grid{grid-template-columns:1fr}
-  header{padding:19px 16px}
-  .food{min-height:112px}
-  .header-actions{width:100%}
-  .header-actions .logout-btn{flex:1 1 auto;text-align:center}
-}
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f0eef6; min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 40px 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.2); max-width: 440px; margin: 80px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input, .form-group select { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; background: white; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; width: 100%; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-warning { background: linear-gradient(135deg, #f9a825, #ef6c00); color: white; }
+.btn-sm { padding: 8px 14px; font-size: 0.85rem; margin: 2px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.header h2 { font-size: 1.4rem; }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { padding: 12px 20px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; position: relative; }
+.tab.active { background: #2d2642; color: white; }
+.tab-badge { background: #c62828; color: white; border-radius: 20px; padding: 1px 8px; font-size: 0.75rem; margin-left: 6px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #f0eef6; font-size: 0.9rem; }
+th { background: #f9f6fc; font-weight: 600; color: #4c3b7a; }
+tr:hover { background: #faf8fc; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 20px; padding: 24px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h3 { color: #2d2642; }
+.close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.search-input { padding: 10px 14px; border-radius: 10px; border: 1.5px solid #e8e0f0; flex: 1; min-width: 200px; }
+.badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.badge-pending { background: #fff3e0; color: #e65100; }
+.badge-approved { background: #e8f5e9; color: #2e7d32; }
+.badge-rejected { background: #ffebee; color: #c62828; }
+.badge-voucher { background: #e3f2fd; color: #1565c0; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat-card { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.stat-card .stat-label { font-size: 0.85rem; color: #8b7aa8; font-weight: 600; }
+.stat-card .stat-value { font-size: 1.5rem; font-weight: 800; color: #2d2642; margin-top: 4px; }
+.stat-card.warn .stat-value { color: #e65100; }
+.filter-pills { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.pill { padding: 6px 14px; border-radius: 20px; border: 1.5px solid #ddd; background: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #666; }
+.pill.active { background: #2d2642; color: white; border-color: #2d2642; }
+.code-input-wrap { display: flex; gap: 8px; }
+.code-input-wrap input { flex: 1; }
+.code-input-wrap button { white-space: nowrap; }
+.voucher-code { font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 1px; background: #f3efff; padding: 2px 8px; border-radius: 6px; }
 </style>
 </head>
 <body>
+<div class="container">
+  <!-- 登录界面 - 固定账号密码 -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-shield-alt"></i> 管理员登录</h2>
+    <div class="error" id="authError"></div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="adminUser" required placeholder="请输入用户名">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="adminPass" required placeholder="请输入密码">
+      </div>
+      <button type="submit" class="btn btn-primary">登录管理后台</button>
+      <p style="margin-top:16px; font-size:0.85rem; color:#2e7d32; text-align:center;">
+        ✅ 用户名：admin123 &nbsp;|&nbsp; 密码：123321
+      </p>
+    </form>
+  </div>
 
-<!-- SECTION: lock-screen 密码登入 -->
-<div class="lock-screen" id="lockScreen">
-  <form class="lock-card" id="loginForm" autocomplete="off">
-    <div class="lock-logo">🍛</div>
-    <h2>Anjappar POS</h2>
-    <p class="lock-sub">请输入员工密码以继续 · Staff Password Required</p>
-    <input id="password" type="password" inputmode="numeric" autocomplete="current-password"
-           placeholder="····" aria-label="Password">
-    <button class="submit" type="submit" id="btnLogin">登入 Login</button>
-    <div id="loginMsg" class="lock-msg" role="status"></div>
-    <p class="lock-hint">默认密码：1234<br>可在源码 <code>const PASSWORD = "1234"</code> 处修改</p>
-  </form>
+  <!-- 主界面 -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <div>
+        <h2><i class="fas fa-tachometer-alt"></i> 管理后台</h2>
+        <p style="opacity:0.8; font-size:0.9rem; margin-top:4px;">admin123 已登录</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-sm btn-outline" id="refreshBtn" style="color:#2d2642;">
+          <i class="fas fa-sync-alt"></i> 刷新数据
+        </button>
+        <button class="btn btn-sm btn-outline" id="logoutBtn">
+          <i class="fas fa-sign-out-alt"></i> 退出
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-pane="customers">顾客账号</button>
+      <button class="tab" data-pane="merchants">商户账号</button>
+      <button class="tab" data-pane="cashout">提现审批 <span class="tab-badge" id="cashoutPendingBadge" style="display:none;">0</span></button>
+      <button class="tab" data-pane="vouchers">礼券管理</button>
+      <button class="tab" data-pane="alltx">全部交易</button>
+    </div>
+
+    <!-- 顾客列表 -->
+    <div class="tab-pane active" id="pane-customers">
+      <div class="top-bar">
+        <h3>顾客账号列表</h3>
+        <input type="text" class="search-input" id="custSearch" placeholder="搜索姓名/邮箱...">
+      </div>
+      <div class="card">
+        <table id="custTable">
+          <thead>
+            <tr><th>姓名</th><th>邮箱</th><th>余额</th><th>UID</th><th>注册时间</th><th>操作</th></tr>
+          </thead>
+          <tbody id="custList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 商户列表 -->
+    <div class="tab-pane" id="pane-merchants">
+      <div class="top-bar">
+        <h3>商户账号列表</h3>
+        <input type="text" class="search-input" id="merSearch" placeholder="搜索名称/邮箱...">
+      </div>
+      <div class="card">
+        <table id="merTable">
+          <thead>
+            <tr><th>商户名称</th><th>邮箱</th><th>可提现余额</th><th>UID</th><th>注册时间</th><th>操作</th></tr>
+          </thead>
+          <tbody id="merList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 提现审批 -->
+    <div class="tab-pane" id="pane-cashout">
+      <div class="top-bar">
+        <h3><i class="fas fa-money-check-alt" style="color:#e65100;"></i> 商户提现审批</h3>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card warn">
+          <div class="stat-label"><i class="fas fa-hourglass-half"></i> 待审批笔数</div>
+          <div class="stat-value" id="statPendingCount">0</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label"><i class="fas fa-wallet"></i> 待审批总额</div>
+          <div class="stat-value" id="statPendingAmount">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-check-circle"></i> 累计已通过</div>
+          <div class="stat-value" id="statApprovedAmount">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fas fa-times-circle"></i> 累计已驳回</div>
+          <div class="stat-value" id="statRejectedCount">0</div>
+        </div>
+      </div>
+      <div class="filter-pills" id="cashoutFilter">
+        <button class="pill active" data-filter="pending">待审批</button>
+        <button class="pill" data-filter="completed">已通过</button>
+        <button class="pill" data-filter="rejected">已驳回</button>
+        <button class="pill" data-filter="all">全部</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>申请时间</th><th>商户</th><th>提现金额</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody id="cashoutList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 礼券管理 -->
+    <div class="tab-pane" id="pane-vouchers">
+      <div class="top-bar"><h3><i class="fas fa-ticket-alt" style="color:#1565c0;"></i> 礼券管理</h3></div>
+
+      <div class="card">
+        <h4 style="margin-bottom:14px; color:#2d2642;"><i class="fas fa-plus-circle"></i> 发放新礼券</h4>
+        <form id="voucherForm">
+          <div class="form-group">
+            <label>发放给顾客</label>
+            <select id="voucherOwner" required></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>礼券金额 ($)</label>
+              <input type="number" id="voucherAmount" min="0.01" step="0.01" required placeholder="例如 10">
+            </div>
+            <div class="form-group">
+              <label>最低消费 ($)</label>
+              <input type="number" id="voucherMinSpend" min="0" step="0.01" value="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>有效期（天）</label>
+              <input type="number" id="voucherDays" min="1" value="30" required>
+            </div>
+            <div class="form-group">
+              <label>券码</label>
+              <div class="code-input-wrap">
+                <input type="text" id="voucherCode" required style="text-transform:uppercase; letter-spacing:1px;">
+                <button type="button" class="btn btn-sm btn-outline" id="genCodeBtn"><i class="fas fa-sync"></i> 生成</button>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-warning" style="width:100%;"><i class="fas fa-gift"></i> 发放礼券</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-bottom:8px; color:#2d2642;">全部礼券 <span style="font-size:0.85rem; color:#888; font-weight:normal;" id="voucherTotal">(0)</span></h4>
+        <input type="text" class="search-input" id="voucherSearch" placeholder="搜索券码/持有人..." style="margin-bottom:8px;">
+        <table>
+          <thead>
+            <tr><th>券码</th><th>持有人</th><th>金额</th><th>最低消费</th><th>有效期至</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody id="voucherList"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 全部交易 -->
+    <div class="tab-pane" id="pane-alltx">
+      <div class="top-bar">
+        <h3>全部交易记录</h3>
+        <div>
+          <button class="btn btn-sm btn-success" id="exportAllBtn">
+            <i class="fas fa-download"></i> 导出 Excel
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>时间</th><th>类型</th><th>金额</th><th>付款方</th><th>收款方</th><th>备注</th></tr>
+          </thead>
+          <tbody id="allTxList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 用户详情弹窗 -->
+  <div class="modal" id="detailModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="detailUserName">用户详情</h3>
+        <button class="close-btn" id="closeDetailModal">&times;</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- 提现审批弹窗 -->
+  <div class="modal" id="cashoutModal">
+    <div class="modal-content" style="max-width:440px;">
+      <div class="modal-header">
+        <h3><i class="fas fa-money-check-alt"></i> 提现审批</h3>
+        <button class="close-btn" id="closeCashoutModal">&times;</button>
+      </div>
+      <div id="cashoutModalBody"></div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn btn-danger" style="flex:1;" id="rejectCashoutBtn"><i class="fas fa-times"></i> 驳回并退款</button>
+        <button class="btn btn-success" style="flex:1;" id="approveCashoutBtn"><i class="fas fa-check"></i> 通过打款</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除确认弹窗 -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content" style="max-width:400px;">
+      <h3 style="color:#c62828; margin-bottom:16px;"><i class="fas fa-exclamation-triangle"></i> 确认删除</h3>
+      <p style="margin-bottom:20px;">确定要删除此账号及所有相关数据吗？<br><strong style="color:#c62828;">此操作不可恢复！</strong></p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" style="background:#eee; flex:1;" id="cancelDeleteBtn">取消</button>
+        <button class="btn btn-danger" style="flex:1;" id="confirmDeleteBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- SECTION: header -->
-<header>
-  <div class="header-inner">
-    <div>
-      <h1>🍛 Anjappar POS System</h1>
-      <p>Cashier · Kitchen Link · Bluetooth Printer (POS-5810DD 58mm)</p>
-      <div id="connection">Link To Kitchen…</div>
-    </div>
-    <div class="header-actions">
-      <button type="button" id="btnFullscreen" class="logout-btn">⛶ 全屏 Fullscreen</button>
-      <button type="button" id="btnLogout" class="logout-btn">🔒 登出 Logout</button>
-    </div>
-  </div>
-</header>
+<div class="toast" id="toast"></div>
 
-<main class="page">
-  <div class="left-col">
-    <!-- SECTION: menu -->
-    <section class="menu-shell">
-      <h2>Menu</h2>
-      <div id="tabs" class="tabs"></div>
-      <div id="menu" class="menu-grid"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase, ref, get, remove, update, set, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-      <!-- SECTION: printer-ui -->
-      <div class="printer-panel">
-        <h3>🖨️ 蓝牙打印机 Bluetooth Printer</h3>
-        <div class="printer-row">
-          <span id="printerStatus">未连接 · Not connected</span>
-          <button type="button" id="btnConnect" class="pbtn primary">连接打印机</button>
-          <button type="button" id="btnTest" class="pbtn" disabled>打印测试页</button>
-          <button type="button" id="btnDisconnect" class="pbtn" disabled>断开</button>
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ========== 固定管理员账号密码 ==========
+const ADMIN_USERNAME = "admin123";
+const ADMIN_PASSWORD = "123321";
+
+const TYPE_LABELS = {
+  payment: '付款', topup: '充值', topup_rejected: '充值驳回',
+  voucher_receive: '收到礼券', voucher_used: '使用礼券',
+  receive: '收款', combined_payment: '收款', voucher_redeem: '礼券核销',
+  cash_out: '提现'
+};
+
+let isLoggedIn = false;
+let allCustomers = {};
+let allMerchants = {};
+let allTransactions = [];
+let allCashouts = [];
+let allVouchers = [];
+let pendingDelete = { type: '', uid: '' };
+let pendingCashout = null;
+let cashoutFilter = 'pending';
+let isProcessing = false;
+
+// ========== 工具函数 ==========
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+function escapeCsv(s) {
+  if (s === null || s === undefined) return '';
+  const str = String(s);
+  if (/[,"\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+function genVoucherCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = 'V';
+  for (let i = 0; i < 7; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+function voucherStatus(v) {
+  if (v.revoked) return { text: '已撤销', cls: 'badge-rejected' };
+  if (v.used) return { text: '已使用', cls: 'badge-voucher' };
+  if (v.expiry && v.expiry < Date.now()) return { text: '已过期', cls: 'badge-rejected' };
+  return { text: '未使用', cls: 'badge-approved' };
+}
+
+// ========== 登录验证 ==========
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+
+  const username = document.getElementById('adminUser').value.trim();
+  const password = document.getElementById('adminPass').value;
+
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 验证中...';
+
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    isLoggedIn = true;
+    showToast('登录成功', 'success');
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('voucherCode').value = genVoucherCode();
+    await loadAllData();
+  } else {
+    showError('用户名或密码错误！请使用：admin123 / 123321');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '登录管理后台';
+  isProcessing = false;
+});
+
+// 退出
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  isLoggedIn = false;
+  allCustomers = {}; allMerchants = {}; allTransactions = [];
+  allCashouts = []; allVouchers = [];
+  document.getElementById('authScreen').style.display = 'block';
+  document.getElementById('mainApp').classList.remove('active');
+  document.getElementById('adminUser').value = '';
+  document.getElementById('adminPass').value = '';
+  showToast('已退出', 'success');
+});
+
+// 刷新数据
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  await loadAllData();
+  showToast('数据已刷新', 'success');
+});
+
+// ========== 加载全部数据 ==========
+async function loadAllData() {
+  try {
+    const custSnap = await get(ref(db, 'users'));
+    allCustomers = custSnap.val() || {};
+    renderCustomers();
+    populateVoucherOwnerSelect();
+
+    const merSnap = await get(ref(db, 'merchants'));
+    allMerchants = merSnap.val() || {};
+    renderMerchants();
+
+    // 全部交易 + 提现申请 + 礼券
+    allTransactions = [];
+    allCashouts = [];
+    allVouchers = [];
+
+    for (const [uid, user] of Object.entries(allCustomers)) {
+      if (user.history) {
+        for (const [hid, h] of Object.entries(user.history)) {
+          allTransactions.push({
+            time: h.createdAt || 0, type: h.type, amount: h.amount,
+            from: user.name || uid, fromUid: uid,
+            to: h.merchantUid ? (allMerchants[h.merchantUid]?.name || h.merchantUid) : '-',
+            toUid: h.merchantUid || '-', desc: h.description || ''
+          });
+        }
+      }
+      if (user.vouchers) {
+        for (const [code, v] of Object.entries(user.vouchers)) {
+          allVouchers.push({ code, ownerUid: uid, ownerName: user.name || uid, ...v });
+        }
+      }
+    }
+
+    for (const [uid, merch] of Object.entries(allMerchants)) {
+      if (merch.history) {
+        for (const [hid, h] of Object.entries(merch.history)) {
+          if (h.type === 'cash_out') {
+            allCashouts.push({
+              key: hid, merchantUid: uid,
+              merchantName: merch.name || uid, merchantEmail: merch.email || '-',
+              amount: Math.abs(Number(h.amount || 0)),
+              status: h.status || 'pending',
+              time: h.createdAt || 0, desc: h.description || ''
+            });
+            allTransactions.push({
+              time: h.createdAt || 0, type: 'cash_out', amount: h.amount,
+              from: merch.name || uid, fromUid: uid,
+              to: '银行账户(提现)', toUid: '-', desc: h.description || ''
+            });
+            continue;
+          }
+          if (h.description && h.description.includes('来自')) continue;
+          allTransactions.push({
+            time: h.createdAt || 0,
+            type: h.type === 'voucher_redeem' ? 'voucher_redeem' : 'receive',
+            amount: h.amount,
+            from: h.customerUid ? (allCustomers[h.customerUid]?.name || h.customerUid) : '-',
+            fromUid: h.customerUid || '-',
+            to: merch.name || uid, toUid: uid, desc: h.description || ''
+          });
+        }
+      }
+    }
+
+    allTransactions.sort((a, b) => (b.time || 0) - (a.time || 0));
+    allCashouts.sort((a, b) => (b.time || 0) - (a.time || 0));
+    allVouchers.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    renderAllTx();
+    renderCashouts();
+    renderVouchers();
+    updateCashoutStats();
+  } catch (e) {
+    console.error('Load data error:', e);
+    showToast('数据加载失败：' + e.message, 'error');
+  }
+}
+
+// ========== 渲染顾客列表 ==========
+function renderCustomers(filter='') {
+  const tbody = document.getElementById('custList');
+  const f = filter.toLowerCase();
+  let html = '';
+  for (const [uid, u] of Object.entries(allCustomers)) {
+    if (f && !(u.name||'').toLowerCase().includes(f) && !(u.email||'').toLowerCase().includes(f)) continue;
+    const vCount = u.vouchers ? Object.keys(u.vouchers).length : 0;
+    html += `
+      <tr>
+        <td><strong>${u.name||'-'}</strong></td>
+        <td>${u.email||'-'}</td>
+        <td style="font-weight:bold; color:#2e7d32;">${formatMoney(u.balance)}</td>
+        <td style="font-size:0.8rem; color:#888;">${uid.slice(0,8)}...</td>
+        <td style="font-size:0.85rem;">${formatTime(u.createdAt)}</td>
+        <td>
+          <span class="badge badge-voucher">券 ${vCount}</span>
+          <button class="btn-sm btn-outline" onclick="viewDetail('customer','${uid}')"><i class="fas fa-eye"></i> 详情</button>
+          <button class="btn-sm btn-danger" onclick="askDelete('customer','${uid}')"><i class="fas fa-trash"></i> 删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+}
+document.getElementById('custSearch').addEventListener('input', e => renderCustomers(e.target.value));
+
+// ========== 渲染商户列表 ==========
+function renderMerchants(filter='') {
+  const tbody = document.getElementById('merList');
+  const f = filter.toLowerCase();
+  let html = '';
+  for (const [uid, m] of Object.entries(allMerchants)) {
+    if (f && !(m.name||'').toLowerCase().includes(f) && !(m.email||'').toLowerCase().includes(f)) continue;
+    html += `
+      <tr>
+        <td><strong>${m.name||'-'}</strong></td>
+        <td>${m.email||'-'}</td>
+        <td style="font-weight:bold; color:#e65100;">${formatMoney(m.balance)}</td>
+        <td style="font-size:0.8rem; color:#888;">${uid.slice(0,8)}...</td>
+        <td style="font-size:0.85rem;">${formatTime(m.createdAt)}</td>
+        <td>
+          <button class="btn-sm btn-outline" onclick="viewDetail('merchant','${uid}')"><i class="fas fa-eye"></i> 详情</button>
+          <button class="btn-sm btn-danger" onclick="askDelete('merchant','${uid}')"><i class="fas fa-trash"></i> 删除</button>
+        </td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无数据</td></tr>';
+}
+document.getElementById('merSearch').addEventListener('input', e => renderMerchants(e.target.value));
+
+// ========== 提现审批 ==========
+function updateCashoutStats() {
+  const pending = allCashouts.filter(c => c.status === 'pending');
+  const approved = allCashouts.filter(c => c.status === 'completed');
+  const rejected = allCashouts.filter(c => c.status === 'rejected');
+  const pendingAmt = pending.reduce((s, c) => s + c.amount, 0);
+  const approvedAmt = approved.reduce((s, c) => s + c.amount, 0);
+
+  document.getElementById('statPendingCount').textContent = pending.length;
+  document.getElementById('statPendingAmount').textContent = formatMoney(pendingAmt);
+  document.getElementById('statApprovedAmount').textContent = formatMoney(approvedAmt);
+  document.getElementById('statRejectedCount').textContent = rejected.length;
+
+  const badge = document.getElementById('cashoutPendingBadge');
+  if (pending.length > 0) {
+    badge.style.display = 'inline-block';
+    badge.textContent = pending.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderCashouts() {
+  const tbody = document.getElementById('cashoutList');
+  const list = cashoutFilter === 'all'
+    ? allCashouts
+    : allCashouts.filter(c => c.status === cashoutFilter);
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无记录</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const badge = c.status === 'completed'
+      ? '<span class="badge badge-approved">已通过</span>'
+      : c.status === 'rejected'
+        ? '<span class="badge badge-rejected">已驳回</span>'
+        : '<span class="badge badge-pending">待审批</span>';
+    const action = c.status === 'pending'
+      ? `<button class="btn-sm btn-primary" style="background:#2d2642; color:white;" onclick="openCashoutApproval('${c.merchantUid}','${c.key}')"><i class="fas fa-gavel"></i> 审批</button>`
+      : '<span style="color:#aaa; font-size:0.8rem;">已处理</span>';
+    return `
+      <tr>
+        <td style="font-size:0.85rem;">${formatTime(c.time)}</td>
+        <td><strong>${c.merchantName}</strong><br><span style="font-size:0.8rem; color:#888;">${c.merchantEmail}</span></td>
+        <td style="font-weight:bold; color:#c62828; font-size:1.05rem;">-${formatMoney(c.amount)}</td>
+        <td>${badge}</td>
+        <td>${action}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('#cashoutFilter .pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('#cashoutFilter .pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    cashoutFilter = pill.dataset.filter;
+    renderCashouts();
+  });
+});
+
+window.openCashoutApproval = function(merchantUid, key) {
+  const c = allCashouts.find(x => x.merchantUid === merchantUid && x.key === key);
+  if (!c) return;
+  pendingCashout = c;
+  document.getElementById('cashoutModalBody').innerHTML = `
+    <div style="background:#f9f6fc; border-radius:12px; padding:16px; text-align:center;">
+      <p style="color:#888; font-size:0.85rem;">商户申请提现</p>
+      <p style="font-size:2.2rem; font-weight:800; color:#c62828; margin:8px 0;">-${formatMoney(c.amount)}</p>
+      <p><strong>${c.merchantName}</strong></p>
+      <p style="font-size:0.85rem; color:#888;">${c.merchantEmail}</p>
+      <p style="font-size:0.85rem; color:#888; margin-top:8px;">申请时间：${formatTime(c.time)}</p>
+    </div>
+    <p style="margin-top:14px; font-size:0.85rem; color:#666; line-height:1.6;">
+      <i class="fas fa-info-circle" style="color:#f9a825;"></i>
+      <strong>通过</strong>：标记为已打款（需线下完成转账）。<br>
+      <strong>驳回</strong>：将 ${formatMoney(c.amount)} 自动退回商户可提现余额。
+    </p>
+  `;
+  document.getElementById('cashoutModal').classList.add('show');
+};
+
+document.getElementById('closeCashoutModal').addEventListener('click', () => {
+  document.getElementById('cashoutModal').classList.remove('show');
+  pendingCashout = null;
+});
+
+document.getElementById('approveCashoutBtn').addEventListener('click', async () => {
+  if (!pendingCashout || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('approveCashoutBtn');
+  btn.disabled = true; btn.textContent = '处理中...';
+  try {
+    const { merchantUid, key } = pendingCashout;
+    await update(ref(db, `merchants/${merchantUid}/history/${key}`), {
+      status: 'completed', completedAt: serverTimestamp(), approvedBy: 'admin'
+    });
+    showToast('✅ 已通过，提现标记为已打款', 'success');
+    document.getElementById('cashoutModal').classList.remove('show');
+    pendingCashout = null;
+    await loadAllData();
+  } catch (e) {
+    showToast('操作失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> 通过打款';
+    isProcessing = false;
+  }
+});
+
+document.getElementById('rejectCashoutBtn').addEventListener('click', async () => {
+  if (!pendingCashout || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('rejectCashoutBtn');
+  btn.disabled = true; btn.textContent = '处理中...';
+  try {
+    const { merchantUid, key, amount } = pendingCashout;
+    // 退回余额
+    const merchSnap = await get(ref(db, `merchants/${merchantUid}`));
+    const curBal = Number(merchSnap.val()?.balance || 0);
+    await update(ref(db, `merchants/${merchantUid}`), {
+      balance: Number((curBal + amount).toFixed(2))
+    });
+    await update(ref(db, `merchants/${merchantUid}/history/${key}`), {
+      status: 'rejected', rejectedAt: serverTimestamp(), rejectedBy: 'admin'
+    });
+    showToast('✅ 已驳回，金额已退回商户余额', 'success');
+    document.getElementById('cashoutModal').classList.remove('show');
+    pendingCashout = null;
+    await loadAllData();
+  } catch (e) {
+    showToast('操作失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-times"></i> 驳回并退款';
+    isProcessing = false;
+  }
+});
+
+// ========== 礼券管理 ==========
+function populateVoucherOwnerSelect() {
+  const sel = document.getElementById('voucherOwner');
+  const prev = sel.value;
+  sel.innerHTML = Object.entries(allCustomers).length
+    ? Object.entries(allCustomers).map(([uid, u]) =>
+        `<option value="${uid}">${u.name || '未命名'} (${u.email || uid})</option>`).join('')
+    : '<option value="">暂无顾客，请先注册顾客账号</option>';
+  if (prev) sel.value = prev;
+}
+
+document.getElementById('genCodeBtn').addEventListener('click', () => {
+  document.getElementById('voucherCode').value = genVoucherCode();
+});
+
+document.getElementById('voucherForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  const ownerUid = document.getElementById('voucherOwner').value;
+  const code = document.getElementById('voucherCode').value.trim().toUpperCase();
+  const amount = parseFloat(document.getElementById('voucherAmount').value);
+  const minSpend = parseFloat(document.getElementById('voucherMinSpend').value) || 0;
+  const days = parseInt(document.getElementById('voucherDays').value);
+
+  if (!ownerUid) { showToast('请选择顾客', 'error'); return; }
+  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  if (!code || !/^[A-Z0-9]{4,16}$/.test(code)) { showToast('券码需为 4-16 位字母数字', 'error'); return; }
+  if (!days || days <= 0) { showToast('请输入有效有效期', 'error'); return; }
+
+  // 检查该顾客下券码是否已存在
+  if (allCustomers[ownerUid]?.vouchers?.[code]) {
+    showToast('该顾客已存在相同券码，请更换', 'error');
+    return;
+  }
+
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发放中...';
+  try {
+    await set(ref(db, `users/${ownerUid}/vouchers/${code}`), {
+      amount: Number(amount.toFixed(2)),
+      minSpend: Number(minSpend.toFixed(2)),
+      expiry: Date.now() + days * 86400000,
+      createdAt: serverTimestamp(),
+      used: false,
+      issuedBy: 'admin'
+    });
+    showToast(`✅ 礼券 ${code} 已发放`, 'success');
+    document.getElementById('voucherAmount').value = '';
+    document.getElementById('voucherCode').value = genVoucherCode();
+    await loadAllData();
+  } catch (err) {
+    showToast('发放失败：' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-gift"></i> 发放礼券';
+    isProcessing = false;
+  }
+});
+
+function renderVouchers(filter='') {
+  const tbody = document.getElementById('voucherList');
+  const f = filter.toLowerCase();
+  const list = f
+    ? allVouchers.filter(v => v.code.toLowerCase().includes(f) || (v.ownerName||'').toLowerCase().includes(f))
+    : allVouchers;
+
+  document.getElementById('voucherTotal').textContent = `(${allVouchers.length})`;
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无礼券</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(v => {
+    const st = voucherStatus(v);
+    const canRevoke = !v.used && !v.revoked;
+    return `
+      <tr>
+        <td><span class="voucher-code">${v.code}</span></td>
+        <td>${v.ownerName}<br><span style="font-size:0.75rem; color:#888;">${v.ownerUid.slice(0,8)}...</span></td>
+        <td style="font-weight:bold; color:#1565c0;">${formatMoney(v.amount)}</td>
+        <td>${formatMoney(v.minSpend)}</td>
+        <td style="font-size:0.85rem;">${formatTime(v.expiry)}</td>
+        <td><span class="badge ${st.cls}">${st.text}</span></td>
+        <td>
+          ${canRevoke
+            ? `<button class="btn-sm btn-danger" onclick="revokeVoucher('${v.ownerUid}','${v.code}')"><i class="fas fa-ban"></i> 撤销</button>`
+            : '<span style="color:#aaa; font-size:0.8rem;">-</span>'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+document.getElementById('voucherSearch').addEventListener('input', e => renderVouchers(e.target.value));
+
+window.revokeVoucher = async function(ownerUid, code) {
+  if (isProcessing) return;
+  if (!confirm(`确定撤销礼券 ${code} 吗？撤销后顾客将无法使用。`)) return;
+  isProcessing = true;
+  try {
+    await update(ref(db, `users/${ownerUid}/vouchers/${code}`), {
+      revoked: true, revokedAt: serverTimestamp(), revokedBy: 'admin'
+    });
+    showToast(`✅ 礼券 ${code} 已撤销`, 'success');
+    await loadAllData();
+  } catch (e) {
+    showToast('撤销失败：' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+};
+
+// ========== 渲染全部交易 ==========
+function renderAllTx() {
+  const tbody = document.getElementById('allTxList');
+  let html = '';
+  for (const tx of allTransactions) {
+    const typeText = TYPE_LABELS[tx.type] || tx.type;
+    const isOut = tx.type === 'payment' || tx.type === 'cash_out' || Number(tx.amount) < 0;
+    html += `
+      <tr>
+        <td style="font-size:0.85rem;">${formatTime(tx.time)}</td>
+        <td>${typeText}</td>
+        <td style="font-weight:bold; ${isOut ? 'color:#c62828;' : 'color:#2e7d32;'}">${formatMoney(tx.amount)}</td>
+        <td>${tx.from}</td>
+        <td>${tx.to}</td>
+        <td style="font-size:0.85rem; color:#666;">${tx.desc}</td>
+      </tr>
+    `;
+  }
+  tbody.innerHTML = html || '<tr><td colspan="6" class="empty">暂无交易记录</td></tr>';
+}
+
+// ========== 导出Excel ==========
+document.getElementById('exportAllBtn').addEventListener('click', () => {
+  if (!allTransactions.length) {
+    showToast('暂无数据可导出', 'error');
+    return;
+  }
+  const header = ['时间','类型','金额','付款方','收款方','备注'];
+  const rows = allTransactions.map(tx => [
+    formatTime(tx.time), TYPE_LABELS[tx.type] || tx.type,
+    tx.amount, tx.from, tx.to, tx.desc
+  ]);
+  const csv = [header, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `交易记录_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('导出成功', 'success');
+});
+
+// ========== 用户详情 ==========
+window.viewDetail = function(type, uid) {
+  const data = type==='customer' ? allCustomers[uid] : allMerchants[uid];
+  if (!data) return;
+  document.getElementById('detailUserName').textContent = `${data.name||'用户'} - 详情`;
+
+  let historyHtml = '';
+  if (data.history) {
+    const items = Object.values(data.history).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    historyHtml = items.length ? items.map(h => {
+      const isOut = h.type === 'payment' || h.type === 'cash_out' || Number(h.amount) < 0;
+      return `
+        <div style="padding:10px 0; border-bottom:1px solid #eee;">
+          <p style="font-size:0.85rem; color:#888;">${formatTime(h.createdAt)} · ${TYPE_LABELS[h.type] || h.type}</p>
+          <p>${h.description||'交易'}</p>
+          <p style="font-weight:bold; ${isOut?'color:#c62828':'color:#2e7d32'};">${formatMoney(h.amount)}</p>
         </div>
-        <label class="auto-print"><input id="autoPrint" type="checkbox" checked> 下单成功后自动打印小票 Auto-print receipt</label>
-        <p class="hint">适配 POS-5810DD 58mm 热敏小票机（32字符/行，ESC/POS 指令）。需在 Chrome / Edge（Android 或桌面+蓝牙）中通过 HTTPS 或本地文件打开，点击「连接打印机」后在系统弹窗里选择已配对的打印机。若搜不到设备，请先在手机/电脑系统蓝牙设置中完成配对，并确认打印机开机、纸仓盖好。</p>
+      `;
+    }).join('') : '<p class="empty">暂无历史记录</p>';
+  } else {
+    historyHtml = '<p class="empty">暂无历史记录</p>';
+  }
+
+  let extraHtml = '';
+  if (type==='customer' && data.topupRequests) {
+    extraHtml += `<h4 style="margin:20px 0 10px;">充值申请</h4>`;
+    extraHtml += Object.entries(data.topupRequests).map(([id, r]) => `
+      <div style="padding:8px 0; border-bottom:1px solid #eee;">
+        <p>金额: ${formatMoney(r.amount)} ·
+          <span style="color:${r.status==='approved'?'#2e7d32':r.status==='rejected'?'#c62828':'#f57c00'};">
+            ${r.status==='pending'?'待审批':r.status==='approved'?'已通过':'已驳回'}
+          </span>
+        </p>
       </div>
-    </section>
+    `).join('');
+  }
+  if (type==='customer' && data.vouchers) {
+    extraHtml += `<h4 style="margin:20px 0 10px;">礼券</h4>`;
+    extraHtml += Object.entries(data.vouchers).map(([code, v]) => {
+      const st = voucherStatus(v);
+      return `
+        <div style="padding:8px 0; border-bottom:1px solid #eee;">
+          <p><span class="voucher-code">${code}</span> · ${formatMoney(v.amount)} · 最低消费 ${formatMoney(v.minSpend)}
+            <span class="badge ${st.cls}" style="margin-left:8px;">${st.text}</span></p>
+          <p style="font-size:0.8rem; color:#888;">有效期至: ${formatTime(v.expiry)}</p>
+        </div>
+      `;
+    }).join('');
+  }
+  if (type==='merchant' && data.history) {
+    const cashouts = Object.values(data.history).filter(h => h.type === 'cash_out');
+    if (cashouts.length) {
+      extraHtml += `<h4 style="margin:20px 0 10px;">提现记录</h4>`;
+      extraHtml += cashouts.map(h => `
+        <div style="padding:8px 0; border-bottom:1px solid #eee;">
+          <p>${formatMoney(Math.abs(h.amount))} ·
+            <span style="color:${h.status==='completed'?'#2e7d32':h.status==='rejected'?'#c62828':'#f57c00'};">
+              ${h.status==='pending'?'待审批':h.status==='completed'?'已通过':'已驳回'}
+            </span> · ${formatTime(h.createdAt)}</p>
+        </div>
+      `).join('');
+    }
+  }
 
-    <!-- SECTION: orders -->
-    <section class="orders-shell">
-      <h2>Recent Orders <button type="button" id="btnRefreshOrders" class="pbtn">刷新</button></h2>
-      <div id="orderList" class="order-list"><div class="empty">暂无订单</div></div>
-    </section>
-  </div>
-
-  <!-- SECTION: cart（固定右上方） -->
-  <aside class="cart">
-    <div class="cart-head">
-      <h2>Current Order <span id="cartCount">0</span></h2>
+  document.getElementById('detailBody').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+      <div><strong>姓名/名称</strong><br>${data.name||'-'}</div>
+      <div><strong>邮箱</strong><br>${data.email||'-'}</div>
+      <div><strong>余额</strong><br><span style="font-size:1.2rem; font-weight:bold; color:#2e7d32;">${formatMoney(data.balance)}</span></div>
+      <div><strong>UID</strong><br><code style="background:#f5f5f5; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${uid}</code></div>
+      <div><strong>角色</strong><br>${type==='customer'?'顾客':'商户'}</div>
+      <div><strong>注册时间</strong><br>${formatTime(data.createdAt)}</div>
     </div>
-    <form id="orderForm" class="cart-body">
-      <div id="cartItems"></div>
-      <div id="summary" class="summary"></div>
-      <label for="cash">实收现金 Cash Received（可选，用于计算找零）</label>
-      <input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 50">
-      <label for="table">Table</label>
-      <input id="table" type="text" value="Table 3">
-      <label for="note">Note（Optional）</label>
-      <textarea id="note" maxlength="300" placeholder="e.g. No Spicy"></textarea>
-      <button id="submit" class="submit" type="submit">下单并发送厨房 Place Order</button>
-      <div class="reprint-bar" id="reprintBar" hidden><button type="button" id="btnPrintLast" class="pbtn primary">🖨️ 打印上一张小票</button></div>
-      <div id="message" role="status"></div>
-    </form>
-  </aside>
-</main>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script>
-/* SECTION: firebase-init */
-const firebaseConfig={
-apiKey:"AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
-authDomain:"create-for-payment.firebaseapp.com",
-databaseURL:"https://create-for-payment-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"create-for-payment",
-storageBucket:"create-for-payment.firebasestorage.app",
-messagingSenderId:"505063429802",
-appId:"1:505063429802:web:8ec8cca8c788610bad62d3",
-measurementId:"G-SHP91WNP0H"
+    <h4 style="margin:20px 0 10px;">交易历史</h4>
+    ${historyHtml}
+    ${extraHtml}
+  `;
+  document.getElementById('detailModal').classList.add('show');
 };
-firebase.initializeApp(firebaseConfig);
-const ordersRef=firebase.database().ref("orders");
-
-/* SECTION: dom-refs */
-const tabs=document.getElementById("tabs"),
-menu=document.getElementById("menu"),
-cartCount=document.getElementById("cartCount"),
-cartItems=document.getElementById("cartItems"),
-summary=document.getElementById("summary"),
-message=document.getElementById("message"),
-connection=document.getElementById("connection"),
-orderForm=document.getElementById("orderForm"),
-tableInput=document.getElementById("table"),
-note=document.getElementById("note"),
-cashInput=document.getElementById("cash"),
-submit=document.getElementById("submit"),
-orderList=document.getElementById("orderList"),
-printerStatus=document.getElementById("printerStatus"),
-btnConnect=document.getElementById("btnConnect"),
-btnTest=document.getElementById("btnTest"),
-btnDisconnect=document.getElementById("btnDisconnect"),
-autoPrint=document.getElementById("autoPrint"),
-reprintBar=document.getElementById("reprintBar"),
-btnPrintLast=document.getElementById("btnPrintLast"),
-lockScreen=document.getElementById("lockScreen"),
-loginForm=document.getElementById("loginForm"),
-passwordInput=document.getElementById("password"),
-loginMsg=document.getElementById("loginMsg"),
-btnLogout=document.getElementById("btnLogout"),
-btnFullscreen=document.getElementById("btnFullscreen");
-
-/* SECTION: menu-data */
-const raw=[
-["combos","🍽️","Mini Tiffin Delight (Veg)",15,"Combo #1"],
-["combos","🥘","The Tanjore Trio Idly Vada & Pongal",13,"Combo #2"],
-["combos","🌶️","The Chettinad Silk Combo",16,"Combo #3"],
-["combos","🍗","The Tandoori Smoky Feast",17,"Combo #4"],
-["combos","🍢","The Kebab Express Lane",17,"Combo #5"],
-["combos","🍗","Chicken Tikka Meal",17,"Combo #6"],
-["combos","🐟","Fish Tikka Meal",18,"Combo #7"],
-["combos","🧀","Paneer Tikka Meal",17,"Combo #8"],
-["combos","🫓","Kal Dosa Combo (Chicken)",16,"Combo #9"],
-["combos","🫓","Kal Dosa Combo (Mutton)",17,"Combo #9"],
-["combos","🐟","Kal Dosa Combo (Fish)",17,"Combo #9"],
-["combos","🫓","Idly Combo Meal (Chicken)",16,"Combo #10"],
-["combos","🫓","Idly Combo Meal (Mutton)",17,"Combo #10"],
-["combos","🐟","Idly Combo Meal (Fish)",17,"Combo #10"],
-["combos","🫓","Chappathi Combo Meal (Chicken)",16,"Combo #11"],
-["combos","🫓","Chappathi Combo Meal (Mutton)",17,"Combo #11"],
-["combos","🐟","Chappathi Combo Meal (Fish)",17,"Combo #11"],
-["combos","🫓","Parotta Combo Meal (Chicken)",16,"Combo #12"],
-["combos","🫓","Parotta Combo Meal (Mutton)",17,"Combo #12"],
-["combos","🐟","Parotta Combo Meal (Fish)",17,"Combo #12"],
-["set","🍛","Anjappar Meal",13,"Chicken; mutton/fish S$15"],
-["set","🥗","Anjappar Veg Meal",11,"Vegetarian set meal"],
-["set","🧒","The Little Chota Bheem Meal (Veg)",12,"Kids' special combo"],
-["set","🍗","The Minion Mayhem Chicken Combo",13,"Kids' special combo"],
-["rice","🍚","Ghee Rice",12,"Aromatic rice delights"],
-["rice","🍚","Veg Pulao",12,"Aromatic rice delights"],
-["rice","🍚","Steamed Basmathi Rice",5,""],
-["rice","🍚","Ponni Boiled Rice",5,""],
-["rice","🍳","Vegetable Fried Rice / Noodles",13,""],
-["rice","🍳","Egg Fried Rice / Noodles",14,""],
-["rice","🍗","Chicken Fried Rice / Noodles",15,""],
-["rice","🍖","Mutton Fried Rice / Noodles",17,""],
-["rice","🦐","Prawn Fried Rice / Noodles",18,""],
-["appetizers","🍗","Chicken Lollipop",8,""],
-["appetizers","🌶️","Chicken 65",8,""],
-["appetizers","🥟","Samosa (2 pcs)",8,""],
-["appetizers","🌶️","Gobi 65",8,""],
-["appetizers","🧀","Paneer 65",9,""],
-["drinks","☕","Masala Tea Hot",4.25,"Soft drink"],
-["drinks","🍵","Ginger Tea",4.25,"Soft drink"],
-["drinks","☕","Filter Coffee",4.25,"Soft drink"],
-["drinks","🥭","Mango Lassi",9.56,""],
-["drinks","🥛","Salted Lassi",8.5,""],
-["drinks","🥛","Sweet Lassi",8.5,""],
-["drinks","🥛","Butter Milk",8.5,""]
-];
-const menuItems=raw.map((x,id)=>({id,category:x[0],emoji:x[1],name:x[2],price:x[3],description:x[4]}));
-const categories={all:"All",combos:"Combos",set:"Set",rice:"Rice/Noodle",appetizers:"Appetizers",drinks:"Drinks"};
-let activeCategory="all";
-const cart=new Map(),
-money=v=>"S$ "+v.toFixed(2),
-itemById=id=>menuItems.find(x=>x.id===Number(id));
-let lastOrder=null;
-
-/* SECTION: escaper */
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-
-/* SECTION: menu-render */
-function renderTabs(){
-tabs.innerHTML=Object.entries(categories).map(([key,label])=>`<button type="button" class="tab ${key===activeCategory?"active":""}" data-category="${key}">${label}</button>`).join("");
-}
-function renderMenu(){
-const visible=activeCategory==="all"?menuItems:menuItems.filter(x=>x.category===activeCategory);
-menu.innerHTML=visible.map(x=>`<article class="food"><div class="food-top"><div class="emoji">${x.emoji}</div><div><div class="name">${esc(x.name)}</div><div class="desc">${esc(x.description)}</div></div></div><div class="food-footer"><span class="price">${money(x.price)}</span><button type="button" class="add" data-add="${x.id}">＋ Add</button></div></article>`).join("");
-}
-function changeItem(id,amount){
-const qty=(cart.get(id)||0)+amount;
-qty>0?cart.set(id,qty):cart.delete(id);
-renderCart();
-}
-
-/* SECTION: cart-render */
-function cartTotals(){
-const lines=[...cart.entries()],
-subtotal=lines.reduce((t,[id,q])=>t+itemById(id).price*q,0),
-discount=subtotal>=30?subtotal*.15:0;
-return {lines,subtotal,discount,total:subtotal-discount};
-}
-function renderCart(){
-const {lines,subtotal,discount,total}=cartTotals(),
-count=lines.reduce((t,[,q])=>t+q,0),
-cash=parseFloat(cashInput.value)||0,
-change=cash>0&&cash>=total?cash-total:0;
-cartCount.textContent=count;
-cartItems.innerHTML=lines.length?lines.map(([id,q])=>{
-const x=itemById(id);
-return `<div class="cart-line"><div><div class="cart-name">${esc(x.name)}</div><div class="cart-price">${money(x.price)} each</div></div><div class="quantity"><button type="button" data-change="${id}" data-amount="-1">−</button><span>${q}</span><button type="button" data-change="${id}" data-amount="1">＋</button></div></div>`;
-}).join(""):'<div class="empty">No Order。<br>Order Now！</div>';
-summary.innerHTML=`<div class="summary-row"><span>Subtotal</span><span>${money(subtotal)}</span></div>${discount?`<div class="summary-row discount"><span>Promo (15% off S$30+)</span><span>−${money(discount)}</span></div>`:'<div class="summary-row"><span>Promo</span><span>—</span></div>'}<div class="summary-row total"><span>Total</span><span>${money(total)}</span></div>${change?`<div class="summary-row change"><span>Change 找零</span><span>${money(change)}</span></div>`:""}`;
-}
-cashInput.addEventListener("input",renderCart);
-
-function setMessage(t,c=""){
-message.textContent=t;
-message.className=c;
-}
-
-/* SECTION: printer-bluetooth */
-const PRINT_WIDTH=32;
-const CANDIDATE_SERVICES=[
-{service:"000018f0-0000-1000-8000-00805f9b34fb",characteristic:"00002af1-0000-1000-8000-00805f9b34fb"},
-{service:"0000ffe0-0000-1000-8000-00805f9b34fb",characteristic:"0000ffe1-0000-1000-8000-00805f9b34fb"},
-{service:"0000ff00-0000-1000-8000-00805f9b34fb",characteristic:"0000ff02-0000-1000-8000-00805f9b34fb"}
-];
-let btDevice=null,btChar=null;
-
-function setPrinterStatus(text,cls=""){
-printerStatus.textContent=text;
-printerStatus.className=cls;
-btnTest.disabled=!btChar;
-btnDisconnect.disabled=!btChar;
-btnConnect.textContent=btChar?"重新连接":"连接打印机";
-}
-
-async function connectPrinter(){
-if(!navigator.bluetooth){
-setPrinterStatus("当前浏览器不支持 Web Bluetooth，请用 Chrome / Edge（Android 或桌面）打开","err");
-return;
-}
-try{
-btnConnect.disabled=true;
-setPrinterStatus("请在弹窗中选择打印机…");
-btDevice=await navigator.bluetooth.requestDevice({
-filters:CANDIDATE_SERVICES.map(s=>({services:[s.service]}))
-});
-btDevice.addEventListener("gattserverdisconnected",()=>{
-btChar=null;btDevice=null;
-setPrinterStatus("打印机已断开 · Disconnected","err");
-});
-setPrinterStatus("正在连接 "+(btDevice.name||"printer")+" …");
-const server=await btDevice.gatt.connect();
-let found=null;
-for(const cand of CANDIDATE_SERVICES){
-try{
-const svc=await server.getPrimaryService(cand.service);
-found=await svc.getCharacteristic(cand.characteristic);
-break;
-}catch(_){/* try next candidate */}
-}
-if(!found){
-const services=await server.getPrimaryServices();
-for(const svc of services){
-const chars=await svc.getCharacteristics();
-for(const ch of chars){
-if(ch.properties.write||ch.properties.writeWithoutResponse){found=ch;break;}
-}
-if(found)break;
-}
-}
-if(!found)throw new Error("未找到可写入的打印特征值 (no writable characteristic)");
-btChar=found;
-setPrinterStatus("✓ 已连接 · "+(btDevice.name||"POS-5810DD"),"ok");
-}catch(err){
-console.error(err);
-btChar=null;
-setPrinterStatus("连接失败："+err.message,"err");
-}finally{
-btnConnect.disabled=false;
-}
-}
-
-function disconnectPrinter(){
-btChar=null;
-if(btDevice&&btDevice.gatt&&btDevice.gatt.connected)btDevice.gatt.disconnect();
-btDevice=null;
-setPrinterStatus("未连接 · Not connected");
-}
-
-/* SECTION: escpos-builder */
-function encode(str){
-const out=[];
-for(const ch of str){
-const code=ch.codePointAt(0);
-out.push(code<128?code:0x3F);
-}
-return out;
-}
-function padLine(left,right){
-const gap=PRINT_WIDTH-left.length-right.length;
-return left+(gap>0?" ".repeat(gap):"")+(gap>0?right:"");
-}
-function buildReceipt(order){
-const B=[];
-const push=(...b)=>B.push(...b);
-const text=(s,newline=true)=>{push(...encode(s));if(newline)push(0x0A);};
-const ESC=0x1B,GS=0x1D;
-push(GS,0x40);
-push(ESC,0x61,0x01);
-push(GS,0x21,0x11);
-push(ESC,0x45,0x01);
-text("ANJAPPAR");
-push(GS,0x21,0x00);
-push(ESC,0x45,0x00);
-text("Indian Cuisine · Singapore");
-text("--------------------------------");
-push(ESC,0x61,0x00);
-text("Order No : "+order.id);
-text("Table    : "+order.table);
-const d=new Date(order.createdAtLocal||Date.now());
-const dt=s=>String(s).padStart(2,"0");
-text("Date     : "+d.getFullYear()+"-"+dt(d.getMonth()+1)+"-"+dt(d.getDate())+" "+dt(d.getHours())+":"+dt(d.getMinutes()));
-text("--------------------------------");
-push(ESC,0x45,0x01);
-for(const it of order.items){
-const amount=money(it.price*it.qty);
-const head=it.qty+" x "+it.name;
-if(head.length+amount.length>PRINT_WIDTH){
-text(head);
-text(padLine("",amount));
-}else{
-text(padLine(head,amount));
-}
-}
-push(ESC,0x45,0x00);
-text("--------------------------------");
-text(padLine("Subtotal",money(order.subtotal)));
-if(order.discount>0)text(padLine("Promo 15%", "-"+money(order.discount)));
-push(GS,0x21,0x11);
-push(ESC,0x45,0x01);
-text(padLine("TOTAL",money(order.total)).slice(0,PRINT_WIDTH));
-push(GS,0x21,0x00);
-push(ESC,0x45,0x00);
-if(order.cash>0){
-text(padLine("Cash",money(order.cash)));
-text(padLine("Change",money(Math.max(0,order.cash-order.total))));
-}
-if(order.note){
-text("--------------------------------");
-text("Note: "+order.note);
-}
-text("--------------------------------");
-push(ESC,0x61,0x01);
-text("Thank You! Welcome Again");
-text("");
-push(ESC,0x64,0x04);
-return new Uint8Array(B);
-}
-
-async function sendBytes(bytes){
-if(!btChar)throw new Error("打印机未连接");
-const CHUNK=100;
-for(let i=0;i<bytes.length;i+=CHUNK){
-const part=bytes.slice(i,i+CHUNK);
-if(btChar.properties.writeWithoutResponse){
-await btChar.writeValueWithoutResponse(part);
-}else{
-await btChar.writeValue(part);
-}
-await new Promise(r=>setTimeout(r,20));
-}
-}
-
-async function printOrder(order){
-if(!btChar){
-setPrinterStatus("打印机未连接，请先点击「连接打印机」","err");
-return false;
-}
-try{
-await sendBytes(buildReceipt(order));
-return true;
-}catch(err){
-console.error(err);
-btChar=null;
-setPrinterStatus("打印失败："+err.message+"（若打印机已关机请重新连接）","err");
-return false;
-}
-}
-
-btnConnect.addEventListener("click",connectPrinter);
-btnDisconnect.addEventListener("click",disconnectPrinter);
-btnTest.addEventListener("click",async()=>{
-const ok=await printOrder({
-id:"TEST-"+Date.now().toString().slice(-4),
-table:"Table Test",
-items:[{name:"Test Print 测试打印",qty:1,price:0},{name:"POS-5810DD 58mm OK",qty:2,price:1.5}],
-note:"Bluetooth printer is working!",
-subtotal:3,discount:0,total:3,cash:0
-});
-setMessage(ok?"✓ 测试页已发送打印":"测试打印失败，请检查打印机",ok?"ok":"error");
+document.getElementById('closeDetailModal').addEventListener('click', () => {
+  document.getElementById('detailModal').classList.remove('show');
 });
 
-/* SECTION: orders-history */
-function renderOrders(orders){
-if(!orders.length){orderList.innerHTML='<div class="empty">暂无订单</div>';return;}
-orderList.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-top"><span class="order-id">${esc(o.id)}</span><span class="order-total">${money(o.total)}</span></div><div class="order-meta">${esc(o.table)} · ${esc(o.timeText)} · <span class="status-badge ${o.status==="done"?"done":""}">${esc(o.status)}</span></div><div class="order-items">${o.items.map(it=>esc(it.qty+" × "+it.name)).join("<br>")}</div><div class="reprint-bar"><button type="button" class="pbtn" data-print-order='${esc(o.json)}'>🖨️ 重打小票</button></div></div>`).join("");
-}
-
-function loadOrders(){
-ordersRef.limitToLast(20).once("value").then(snap=>{
-const val=snap.val()||{};
-const orders=Object.values(val).map(o=>{
-const ts=o.createdAt||Date.now();
-const d=new Date(ts);
-const dt=n=>String(n).padStart(2,"0");
-return {...o,createdAtLocal:ts,timeText:d.getFullYear()+"-"+dt(d.getMonth()+1)+"-"+dt(d.getDate())+" "+dt(d.getHours())+":"+dt(d.getMinutes()),json:JSON.stringify({...o,createdAtLocal:ts})};
-}).sort((a,b)=>(b.createdAtLocal||0)-(a.createdAtLocal||0));
-renderOrders(orders);
-}).catch(err=>{
-orderList.innerHTML='<div class="empty error">订单加载失败：'+esc(err.message)+"</div>";
-});
-}
-document.getElementById("btnRefreshOrders").addEventListener("click",loadOrders);
-
-/* SECTION: order-submit */
-firebase.database().ref(".info/connected").on("value",s=>
-connection.textContent=s.val()?"✓ link to kitchen":"off line；no order send"
-);
-
-btnPrintLast.addEventListener("click",async()=>{
-if(!lastOrder)return;
-const ok=await printOrder(lastOrder);
-setMessage(ok?"✓ 已重新打印小票："+lastOrder.id:"打印失败，请检查打印机连接",ok?"ok":"error");
-});
-
-orderForm.addEventListener("submit",async e=>{
-e.preventDefault();
-if(!cart.size)return setMessage("请先选择菜品 Must order。","error");
-const {lines,subtotal,discount,total}=cartTotals(),
-cash=parseFloat(cashInput.value)||0;
-const order={
-id:"A"+Date.now().toString().slice(-6),
-table:tableInput.value.trim()||"Table 3",
-items:lines.map(([id,qty])=>{
-const x=itemById(id);
-return{name:x.name,emoji:x.emoji,qty,price:x.price};
-}),
-note:note.value.trim(),
-subtotal,
-discount,
-total,
-cash,
-status:"pending",
-createdAt:firebase.database.ServerValue.TIMESTAMP
+// ========== 删除账号 ==========
+window.askDelete = function(type, uid) {
+  pendingDelete = { type, uid };
+  document.getElementById('deleteModal').classList.add('show');
 };
-submit.disabled=true;
-setMessage("正在发送订单…");
-try{
-await ordersRef.push().set(order);
-lastOrder={...order,createdAtLocal:Date.now()};
-setMessage("✓ 订单已发送厨房！Order No："+order.id+(cash>=total&&cash>0?" 找零："+money(cash-total):""),"ok");
-cart.clear();
-note.value="";
-cashInput.value="";
-renderCart();
-reprintBar.hidden=false;
-if(autoPrint.checked){
-const ok=await printOrder(lastOrder);
-if(ok)setMessage(message.textContent+" · 🖨️ 小票已打印","ok");
-}
-loadOrders();
-}catch(error){
-console.error(error);
-setMessage("Order no send："+error.message,"error");
-}finally{
-submit.disabled=false;
-}
+document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+  pendingDelete = { type:'', uid:'' };
+  document.getElementById('deleteModal').classList.remove('show');
 });
-
-/* SECTION: fullscreen 全屏 */
-function isFullscreen(){
-  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
-}
-function updateFullscreenBtn(){
-  if (btnFullscreen) {
-    btnFullscreen.textContent=isFullscreen()?"⛶ 退出全屏 Exit Fullscreen":"⛶ 全屏 Fullscreen";
+document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+  if (!pendingDelete.uid || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = '删除中...';
+  try {
+    const path = pendingDelete.type === 'customer'
+      ? `users/${pendingDelete.uid}`
+      : `merchants/${pendingDelete.uid}`;
+    await remove(ref(db, path));
+    showToast('✅ 账号已删除', 'success');
+    document.getElementById('deleteModal').classList.remove('show');
+    pendingDelete = { type:'', uid:'' };
+    await loadAllData();
+  } catch (e) {
+    console.error('Delete error:', e);
+    showToast('删除失败：' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '确认删除';
+    isProcessing = false;
   }
-}
-async function toggleFullscreen(){
-  try{
-    if(isFullscreen()){
-      if(document.exitFullscreen)await document.exitFullscreen();
-      else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
-      else if(document.msExitFullscreen)document.msExitFullscreen();
-    }else{
-      const el=document.documentElement;
-      if(el.requestFullscreen)await el.requestFullscreen();
-      else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
-      else if(el.msRequestFullscreen)el.msRequestFullscreen();
-      else setMessage("当前浏览器不支持全屏 API","error");
-    }
-  }catch(err){
-    console.error(err);
-    setMessage("全屏切换失败："+err.message,"error");
-  }
-}
-if (btnFullscreen) {
-  btnFullscreen.addEventListener("click",toggleFullscreen);
-  ["fullscreenchange","webkitfullscreenchange","msfullscreenchange"].forEach(ev=>
-    document.addEventListener(ev,updateFullscreenBtn)
-  );
-  updateFullscreenBtn();
-}
-
-/* SECTION: auth 密码登入 */
-const PASSWORD="1234";                 /* ← 在这里修改密码 */
-const AUTH_KEY="anjappar-pos-auth";
-const MAX_FAIL=5, LOCK_MS=30000;
-let failCount=0, lockUntil=0, appStarted=false, orderTimer=null;
-
-function safeSessionGet(k){try{return sessionStorage.getItem(k);}catch(_){return null;}}
-function safeSessionSet(k,v){try{sessionStorage.setItem(k,v);}catch(_){}}
-function safeSessionDel(k){try{sessionStorage.removeItem(k);}catch(_){}}
-
-function showLoginMsg(t,cls="error"){
-loginMsg.textContent=t;
-loginMsg.className="lock-msg "+(t?cls:"");
-}
-
-function startApp(){
-  if(appStarted)return;
-  appStarted=true;
-
-  // 【关键修复】使用事件委托，父容器只绑定一次，动态生成的按钮也能响应
-  tabs.addEventListener("click", e => {
-    const tab = e.target.closest(".tab");
-    if (!tab) return;
-    activeCategory = tab.dataset.category;
-    renderTabs();
-    renderMenu();
-  });
-
-  menu.addEventListener("click", e => {
-    const btn = e.target.closest("[data-add]");
-    if (!btn) return;
-    changeItem(+btn.dataset.add, 1);
-  });
-
-  cartItems.addEventListener("click", e => {
-    const btn = e.target.closest("[data-change]");
-    if (!btn) return;
-    changeItem(+btn.dataset.change, +btn.dataset.amount);
-  });
-
-  orderList.addEventListener("click", e => {
-    const btn = e.target.closest("[data-print-order]");
-    if (!btn) return;
-    try {
-      const o = JSON.parse(btn.dataset.printOrder);
-      printOrder(o).then(ok => {
-        setMessage(ok ? "✓ 小票已重打：" + o.id : "重打失败，请检查打印机连接", ok ? "ok" : "error");
-      });
-    } catch(err) {
-      console.error("解析订单数据失败", err);
-    }
-  });
-
-  setPrinterStatus("未连接 · Not connected");
-  renderTabs();
-  renderMenu();
-  renderCart();
-  loadOrders();
-  orderTimer=setInterval(loadOrders,15000);
-}
-
-function unlockApp(){
-lockScreen.hidden=true;
-startApp();
-}
-
-function lockApp(){
-lockScreen.hidden=false;
-safeSessionDel(AUTH_KEY);
-if(orderTimer){clearInterval(orderTimer);orderTimer=null;}
-appStarted=false;
-cart.clear();
-renderCart();
-reprintBar.hidden=true;
-setMessage("");
-passwordInput.value="";
-showLoginMsg("");
-passwordInput.focus();
-}
-
-loginForm.addEventListener("submit",e=>{
-e.preventDefault();
-const now=Date.now();
-if(now<lockUntil){
-showLoginMsg("尝试次数过多，请 "+Math.ceil((lockUntil-now)/1000)+" 秒后再试");
-return;
-}
-if(passwordInput.value===PASSWORD){
-failCount=0;
-safeSessionSet(AUTH_KEY,"1");
-showLoginMsg("登入成功","ok");
-passwordInput.value="";
-unlockApp();
-}else{
-failCount++;
-passwordInput.value="";
-if(failCount>=MAX_FAIL){
-failCount=0;
-lockUntil=Date.now()+LOCK_MS;
-showLoginMsg("密码错误 5 次，已锁定 30 秒");
-}else{
-showLoginMsg("密码错误，请重试（剩余 "+(MAX_FAIL-failCount)+" 次）");
-}
-passwordInput.focus();
-}
 });
 
-btnLogout.addEventListener("click",()=>{
-if(!confirm("确定要登出吗？ Logout?"))return;
-lockApp();
+// ========== 标签切换 ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
 });
-
-/* SECTION: boot */
-if(safeSessionGet(AUTH_KEY)==="1"){
-unlockApp();
-}else{
-lockApp();
-}
 </script>
 </body>
 </html>
