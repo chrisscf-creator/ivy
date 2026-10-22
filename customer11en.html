@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Portal - Scan to Pay & Vouchers</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
+.container { max-width: 480px; margin: 0 auto; }
+.auth-card { background: white; border-radius: 24px; padding: 32px; box-shadow: 0 10px 40px -12px rgba(88,28,135,0.15); margin: 60px auto; }
+.auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #4c3b7a; }
+.form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
+.btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
+.btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
+.btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
+.btn-sm { width: auto; padding: 10px 16px; font-size: 0.9rem; margin: 4px; }
+.btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
+.error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+.error.show { display: block; }
+.main-app { display: none; }
+.main-app.active { display: block; }
+.header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; }
+.balance { font-size: 2.5rem; font-weight: 800; margin: 8px 0; }
+.voucher-balance { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 16px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+.scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
+#reader { width: 100%; min-height: 350px; }
+.pay-modal, .voucher-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.pay-modal.show, .voucher-modal.show { display: flex; }
+.pay-content, .voucher-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+.pay-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
+.tab.active { background: #2d2642; color: white; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
+.empty { text-align: center; padding: 40px; color: #999; }
+.voucher-card { border-left: 4px solid #2e7d32; }
+.voucher-expired { border-left-color: #c62828; opacity: 0.7; }
+.voucher-used { border-left-color: #888; opacity: 0.5; }
+#voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 260px; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Login screen -->
+  <div class="auth-card" id="authScreen">
+    <h2><i class="fas fa-user"></i> User Login</h2>
+    <div class="error" id="authError"></div>
+    
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2d2642; color: white;">Login</button>
+      <button class="tab" id="regTabBtn" style="flex:1;">Register</button>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Email / Phone Number</label>
+        <input type="text" id="loginEmail" placeholder="e.g. name@example.com or 13800138000" required>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+    
+    <form id="registerForm" style="display:none;">
+      <div class="form-group">
+        <label>Email / Phone Number</label>
+        <input type="text" id="regEmail" placeholder="e.g. name@example.com or 13800138000" required>
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="userName" required>
+      </div>
+      <div class="form-group">
+        <label>Password (at least 6 characters)</label>
+        <input type="password" id="regPassword" required minlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary">Create Account</button>
+    </form>
+  </div>
+
+  <!-- Main app -->
+  <div class="main-app" id="mainApp">
+    <div class="header">
+      <h3>Welcome back, <span id="userNameDisplay">User</span></h3>
+      <p style="opacity:0.8; font-size:0.9rem; margin:4px 0;" id="userEmailDisplay"></p>
+      <div class="balance" id="balanceDisplay">$0.00</div>
+      <!-- ✅ Voucher balance display -->
+      <div class="voucher-balance">
+        <span><i class="fas fa-ticket-alt"></i> Voucher Balance</span>
+        <span style="font-weight:bold; font-size:1.1rem;" id="voucherBalanceDisplay">$0.00</span>
+      </div>
+      <button class="btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:none; border-radius:8px; margin-top:12px;" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> Log Out
+      </button>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab active" data-pane="scan">Scan to Pay</button>
+      <button class="tab" data-pane="vouchers">My Vouchers</button>
+      <button class="tab" data-pane="history">Transactions</button>
+      <button class="tab" data-pane="topup">Top-up Request</button>
+    </div>
+    
+    <!-- Scan to Pay -->
+    <div class="tab-pane active" id="pane-scan">
+      <div class="scanner-box">
+        <div id="reader"></div>
+      </div>
+      <button class="btn btn-success" id="startScanBtn">
+        <i class="fas fa-qrcode"></i> Start Scanning
+      </button>
+      <button class="btn" style="background:#ddd; display:none;" id="stopScanBtn">
+        <i class="fas fa-stop"></i> Stop Scanning
+      </button>
+      <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
+        Scan a merchant's payment QR code or voucher redemption code to complete payment
+      </p>
+    </div>
+    
+    <!-- ✅ My Vouchers -->
+    <div class="tab-pane" id="pane-vouchers">
+      <div id="voucherList"></div>
+    </div>
+    
+    <!-- Transaction History -->
+    <div class="tab-pane" id="pane-history">
+      <div id="historyList"></div>
+    </div>
+    
+    <!-- Top-up Request -->
+    <div class="tab-pane" id="pane-topup">
+      <div class="card">
+        <h4 style="margin-bottom:16px;">Request Top-up</h4>
+        <div class="form-group">
+          <label>Top-up Amount ($)</label>
+          <input type="number" id="topupAmount" min="1" step="0.01" placeholder="e.g. 100">
+        </div>
+        <button class="btn btn-primary" id="submitTopup">Submit Request</button>
+      </div>
+      <div style="margin-top:20px;">
+        <h4 style="margin-bottom:12px;">Request History</h4>
+        <div id="topupReqList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment confirmation modal -->
+<div class="pay-modal" id="payModal">
+  <div class="pay-content">
+    <h3 style="text-align:center;">Confirm Payment</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;" id="payTypeText">Pay to merchant</p>
+    <div class="pay-amount" id="payAmountText">$0.00</div>
+    <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:12px;" id="merchantInfoText"></p>
+    <!-- ✅ Voucher discount option -->
+    <div id="voucherUseSection" style="display:none; background:#f5f3f9; border-radius:12px; padding:12px; margin-bottom:16px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="useVoucherCheck">
+        <span>Use voucher discount <strong id="voucherUseAmount">$0.00</strong></span>
+      </label>
+      <p style="font-size:0.8rem; color:#888; margin-top:6px;" id="voucherUseDesc"></p>
+    </div>
+    <button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
+    <button class="btn" style="background:#eee; margin-top:8px;" id="closePayModalBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- ✅ Voucher QR code modal -->
+<div class="voucher-modal" id="voucherQrModal">
+  <div class="voucher-content">
+    <h3 style="text-align:center;">Voucher Redemption Code</h3>
+    <p style="text-align:center; color:#666; margin-top:8px;">Show this QR code to the merchant</p>
+    <div id="voucherQrDisplay"></div>
+    <p style="text-align:center; font-size:0.85rem; color:#888;" id="voucherCodeText"></p>
+    <button class="btn" style="background:#eee; margin-top:16px;" id="closeVoucherQrBtn">Close</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { 
+  getDatabase, ref, set, push, update, get, remove, onValue,
+  serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+  authDomain: "payment-2084a.firebaseapp.com",
+  databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "payment-2084a",
+  storageBucket: "payment-2084a.firebasestorage.app",
+  messagingSenderId: "320939990652",
+  appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null;
+let unsubs = [];
+let html5QrCode = null;
+let pendingPayData = null;
+let isProcessing = false;
+let availableVouchers = [];
+let selectedVoucher = null;
+
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function showError(msg) {
+  const e = document.getElementById('authError');
+  e.textContent = msg;
+  e.classList.add('show');
+}
+function clearListeners() {
+  unsubs.forEach(fn => { try { fn() } catch(e) {} });
+  unsubs = [];
+}
+function formatTime(ts) {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('en-US', { hour12: false });
+}
+function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+
+// Helper: convert email/phone to a Firebase Auth-compatible email format
+function toAuthEmail(identifier) {
+  const trimmed = identifier.trim();
+  // Simple phone detection: pure digits, length 7-15 (adjust as needed)
+  const phoneRegex = /^\d{7,15}$/;
+  if (phoneRegex.test(trimmed)) {
+    // Generate a fake email from the phone number (must contain @ and a domain)
+    return `${trimmed}@phone.user`;
+  }
+  // Otherwise treat as email, return as-is (format is validated elsewhere)
+  return trimmed;
+}
+
+// Validate email/phone format
+function isValidIdentifier(identifier) {
+  const trimmed = identifier.trim();
+  const phoneRegex = /^\d{7,15}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return phoneRegex.test(trimmed) || emailRegex.test(trimmed);
+}
+
+// Auth state
+onAuthStateChanged(auth, user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('mainApp').classList.add('active');
+    document.getElementById('userNameDisplay').textContent = user.displayName || 'User';
+    // Show email or phone (extract phone if it's a fake email)
+    let displayEmail = user.email || '';
+    if (displayEmail.endsWith('@phone.user')) {
+      displayEmail = displayEmail.replace('@phone.user', '');
+    }
+    document.getElementById('userEmailDisplay').textContent = displayEmail;
+    initUserData();
+  } else {
+    stopScanner();
+    currentUser = null;
+    clearListeners();
+    document.getElementById('authScreen').style.display = 'block';
+    document.getElementById('mainApp').classList.remove('active');
+  }
+});
+
+// Login/Register tab switching
+document.getElementById('loginTabBtn').addEventListener('click', () => {
+  document.getElementById('loginTabBtn').classList.add('active');
+  document.getElementById('loginTabBtn').style.background = '#2d2642';
+  document.getElementById('loginTabBtn').style.color = 'white';
+  document.getElementById('regTabBtn').classList.remove('active');
+  document.getElementById('regTabBtn').style.background = 'transparent';
+  document.getElementById('regTabBtn').style.color = '#8b7aa8';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+document.getElementById('regTabBtn').addEventListener('click', () => {
+  document.getElementById('regTabBtn').classList.add('active');
+  document.getElementById('regTabBtn').style.background = '#2d2642';
+  document.getElementById('regTabBtn').style.color = 'white';
+  document.getElementById('loginTabBtn').classList.remove('active');
+  document.getElementById('loginTabBtn').style.background = 'transparent';
+  document.getElementById('loginTabBtn').style.color = '#8b7aa8';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('authError').classList.remove('show');
+});
+
+// Register
+document.getElementById('registerForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+  try {
+    const identifier = document.getElementById('regEmail').value.trim();
+    const name = document.getElementById('userName').value.trim();
+    const pwd = document.getElementById('regPassword').value;
+
+    // Validate identifier format
+    if (!isValidIdentifier(identifier)) {
+      throw new Error('Please enter a valid email or phone number (7-15 digits)');
+    }
+
+    // Convert to a Firebase Auth-compatible email format
+    const authEmail = toAuthEmail(identifier);
+
+    const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
+    // Store original identifier and name in the database
+    await set(ref(db, `users/${userCred.user.uid}`), {
+      name, 
+      email: authEmail,               // store the converted email (fake or real)
+      originalIdentifier: identifier, // store the original input (phone or email)
+      balance: 0, 
+      role: 'customer', 
+      createdAt: serverTimestamp()
+    });
+    await userCred.user.updateProfile({ displayName: name });
+    showToast('Registration successful!', 'success');
+  } catch (err) {
+    // Handle Firebase error messages
+    let msg = err.message;
+    if (msg.includes('email-already-in-use')) msg = 'This email/phone number is already registered';
+    else if (msg.includes('invalid-email')) msg = 'Please enter a valid email or phone number';
+    else if (msg.includes('weak-password')) msg = 'Password is too weak (at least 6 characters)';
+    showError('Registration failed: ' + msg);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Create Account';
+    isProcessing = false;
+  }
+});
+
+// Login
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (isProcessing) return;
+  isProcessing = true;
+  const btn = e.submitter;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+  try {
+    const identifier = document.getElementById('loginEmail').value.trim();
+    const pwd = document.getElementById('loginPassword').value;
+
+    // Validate identifier format
+    if (!isValidIdentifier(identifier)) {
+      throw new Error('Please enter a valid email or phone number (7-15 digits)');
+    }
+
+    const authEmail = toAuthEmail(identifier);
+    await signInWithEmailAndPassword(auth, authEmail, pwd);
+    showToast('Login successful!', 'success');
+  } catch (err) {
+    let msg = err.message;
+    if (msg.includes('user-not-found') || msg.includes('wrong-password') || msg.includes('invalid-credential')) {
+      msg = 'Incorrect email/phone number or password';
+    } else if (msg.includes('invalid-email')) {
+      msg = 'Please enter a valid email or phone number';
+    }
+    showError('Login failed: ' + msg);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Login';
+    isProcessing = false;
+  }
+});
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  await signOut(auth);
+  showToast('Logged out', 'success');
+  isProcessing = false;
+});
+
+// Load user data
+function initUserData() {
+  const userRef = ref(db, `users/${currentUser.uid}`);
+  
+  // Balance + voucher data
+  unsubs.push(onValue(userRef, snap => {
+    const d = snap.val() || {};
+    document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
+    
+    // ✅ Calculate available voucher balance
+    availableVouchers = [];
+    let totalVoucherValue = 0;
+    const now = Date.now();
+    
+    if (d.vouchers) {
+      for (const [code, v] of Object.entries(d.vouchers)) {
+        if (v.used === true) continue;
+        if (v.expiry && v.expiry < now) continue;
+        availableVouchers.push({ code, ...v });
+        totalVoucherValue += Number(v.amount || 0);
+      }
+      // Sort by amount descending, use largest vouchers first
+      availableVouchers.sort((a,b) => b.amount - a.amount);
+    }
+    
+    document.getElementById('voucherBalanceDisplay').textContent = formatMoney(totalVoucherValue);
+    renderVouchers(d.vouchers || {});
+  }));
+  
+  // Transaction history
+  unsubs.push(onValue(ref(db, `users/${currentUser.uid}/history`), snap => {
+    const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('historyList').innerHTML = items.length ? items.map(h => {
+      const isOut = h.type === 'payment' || h.type === 'voucher_used';
+      return `
+        <div class="card">
+          <p>${h.description || 'Transaction'}</p>
+          <p style="font-weight:bold; color:${isOut ? '#c62828' : '#2e7d32'};">
+            ${isOut ? '-' : '+'}${formatMoney(h.amount)}
+          </p>
+          <p style="font-size:0.8rem; color:#888;">${formatTime(h.createdAt)}</p>
+        </div>
+      `;
+    }).join('') : '<p class="empty">No transactions yet</p>';
+  }));
+  
+  // Top-up request history
+  unsubs.push(onValue(ref(db, `users/${currentUser.uid}/topupRequests`), snap => {
+    const reqs = Object.entries(snap.val() || {}).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
+    document.getElementById('topupReqList').innerHTML = reqs.length ? reqs.map(([id, r]) => {
+      const statusText = { pending:'Pending', approved:'Approved', rejected:'Rejected' }[r.status] || r.status;
+      const statusColor = { pending:'#f57c00', approved:'#2e7d32', rejected:'#c62828' }[r.status] || '#888';
+      return `
+        <div class="card">
+          <p>Amount: ${formatMoney(r.amount)}</p>
+          <p style="color:${statusColor}; font-weight:600;">Status: ${statusText}</p>
+        </div>
+      `;
+    }).join('') : '<p class="empty">No request history</p>';
+  }));
+}
+
+// ✅ Render voucher list
+function renderVouchers(vouchers) {
+  const now = Date.now();
+  const container = document.getElementById('voucherList');
+  
+  if (!Object.keys(vouchers).length) {
+    container.innerHTML = '<p class="empty">No vouchers</p>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  for (const [code, v] of Object.entries(vouchers)) {
+    const isExpired = v.expiry && v.expiry < now;
+    const isUsed = v.used === true;
+    let extraClass = '';
+    let statusText = 'Valid';
+    if (isUsed) { extraClass = 'voucher-used'; statusText = 'Used'; }
+    else if (isExpired) { extraClass = 'voucher-expired'; statusText = 'Expired'; }
+    
+    container.innerHTML += `
+      <div class="card voucher-card ${extraClass}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <p style="font-weight:bold; font-size:1.1rem;">${code}</p>
+            <p style="font-size:0.9rem; color:#666; margin-top:4px;">
+              Value: ${formatMoney(v.amount)}
+              ${v.minSpend > 0 ? ` · Min. spend ${formatMoney(v.minSpend)}` : ''}
+            </p>
+            <p style="font-size:0.8rem; color:#888; margin-top:4px;">
+              Valid until: ${formatTime(v.expiry)}
+            </p>
+          </div>
+          ${!isUsed && !isExpired ? `
+            <button class="btn-sm btn-success" onclick="showVoucherQr('${code}')">
+              <i class="fas fa-qrcode"></i> Show Code
+            </button>
+          ` : `<span style="color:#888; font-size:0.85rem;">${statusText}</span>`}
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ✅ Show voucher redemption QR code
+window.showVoucherQr = async function(code) {
+  const userSnap = await get(ref(db, `users/${currentUser.uid}`));
+  const userData = userSnap.val() || {};
+  const voucher = userData.vouchers?.[code];
+  
+  if (!voucher || voucher.used === true) {
+    showToast('Voucher does not exist or has been used', 'error');
+    return;
+  }
+  if (voucher.expiry && voucher.expiry < Date.now()) {
+    showToast('Voucher has expired', 'error');
+    return;
+  }
+  
+  // Generate QR content: VOUCHER:code:userUID
+  const qrData = `VOUCHER:${code}:${currentUser.uid}`;
+  
+  document.getElementById('voucherQrDisplay').innerHTML = '';
+  document.getElementById('voucherCodeText').textContent = `Voucher code: ${code}`;
+  document.getElementById('voucherQrModal').classList.add('show');
+  
+  try {
+    const canvas = document.createElement('canvas');
+    await QRCode.toCanvas(canvas, qrData, { width: 250, margin: 2 });
+    document.getElementById('voucherQrDisplay').appendChild(canvas);
+  } catch (e) {
+    document.getElementById('voucherQrDisplay').innerHTML = `<span style="color:red;">Generation failed</span>`;
+  }
+};
+document.getElementById('closeVoucherQrBtn').addEventListener('click', () => {
+  document.getElementById('voucherQrModal').classList.remove('show');
+});
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = '#8b7aa8'; });
+    tab.classList.add('active'); tab.style.background = '#2d2642'; tab.style.color = 'white';
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+  });
+});
+
+// Scanning
+document.getElementById('startScanBtn').addEventListener('click', async () => {
+  try {
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess, () => {}
+    );
+    document.getElementById('startScanBtn').style.display = 'none';
+    document.getElementById('stopScanBtn').style.display = 'block';
+    showToast('Please scan the QR code', 'info');
+  } catch (e) {
+    showToast('Unable to start camera', 'error');
+  }
+});
+document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+function stopScanner() {
+  if (html5QrCode?.isScanning) html5QrCode.stop().catch(() => {});
+  document.getElementById('startScanBtn').style.display = 'block';
+  document.getElementById('stopScanBtn').style.display = 'none';
+}
+
+// Scan success — supports payment codes and voucher redemption codes
+async function onScanSuccess(decodedText) {
+  if (isProcessing) return;
+  isProcessing = true;
+  stopScanner();
+  
+  try {
+    // Branch 1: regular payment code PAY:amount:merchantUID
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length < 3) throw new Error('Invalid format');
+      const amount = parseFloat(parts[1]);
+      const merchantUid = parts[2];
+      
+      if (!amount || amount <= 0) throw new Error('Invalid amount');
+      if (merchantUid === currentUser.uid) {
+        showToast('You cannot pay yourself', 'error');
+        return;
+      }
+      
+      const merchSnap = await get(ref(db, `merchants/${merchantUid}`));
+      const merchant = merchSnap.val();
+      if (!merchant) throw new Error('Merchant does not exist');
+      
+      pendingPayData = { 
+        type: 'payment', 
+        amount, 
+        merchantUid, 
+        merchantName: merchant.name || 'Merchant',
+        originalAmount: amount
+      };
+      
+      document.getElementById('payTypeText').textContent = 'Pay to merchant';
+      document.getElementById('payAmountText').textContent = formatMoney(amount);
+      document.getElementById('merchantInfoText').textContent = `Payee: ${pendingPayData.merchantName}`;
+      
+      // ✅ Check for an eligible voucher
+      selectedVoucher = null;
+      const eligibleVoucher = availableVouchers.find(v => v.minSpend <= amount);
+      if (eligibleVoucher) {
+        selectedVoucher = eligibleVoucher;
+        document.getElementById('voucherUseSection').style.display = 'block';
+        document.getElementById('voucherUseAmount').textContent = formatMoney(eligibleVoucher.amount);
+        document.getElementById('voucherUseDesc').textContent = 
+          eligibleVoucher.minSpend > 0 ? `Min. spend ${formatMoney(eligibleVoucher.minSpend)}` : 'No minimum spend';
+        document.getElementById('useVoucherCheck').checked = false;
+      } else {
+        document.getElementById('voucherUseSection').style.display = 'none';
+      }
+      
+      document.getElementById('payModal').classList.add('show');
+    }
+    else {
+      showToast('Unrecognized QR code', 'error');
+    }
+  } catch (e) {
+    showToast('Parse error: ' + e.message, 'error');
+  } finally {
+    isProcessing = false;
+  }
+}
+
+// Voucher discount checkbox change
+document.getElementById('useVoucherCheck').addEventListener('change', () => {
+  if (!pendingPayData) return;
+  if (document.getElementById('useVoucherCheck').checked && selectedVoucher) {
+    const finalAmount = Math.max(0, pendingPayData.originalAmount - selectedVoucher.amount);
+    pendingPayData.amount = finalAmount;
+    document.getElementById('payAmountText').textContent = formatMoney(finalAmount);
+    document.getElementById('payAmountText').style.textDecoration = 'line-through';
+    document.getElementById('payAmountText').style.opacity = '0.5';
+  } else {
+    pendingPayData.amount = pendingPayData.originalAmount;
+    document.getElementById('payAmountText').textContent = formatMoney(pendingPayData.originalAmount);
+    document.getElementById('payAmountText').style.textDecoration = 'none';
+    document.getElementById('payAmountText').style.opacity = '1';
+  }
+});
+
+// Close payment modal
+document.getElementById('closePayModalBtn').addEventListener('click', () => {
+  document.getElementById('payModal').classList.remove('show');
+  pendingPayData = null;
+  selectedVoucher = null;
+  document.getElementById('voucherUseSection').style.display = 'none';
+});
+
+// ✅ Confirm payment (with voucher discount logic)
+document.getElementById('confirmPayBtn').addEventListener('click', async () => {
+  if (!pendingPayData || isProcessing) return;
+  isProcessing = true;
+  const btn = document.getElementById('confirmPayBtn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+  
+  try {
+    const useVoucher = document.getElementById('useVoucherCheck').checked && selectedVoucher;
+    const payAmount = pendingPayData.amount;
+    
+    // If there is a cash portion, deduct from balance first
+    if (payAmount > 0) {
+      const userRef = ref(db, `users/${currentUser.uid}`);
+      const userSnap = await get(userRef);
+      const userData = userSnap.val() || {};
+      const currentBalance = Number(userData.balance || 0);
+      
+      if (currentBalance < payAmount) {
+        showToast('Insufficient balance', 'error');
+        return;
+      }
+      await update(userRef, { balance: currentBalance - payAmount });
+    }
+    
+    // Increase merchant balance
+    const merchantRef = ref(db, `merchants/${pendingPayData.merchantUid}`);
+    const merchSnap = await get(merchantRef);
+    const merchData = merchSnap.val() || {};
+    await update(merchantRef, { balance: Number(merchData.balance || 0) + payAmount });
+    
+    // Record payment history
+    await push(ref(db, `users/${currentUser.uid}/history`), {
+      type: 'payment',
+      amount: payAmount,
+      description: `Payment to ${pendingPayData.merchantName}${useVoucher ? ' (with voucher discount)' : ''}`,
+      merchantUid: pendingPayData.merchantUid,
+      createdAt: serverTimestamp()
+    });
+    await push(ref(db, `merchants/${pendingPayData.merchantUid}/history`), {
+      amount: payAmount,
+      description: `Payment from ${currentUser.displayName || 'User'}`,
+      customerUid: currentUser.uid,
+      createdAt: serverTimestamp()
+    });
+    
+    // ✅ Mark voucher as used
+    if (useVoucher && selectedVoucher) {
+      await update(ref(db, `users/${currentUser.uid}/vouchers/${selectedVoucher.code}`), {
+        used: true,
+        usedAt: serverTimestamp(),
+        merchantUid: pendingPayData.merchantUid
+      });
+      await push(ref(db, `users/${currentUser.uid}/history`), {
+        type: 'voucher_used',
+        amount: selectedVoucher.amount,
+        description: `Used voucher ${selectedVoucher.code} as discount`,
+        createdAt: serverTimestamp()
+      });
+    }
+    
+    showToast('✅ Payment successful', 'success');
+    document.getElementById('payModal').classList.remove('show');
+    pendingPayData = null;
+    selectedVoucher = null;
+    document.getElementById('voucherUseSection').style.display = 'none';
+    
+  } catch (e) {
+    showToast('Payment failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirm Payment';
+    isProcessing = false;
+  }
+});
+
+// Submit top-up request
+document.getElementById('submitTopup').addEventListener('click', async () => {
+  if (isProcessing) return;
+  const amount = parseFloat(document.getElementById('topupAmount').value);
+  if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+  
+  isProcessing = true;
+  const btn = document.getElementById('submitTopup');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  
+  try {
+    await push(ref(db, `users/${currentUser.uid}/topupRequests`), {
+      amount, status: 'pending', createdAt: serverTimestamp()
+    });
+    showToast('Request submitted, please wait for approval', 'success');
+    document.getElementById('topupAmount').value = '';
+  } catch (e) {
+    showToast('Submission failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Request';
+    isProcessing = false;
+  }
+});
+</script>
+</body>
+</html>
