@@ -166,7 +166,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     <p style="text-align:center; color:#666; margin-top:8px;" id="payTypeText">Pay to merchant</p>
     <div class="pay-amount" id="payAmountText">$0.00</div>
     <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:12px;" id="merchantInfoText"></p>
-    <!-- ✅ 移除了 voucherUseSection -->
     <button class="btn btn-success" id="confirmPayBtn">Generate Payment Code</button>
     <button class="btn" style="background:#eee; margin-top:8px;" id="closePayModalBtn">Cancel</button>
   </div>
@@ -578,7 +577,7 @@ async function onScanSuccess(decodedText) {
       document.getElementById('payAmountText').textContent = formatMoney(amount);
       document.getElementById('merchantInfoText').textContent = `Payee: ${pendingPayData.merchantName}`;
 
-      // 移除了礼券逻辑，直接显示付款弹窗
+      // 直接显示付款弹窗（无礼券抵扣选项）
       document.getElementById('payModal').classList.add('show');
     } else {
       showToast('Unrecognized QR code', 'error');
