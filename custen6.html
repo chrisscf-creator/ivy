@@ -32,12 +32,13 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
 .voucher-balance { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 16px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
 .scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 20px; overflow: hidden; }
 #reader { width: 100%; min-height: 350px; }
-.pay-modal, .voucher-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.pay-modal.show, .voucher-modal.show { display: flex; }
-.pay-content, .voucher-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
-.pay-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
-.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; }
+.voucher-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.voucher-modal.show { display: flex; }
+.voucher-content { background: white; border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; font-weight: 600;}
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: #c62828; color: white; }
+.toast.success { background: #2e7d32; color: white; }
 .tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
 .tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; }
 .tab.active { background: #2d2642; color: white; }
@@ -49,7 +50,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
 .voucher-expired { border-left-color: #c62828; opacity: 0.7; }
 .voucher-used { border-left-color: #888; opacity: 0.5; }
 #voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 260px; display: flex; align-items: center; justify-content: center; }
-#payQrDisplay { text-align: center; margin: 20px 0; min-height: 260px; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
@@ -127,7 +127,7 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
         <i class="fas fa-stop"></i> Stop Scanning
       </button>
       <p style="text-align:center; margin-top:12px; color:#666; font-size:0.9rem;">
-        Scan a merchant's payment QR code to complete payment
+        Scan a merchant's payment QR code to complete payment instantly
       </p>
     </div>
 
@@ -159,18 +159,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
   </div>
 </div>
 
-<!-- Payment confirmation modal (已移除礼券勾选功能) -->
-<div class="pay-modal" id="payModal">
-  <div class="pay-content">
-    <h3 style="text-align:center;">Confirm Payment</h3>
-    <p style="text-align:center; color:#666; margin-top:8px;" id="payTypeText">Pay to merchant</p>
-    <div class="pay-amount" id="payAmountText">$0.00</div>
-    <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:12px;" id="merchantInfoText"></p>
-    <button class="btn btn-success" id="confirmPayBtn">Generate Payment Code</button>
-    <button class="btn" style="background:#eee; margin-top:8px;" id="closePayModalBtn">Cancel</button>
-  </div>
-</div>
-
 <!-- Voucher redemption QR modal -->
 <div class="voucher-modal" id="voucherQrModal">
   <div class="voucher-content">
@@ -179,17 +167,6 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     <div id="voucherQrDisplay"></div>
     <p style="text-align:center; font-size:0.85rem; color:#888;" id="voucherCodeText"></p>
     <button class="btn" style="background:#eee; margin-top:16px;" id="closeVoucherQrBtn">Close</button>
-  </div>
-</div>
-
-<!-- ✅ Customer payment QR modal (merchant scans this) -->
-<div class="voucher-modal" id="payQrModal">
-  <div class="voucher-content">
-    <h3 style="text-align:center;">Show this to the merchant</h3>
-    <p style="text-align:center; color:#666; margin-top:8px;" id="payQrSummary"></p>
-    <div id="payQrDisplay"></div>
-    <p style="text-align:center; font-size:0.85rem; color:#888;" id="payQrCodeText"></p>
-    <button class="btn" style="background:#eee; margin-top:16px;" id="closePayQrBtn">Close</button>
   </div>
 </div>
 
@@ -223,14 +200,13 @@ const db = getDatabase(app);
 let currentUser = null;
 let unsubs = [];
 let html5QrCode = null;
-let pendingPayData = null;
 let isProcessing = false;
 
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast ${type} show`;
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 function showError(msg) {
   const e = document.getElementById('authError');
@@ -542,110 +518,86 @@ function stopScanner() {
   document.getElementById('stopScanBtn').style.display = 'none';
 }
 
-// 顾客扫商户码：PAY:金额:商户UID
+// ✅ 一扫码瞬间：直接扣款并记录，无需弹窗
 async function onScanSuccess(decodedText) {
   if (isProcessing) return;
   isProcessing = true;
-  stopScanner();
+  stopScanner(); // 扫到直接停止扫码
 
   try {
     if (decodedText.startsWith('PAY:')) {
       const parts = decodedText.split(':');
-      if (parts.length < 3) throw new Error('Invalid format');
+      if (parts.length < 3) throw new Error('Invalid QR format');
+      
       const amount = parseFloat(parts[1]);
       const merchantUid = parts[2];
 
       if (!amount || amount <= 0) throw new Error('Invalid amount');
       if (merchantUid === currentUser.uid) {
-        showToast('You cannot pay yourself', 'error');
-        return;
+        throw new Error('You cannot pay yourself');
       }
 
+      showToast('Processing payment...', 'info');
+
+      // 1. 获取最新顾客和商户数据
+      const userSnap = await get(ref(db, `users/${currentUser.uid}`));
+      const userData = userSnap.val() || {};
       const merchSnap = await get(ref(db, `merchants/${merchantUid}`));
-      const merchant = merchSnap.val();
-      if (!merchant) throw new Error('Merchant does not exist');
+      const merchData = merchSnap.val();
 
-      pendingPayData = {
-        type: 'payment',
-        amount,
-        merchantUid,
-        merchantName: merchant.name || 'Merchant',
-        originalAmount: amount
-      };
+      if (!merchData) throw new Error('Merchant not found');
+      
+      const currentBalance = Number(userData.balance || 0);
+      if (currentBalance < amount) {
+        throw new Error(`Insufficient balance. You have $${currentBalance.toFixed(2)}`);
+      }
 
-      document.getElementById('payTypeText').textContent = 'Pay to merchant';
-      document.getElementById('payAmountText').textContent = formatMoney(amount);
-      document.getElementById('merchantInfoText').textContent = `Payee: ${pendingPayData.merchantName}`;
+      // 2. 扣除顾客余额
+      await update(ref(db, `users/${currentUser.uid}`), {
+        balance: currentBalance - amount
+      });
 
-      // 直接显示付款弹窗（无礼券抵扣选项）
-      document.getElementById('payModal').classList.add('show');
+      // 3. 增加商户可提现余额 (现金部分)
+      const merchBalance = Number(merchData.balance || 0);
+      await update(ref(db, `merchants/${merchantUid}`), {
+        balance: merchBalance + amount
+      });
+
+      // 4. 写入顾客流水
+      await push(ref(db, `users/${currentUser.uid}/history`), {
+        type: 'payment', 
+        amount: amount, 
+        voucherAmount: 0, 
+        cashAmount: amount,
+        description: `Paid to ${merchData.name || 'Merchant'}`,
+        merchantUid: merchantUid, 
+        createdAt: serverTimestamp()
+      });
+
+      // 5. 写入商户流水
+      await push(ref(db, `merchants/${merchantUid}/history`), {
+        type: 'combined_payment',
+        amount: amount,
+        voucherAmount: 0,
+        cashAmount: amount,
+        description: `Payment from ${userData.name || 'Customer'}`,
+        customerUid: currentUser.uid, 
+        createdAt: serverTimestamp()
+      });
+
+      showToast(`✅ Paid $${amount.toFixed(2)} successfully!`, 'success');
+
+    } else if (decodedText.startsWith('VOUCHER:')) {
+      showToast('This is a voucher code. Please show it to the merchant to scan.', 'error');
     } else {
-      showToast('Unrecognized QR code', 'error');
+      throw new Error('Unrecognized QR code');
     }
   } catch (e) {
-    showToast('Parse error: ' + e.message, 'error');
+    showToast('Payment failed: ' + e.message, 'error');
   } finally {
     isProcessing = false;
   }
 }
-
-document.getElementById('closePayModalBtn').addEventListener('click', () => {
-  document.getElementById('payModal').classList.remove('show');
-  pendingPayData = null;
-});
-
-// ✅ 生成顾客付款码 PAY:总额:券额(0):现金额:UID:券码(空)
-document.getElementById('confirmPayBtn').addEventListener('click', async () => {
-  if (!pendingPayData || isProcessing) return;
-  isProcessing = true;
-  const btn = document.getElementById('confirmPayBtn');
-  btn.disabled = true;
-  btn.textContent = 'Generating...';
-
-  try {
-    const totalAmount = Number(pendingPayData.originalAmount);
-    const voucherAmount = 0;
-    const cashAmount = totalAmount;
-    const voucherCode = '';
-
-    // 余额预检（商户端会再次校验）
-    const userSnap = await get(ref(db, `users/${currentUser.uid}`));
-    const userData = userSnap.val() || {};
-    const currentBalance = Number(userData.balance || 0);
-    if (cashAmount > 0 && currentBalance < cashAmount) {
-      throw new Error('Insufficient balance');
-    }
-
-    // 保持原有的格式，券额和券码传空/0，以兼容商户端的解析逻辑
-    const qrData = `PAY:${totalAmount.toFixed(2)}:0.00:${cashAmount.toFixed(2)}:${currentUser.uid}:`;
-
-    // 关闭付款确认弹窗，弹出付款码
-    document.getElementById('payModal').classList.remove('show');
-    document.getElementById('payQrDisplay').innerHTML = '';
-    document.getElementById('payQrCodeText').textContent =
-      `Total ${formatMoney(totalAmount)}` +
-      ` · Balance ${formatMoney(cashAmount)}`;
-    document.getElementById('payQrSummary').textContent = pendingPayData.merchantName;
-    document.getElementById('payQrModal').classList.add('show');
-
-    const canvas = document.createElement('canvas');
-    await QRCode.toCanvas(canvas, qrData, { width: 250, margin: 2 });
-    document.getElementById('payQrDisplay').appendChild(canvas);
-
-    // 注意：顾客端不写库；等商户扫码确认后，余额 / history 均由商户端写入
-  } catch (e) {
-    showToast('Failed: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Generate Payment Code';
-    isProcessing = false;
-  }
-});
-
-document.getElementById('closePayQrBtn').addEventListener('click', () => {
-  document.getElementById('payQrModal').classList.remove('show');
-  pendingPayData = null;
-});
 
 document.getElementById('submitTopup').addEventListener('click', async () => {
   if (isProcessing) return;
