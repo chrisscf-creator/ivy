@@ -65,8 +65,8 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     
     <form id="loginForm">
       <div class="form-group">
-        <label>邮箱</label>
-        <input type="email" id="loginEmail" required>
+        <label>邮箱或手机号</label>
+        <input type="text" id="loginAccount" required placeholder="请输入邮箱或手机号">
       </div>
       <div class="form-group">
         <label>密码</label>
@@ -77,8 +77,8 @@ body { background: #f5f3f9; min-height: 100vh; padding: 20px; }
     
     <form id="registerForm" style="display:none;">
       <div class="form-group">
-        <label>邮箱</label>
-        <input type="email" id="regEmail" required>
+        <label>邮箱或手机号</label>
+        <input type="text" id="regAccount" required placeholder="请输入邮箱或手机号">
       </div>
       <div class="form-group">
         <label>姓名</label>
@@ -216,6 +216,7 @@ let pendingPayData = null;
 let isProcessing = false;
 let availableVouchers = [];
 
+// 工具函数
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -237,6 +238,22 @@ function formatTime(ts) {
 }
 function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
 
+// 判断输入的是邮箱还是手机号
+function processAccountInput(input) {
+  const value = input.trim();
+  // 简单的邮箱格式判断 (包含 @)
+  if (value.includes('@')) {
+    return { type: 'email', authEmail: value, raw: value };
+  } 
+  // 纯数字则视为手机号 (只保留数字)
+  const phone = value.replace(/\D/g, '');
+  if (phone.length >= 8) {
+    // 使用固定后缀来适配 Firebase 的 Email/Password 认证
+    return { type: 'phone', authEmail: `${phone}@phone.local`, raw: phone };
+  }
+  throw new Error('请输入有效的邮箱或手机号');
+}
+
 // 认证状态
 onAuthStateChanged(auth, user => {
   if (user) {
@@ -244,7 +261,17 @@ onAuthStateChanged(auth, user => {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').classList.add('active');
     document.getElementById('userNameDisplay').textContent = user.displayName || '用户';
-    document.getElementById('userEmailDisplay').textContent = user.email || '';
+    // 显示实际注册的账号（可能是内部虚拟邮箱，为了友好显示，从数据库拉取）
+    const userRef = ref(db, `users/${user.uid}`);
+    get(userRef).then(snap => {
+      const d = snap.val();
+      if (d && d.rawAccount) {
+         document.getElementById('userEmailDisplay').textContent = d.rawAccount;
+      } else {
+         document.getElementById('userEmailDisplay').textContent = user.email || '';
+      }
+    });
+    
     initUserData();
   } else {
     stopScanner();
@@ -288,12 +315,23 @@ document.getElementById('registerForm').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
   try {
-    const email = document.getElementById('regEmail').value.trim();
+    const accountInput = document.getElementById('regAccount').value;
+    const { type, authEmail, raw } = processAccountInput(accountInput);
     const name = document.getElementById('userName').value.trim();
     const pwd = document.getElementById('regPassword').value;
-    const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
+    
+    // 使用转换后的 authEmail 创建用户
+    const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
+    
+    // 存入数据库的信息
     await set(ref(db, `users/${userCred.user.uid}`), {
-      name, email, balance: 0, role: 'customer', createdAt: serverTimestamp()
+      name, 
+      email: type === 'email' ? raw : '',
+      phone: type === 'phone' ? raw : '',
+      rawAccount: raw, // 用于前端显示
+      balance: 0, 
+      role: 'customer', 
+      createdAt: serverTimestamp()
     });
     await userCred.user.updateProfile({ displayName: name });
     showToast('注册成功！', 'success');
@@ -315,9 +353,11 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 登录中...';
   try {
-    const email = document.getElementById('loginEmail').value.trim();
+    const accountInput = document.getElementById('loginAccount').value;
+    const { authEmail } = processAccountInput(accountInput);
     const pwd = document.getElementById('loginPassword').value;
-    await signInWithEmailAndPassword(auth, email, pwd);
+    
+    await signInWithEmailAndPassword(auth, authEmail, pwd);
     showToast('登录成功！', 'success');
   } catch (err) {
     showError('登录失败：' + err.message);
