@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>** Breadtalk **</title>
+    <style>
+        /* ================= 基础全局与主题变量 ================= */
+        :root {
+            /* 默认主题（Food Republic 品牌色：橙黄系） */
+            --primary-color: #f39c12;
+            --primary-hover: #e08e0b;
+            --primary-light: #fef6e7;
+            --primary-text: #b03a2e;
+            --bg-body: #f2f4f8;
+            --text-main: #1e2b3c;
+            --border-color: #e9edf4;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg-body);
+            padding: 16px;
+            margin: 0;
+            transition: background 0.3s;
+        }
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            background: white;
+            padding: 18px 16px 20px;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
+
+        /* ================= 顶部导航与用户信息 ================= */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h1 small {
+            font-size: 13px;
+            font-weight: 400;
+            color: #555;
+            background: #ecf0f1;
+            padding: 4px 14px;
+            border-radius: 30px;
+        }
+        .auth-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .user-email-display {
+            color: #666;
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        /* ================= 控制面板 ================= */
+        .control-panel {
+            background: #f8faff;
+            padding: 14px 18px;
+            border-radius: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            margin: 12px 0 18px 0;
+            border: 1px solid var(--border-color);
+        }
+        .form-group { display: flex; align-items: center; gap: 8px; }
+        .form-group label { font-weight: 600; font-size: 14px; color: var(--text-main); }
+        .form-group input[type="month"] {
+            padding: 8px 12px;
+            border: 1px solid #cdd5e0;
+            border-radius: 30px;
+            font-size: 14px;
+            background: white;
+            outline: none;
+            transition: 0.2s;
+        }
+        .form-group input[type="month"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2);
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* ================= 按钮通用 ================= */
+        button {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+            background: #eaeef3;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            letter-spacing: 0.3px;
+        }
+        button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-pdf { background: #c0392b; color: white; }
+        .btn-pdf:hover { background: #a93226; }
+        .btn-fullscreen { background: #8e44ad; color: white; }
+        .btn-fullscreen:hover { background: #7d3c98; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
+
+        /* ================= 员工配置区 ================= */
+        .staff-config {
+            background: #fbfdff;
+            border: 1px solid #e2e8f0;
+            padding: 14px 18px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .staff-config strong { font-size: 15px; color: var(--text-main); }
+        .staff-inputs { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 8px 0 4px; }
+        .staff-row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+        .staff-row span { font-weight: 500; color: #2c3e50; width: 60px; }
+        .staff-row input {
+            border: 1px solid #d0d7e2;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 13px;
+            width: 130px;
+            background: white;
+            transition: 0.2s;
+        }
+        .staff-row input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(243,156,18,0.15);
+        }
+        .rule-note {
+            font-size: 13px;
+            color: #2c3e50;
+            background: #f0f7fe;
+            padding: 10px 16px;
+            border-radius: 30px;
+            margin: 10px 0 0 0;
+            border-left: 4px solid var(--primary-color);
+            line-height: 1.5;
+        }
+        .rule-note b { color: #c0392b; }
+
+        /* ================= 表格 ================= */
+        .table-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid #e2e8f0; background: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 780px; }
+        th, td { border: 1px solid #d5dce6; padding: 6px 4px; text-align: center !important; vertical-align: middle !important; }
+        
+        /* 表头跟随主题 */
+        .header-brand {
+            background: var(--primary-light);
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--primary-text);
+        }
+        .header-title { background: var(--primary-light); font-weight: 600; font-size: 15px; color: var(--text-main); }
+        
+        .meta-label { background: #f2f6fc; font-weight: 600; }
+        .date-col { background: #f8faff; font-weight: 600; color: var(--text-main); min-width: 72px; }
+        .shift-select {
+            width: 100%; border: none; background: transparent; text-align: center;
+            font-weight: 600; font-size: 13px; cursor: pointer; appearance: none;
+            padding: 4px 0; border-radius: 20px; transition: 0.1s;
+        }
+        .shift-select:focus { outline: none; background: rgba(0,0,0,0.03); }
+
+        /* 班次颜色 */
+        .shift-M { background-color: #d4edda; color: #1e6f3f; }
+        .shift-MM { background-color: #fff3cd; color: #8a6d2b; }
+        .shift-A { background-color: #ffffff; color: var(--text-main); }
+        .shift-REST { background-color: #999999; color: #ffffff; }
+        .shift-AL { background-color: #fdebd0; color: #a04000; }
+        .shift-PH { background-color: #e8d5f5; color: #6c3483; }
+        .rest-auto { background-color: #999999 !important; color: #ffffff !important; }
+
+        .summary-row { background: #eef3fa; font-weight: 600; }
+        .summary-row td { padding: 8px 4px; }
+        .weekend-row { background-color: #f7f9fc; }
+
+        /* ================= 模态框 (登录/注册) ================= */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal {
+            background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal h2 { margin: 0 0 20px 0; color: var(--text-main); font-size: 20px; text-align: center; }
+        .modal .form-group { margin-bottom: 15px; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .modal .form-group input {
+            width: 100%; padding: 10px 14px; border: 1px solid #cdd5e0; border-radius: 12px; font-size: 14px; outline: none;
+        }
+        .modal .form-group input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2); }
+        .modal .btn-group { margin: 20px 0 10px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .modal .btn-group button { width: 100%; padding: 12px; border-radius: 12px; font-size: 15px; }
+        .modal-switch { text-align: center; font-size: 13px; color: #666; margin-top: 15px; }
+        .modal-switch a { color: var(--primary-color); text-decoration: none; font-weight: 600; cursor: pointer; }
+        .error-msg { color: #c0392b; font-size: 12px; margin-top: 5px; display: none; text-align: center; }
+
+        /* 全屏适配 */
+        :fullscreen .container { max-width: 100%; border-radius: 0; padding: 20px; }
+        
+        /* PDF 打印样式 */
+        @media print {
+            .control-panel, .staff-config, button, .auth-area, h1 small, .modal-overlay { display: none !important; }
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; border-radius: 0; padding: 10px; }
+            .shift-select { border: none !important; appearance: none; -webkit-appearance: none; }
+            .table-wrapper { border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 顶部导航 -->
+    <div class="top-nav">
+        <h1>
+            <span>** Breadtalk **</span>
+            <small>每周一休 · 固定日期</small>
+        </h1>
+        <div class="auth-area" id="auth-area">
+            <!-- 动态渲染登录/用户信息 -->
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="form-group">
+            <label>📅 月份</label>
+            <input type="month" id="schedule-month" value="2026-06">
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="generateSmartSchedule()">⚡ 智能排班</button>
+            <button class="btn-pdf" onclick="generatePDF()">📄 生成 PDF</button>
+            <button class="btn-fullscreen" id="fs-btn" onclick="toggleFullScreen()">⛶ 全屏</button>
+        </div>
+    </div>
+
+    <div class="staff-config">
+        <strong>👥 员工名单 (5人)</strong>
+        <div class="staff-inputs" id="staff-inputs-container">
+            <div class="staff-row"><span>1.</span> <input type="text" class="s-name" value="Elva Yang"></div>
+            <div class="staff-row"><span>2.</span> <input type="text" class="s-name" value="Leon Ng"></div>
+            <div class="staff-row"><span>3.</span> <input type="text" class="s-name" value="Christopher"></div>
+            <div class="staff-row"><span>4.</span> <input type="text" class="s-name" value="Yee Fei Lim"></div>
+            <div class="staff-row"><span>5.</span> <input type="text" class="s-name" value="Darlene"></div>
+        </div>
+        <div class="rule-note">
+            ✅ <b>固定休息</b>：员工1→周一休，员工2→周二休，员工3→周三休，员工4→周四休，员工5→周五休。<br>
+            ✅ 每月每个员工休息 <b>4天</b>（每个星期几的前4个日期），周六日全员上班。<br>
+            ✅ 班次分配：1人M，1人MM，2人A；若5人上班则2人MM，若4人上班则1人MM。
+        </div>
+    </div>
+
+    <div class="table-wrapper" id="schedule-table-container"></div>
+</div>
+
+<!-- 登录/注册模态框 -->
+<div class="modal-overlay" id="auth-modal">
+    <div class="modal">
+        <h2 id="modal-title">登录排班系统</h2>
+        <div class="form-group">
+            <label>邮箱地址</label>
+            <input type="email" id="auth-email" placeholder="example@foodrepublic.com">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="auth-password" placeholder="输入密码">
+        </div>
+        <div class="error-msg" id="auth-error"></div>
+        <div class="btn-group">
+            <button class="btn-primary" id="auth-submit-btn" onclick="handleAuthSubmit()">登录</button>
+            <button class="btn-outline" onclick="closeModal()">取消</button>
+        </div>
+        <div class="modal-switch">
+            <span id="switch-text">还没有账号？</span>
+            <a id="switch-link" onclick="toggleAuthMode()">立即注册</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================= 账号与主题逻辑 =================
+    let currentUser = null; // 当前登录的邮箱
+    let isRegisterMode = false;
+
+    // 预设主题色（Food Republic 橙黄色系）
+    const defaultTheme = {
+        primary: '#f39c12',
+        hover: '#e08e0b',
+        light: '#fef6e7',
+        text: '#b03a2e',
+        bg: '#f2f4f8',
+        border: '#e9edf4'
+    };
+
+    // 根据邮箱生成专属主题色（基于哈希）
+    function getThemeForEmail(email) {
+        if (!email) return defaultTheme;
+        
+        // 简单的字符串哈希
+        let hash = 0;
+        for (let i = 0; i < email.length; i++) {
+            hash = email.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        // 偏向暖色/橙黄色的色相 (hue: 20-50) 或 不同颜色代表不同账号
+        // 为了满足 "Food republic 主题跟随邮箱"，我们让主色调在橙黄、红、金之间变化
+        const hue = Math.abs(hash) % 60 + 10; // 10 ~ 70 (橙、黄、红)
+        
+        return {
+            primary: `hsl(${hue}, 85%, 50%)`,
+            hover: `hsl(${hue}, 85%, 40%)`,
+            light: `hsl(${hue}, 90%, 95%)`,
+            text: `hsl(${hue}, 80%, 30%)`,
+            bg: defaultTheme.bg,
+            border: defaultTheme.border
+        };
+    }
+
+    // 应用主题
+    function applyTheme(theme) {
+        const root = document.documentElement;
+        root.style.setProperty('--primary-color', theme.primary);
+        root.style.setProperty('--primary-hover', theme.hover);
+        root.style.setProperty('--primary-light', theme.light);
+        root.style.setProperty('--primary-text', theme.text);
+    }
+
+    // UI 渲染登录状态
+    function renderAuthUI() {
+        const authArea = document.getElementById('auth-area');
+        const savedUser = localStorage.getItem('fr_current_user');
+        
+        if (savedUser) {
+            currentUser = savedUser;
+            applyTheme(getThemeForEmail(currentUser));
+            authArea.innerHTML = `
+                <span class="user-email-display" title="当前登录账号">👤 ${currentUser}</span>
+                <button class="btn-outline" onclick="handleLogout()">退出登录</button>
+            `;
+        } else {
+            currentUser = null;
+            applyTheme(defaultTheme);
+            authArea.innerHTML = `
+                <button class="btn-outline" onclick="openModal('login')">登录 / 注册</button>
+            `;
+        }
+        // 重新加载当前账号的排班数据
+        generateSmartSchedule(true); 
+    }
+
+    // 打开模态框
+    function openModal(mode) {
+        isRegisterMode = (mode === 'register');
+        document.getElementById('modal-title').innerText = isRegisterMode ? '注册新账号' : '登录排班系统';
+        document.getElementById('auth-submit-btn').innerText = isRegisterMode ? '注册并登录' : '登录';
+        document.getElementById('switch-text').innerText = isRegisterMode ? '已有账号？' : '还没有账号？';
+        document.getElementById('switch-link').innerText = isRegisterMode ? '去登录' : '立即注册';
+        
+        document.getElementById('auth-email').value = '';
+        document.getElementById('auth-password').value = '';
+        document.getElementById('auth-error').style.display = 'none';
+        document.getElementById('auth-modal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('auth-modal').classList.remove('active');
+    }
+
+    function toggleAuthMode() {
+        openModal(isRegisterMode ? 'login' : 'register');
+    }
+
+    // 处理登录/注册提交
+    function handleAuthSubmit() {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value.trim();
+        const errorEl = document.getElementById('auth-error');
+        
+        if (!email || !password) {
+            errorEl.innerText = '邮箱和密码不能为空';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        // 获取已注册用户列表
+        let users = JSON.parse(localStorage.getItem('fr_users') || '{}');
+
+        if (isRegisterMode) {
+            // 注册逻辑
+            if (users[email]) {
+                errorEl.innerText = '该邮箱已被注册';
+                errorEl.style.display = 'block';
+                return;
+            }
+            users[email] = password;
+            localStorage.setItem('fr_users', JSON.stringify(users));
+            localStorage.setItem('fr_current_user', email);
+        } else {
+            // 登录逻辑
+            if (!users[email] || users[email] !== password) {
+                errorEl.innerText = '邮箱或密码错误';
+                errorEl.style.display = 'block';
+                return;
+            }
+            localStorage.setItem('fr_current_user', email);
+        }
+
+        closeModal();
+        renderAuthUI();
+    }
+
+    // 退出登录
+    function handleLogout() {
+        localStorage.removeItem('fr_current_user');
+        renderAuthUI();
+    }
+
+    // ================= 原有的排班系统逻辑 =================
+
+    // 全屏切换
+    function toggleFullScreen() {
+        const btn = document.getElementById('fs-btn');
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+            btn.textContent = "⛶ 退出";
+        } else {
+            document.exitFullscreen();
+            btn.textContent = "⛶ 全屏";
+        }
+    }
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fs-btn');
+        btn.textContent = document.fullscreenElement ? "⛶ 退出" : "⛶ 全屏";
+    });
+
+    function generatePDF() {
+        window.print();
+    }
+
+    function calculateMonthlyStats() {
+        const rows = document.querySelectorAll('.data-row');
+        const counts = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0, REST: 0, AL: 0, PH: 0 }));
+        rows.forEach(row => {
+            row.querySelectorAll('.shift-select').forEach((sel, idx) => {
+                if (counts[idx] && counts[idx][sel.value] !== undefined) counts[idx][sel.value]++;
+            });
+        });
+        for (let i = 0; i < 5; i++) {
+            if(document.getElementById(`stat-M-${i}`)) {
+                document.getElementById(`stat-M-${i}`).innerText = counts[i].M;
+                document.getElementById(`stat-MM-${i}`).innerText = counts[i].MM;
+                document.getElementById(`stat-A-${i}`).innerText = counts[i].A;
+                document.getElementById(`stat-OFF-${i}`).innerText = counts[i].REST + counts[i].AL + counts[i].PH;
+            }
+        }
+    }
+
+    function updateCellColor(sel) {
+        const td = sel.parentNode;
+        td.className = 'shift-' + sel.value;
+        calculateMonthlyStats();
+        // 可以将改动保存到 localStorage（与账号绑定）
+        saveRosterData();
+    }
+
+    // 保存当前排班数据到当前用户
+    function saveRosterData() {
+        if (!currentUser) return;
+        const table = document.querySelector('table');
+        if (!table) return;
+
+        const data = [];
+        table.querySelectorAll('.data-row').forEach(row => {
+            const shifts = [];
+            row.querySelectorAll('.shift-select').forEach(sel => {
+                shifts.push(sel.value);
+            });
+            data.push(shifts);
+        });
+        localStorage.setItem(`fr_roster_${currentUser}`, JSON.stringify(data));
+    }
+
+    // 核心排班
+    function generateSmartSchedule(isInit = false) {
+        // 如果不是初始化，且未登录，可以要求登录（这里暂不强制，以便预览）
+        // if (!currentUser && !isInit) { alert('建议登录以保存数据'); }
+
+        const names = Array.from(document.querySelectorAll('.s-name')).map(inp => inp.value.trim() || '未命名');
+        const monthVal = document.getElementById('schedule-month').value;
+        const [year, month] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        // 尝试读取当前登录用户的独立数据
+        let savedData = null;
+        if (currentUser) {
+            const raw = localStorage.getItem(`fr_roster_${currentUser}`);
+            if (raw) savedData = JSON.parse(raw);
+        }
+
+        // 读取已有的锁定 (AL/PH) —— REST将被重新分配
+        const locked = {};
+        const oldTable = document.querySelector('table');
+        if (oldTable && !isInit) {
+            oldTable.querySelectorAll('.data-row').forEach((row, rIdx) => {
+                row.querySelectorAll('.shift-select').forEach((sel, cIdx) => {
+                    const val = sel.value;
+                    if (['AL', 'PH'].includes(val)) {
+                        locked[`${rIdx+1}-${cIdx}`] = val;
+                    }
+                });
+            });
+        }
+
+        // 1. 生成休息日
+        const restDays = Array.from({ length: 5 }, () => []);
+        for (let empIdx = 0; empIdx < 5; empIdx++) {
+            const targetWeekday = empIdx + 1;
+            const dates = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month - 1, d);
+                if (date.getDay() === targetWeekday) dates.push(d);
+            }
+            restDays[empIdx] = dates.slice(0, 4);
+        }
+
+        // 2. 构建表格
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr>
+                <th colspan="2" class="header-brand">FOOD JUNCTION</th>
+                <th colspan="5" class="header-title">Duty Roster · ${monthVal}</th>
+            </tr>
+            <tr>
+                <td colspan="2" class="meta-label">Staff</td>
+                ${names.map(n => `<td><b>${n}</b></td>`).join('')}
+            </tr>
+        `;
+
+        const counter = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0 }));
+        let prevShift = new Array(5).fill('REST');
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month - 1, day);
+            const dow = dateObj.getDay();
+            const weekDay = weekdays[dow];
+
+            const row = document.createElement('tr');
+            row.className = 'data-row' + (dow === 0 || dow === 6 ? ' weekend-row' : '');
+            row.innerHTML = `<td class="date-col">${weekDay}</td><td class="date-col">${day}</td>`;
+
+            const assigned = new Array(5).fill(null);
+
+            // 分配休息
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (restDays[empIdx].includes(day)) assigned[empIdx] = 'REST';
+            }
+
+            // 应用锁定 (如果有历史数据，优先还原历史数据中的 AL/PH)
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                const key = `${day}-${empIdx}`;
+                if (locked[key]) assigned[empIdx] = locked[key];
+                // 如果当前用户有保存的排班历史，尝试还原
+                if (savedData && savedData[day-1] && savedData[day-1][empIdx]) {
+                    const savedVal = savedData[day-1][empIdx];
+                    if (['AL', 'PH'].includes(savedVal)) assigned[empIdx] = savedVal;
+                }
+            }
+
+            let available = [];
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (assigned[empIdx] === null) available.push(empIdx);
+            }
+
+            let requiredShifts = [];
+            const numWorking = available.length;
+            if (numWorking === 1) requiredShifts = ['A'];
+            else if (numWorking === 2) requiredShifts = ['M', 'A'];
+            else if (numWorking === 3) requiredShifts = ['M', 'A', 'A'];
+            else if (numWorking === 4) requiredShifts = ['M', 'MM', 'A', 'A'];
+            else if (numWorking === 5) requiredShifts = ['M', 'MM', 'MM', 'A', 'A'];
+
+            const sortedShifts = requiredShifts.slice().sort((a, b) => {
+                if (a === 'M') return -1;
+                if (b === 'M') return 1;
+                if (a === 'MM' && b === 'A') return -1;
+                if (a === 'A' && b === 'MM') return 1;
+                return 0;
+            });
+
+            sortedShifts.forEach(shift => {
+                let bestIdx = -1, minCount = Infinity;
+                const candidates = available.filter(idx => {
+                    if (shift === 'M' && prevShift[idx] === 'A') return false;
+                    return true;
+                });
+                if (candidates.length === 0) candidates.push(...available);
+                
+                candidates.forEach(idx => {
+                    if (counter[idx][shift] < minCount) {
+                        minCount = counter[idx][shift];
+                        bestIdx = idx;
+                    }
+                });
+                if (bestIdx !== -1) {
+                    assigned[bestIdx] = shift;
+                    counter[bestIdx][shift]++;
+                    available = available.filter(idx => idx !== bestIdx);
+                }
+            });
+
+            available.forEach(idx => {
+                assigned[idx] = 'A';
+                counter[idx]['A']++;
+            });
+
+            prevShift = [...assigned];
+
+            assigned.forEach((shift, empIdx) => {
+                const td = document.createElement('td');
+                const isRest = (shift === 'REST');
+                td.className = 'shift-' + shift + (isRest ? ' rest-auto' : '');
+                td.innerHTML = `
+                    <select class="shift-select" onchange="updateCellColor(this)">
+                        <option value="A" ${shift==='A'?'selected':''}>A</option>
+                        <option value="M" ${shift==='M'?'selected':''}>M</option>
+                        <option value="MM" ${shift==='MM'?'selected':''}>MM</option>
+                        <option value="REST" ${shift==='REST'?'selected':''}>REST</option>
+                        <option value="AL" ${shift==='AL'?'selected':''}>AL</option>
+                        <option value="PH" ${shift==='PH'?'selected':''}>PH</option>
+                    </select>
+                `;
+                row.appendChild(td);
+            });
+            table.appendChild(row);
+        }
+
+        // 统计行
+        const statTypes = [
+            { label: 'M 班合计', key: 'M' },
+            { label: 'MM 班合计', key: 'MM' },
+            { label: 'A 班合计', key: 'A' },
+            { label: '总休假/OFF', key: 'OFF' }
+        ];
+        statTypes.forEach(cfg => {
+            const tr = document.createElement('tr');
+            tr.className = 'summary-row';
+            tr.innerHTML = `<td colspan="2">${cfg.label}</td>` +
+                Array.from({ length: 5 }, (_, i) => `<td id="stat-${cfg.key}-${i}">0</td>`).join('');
+            table.appendChild(tr);
+        });
+
+        const container = document.getElementById('schedule-table-container');
+        container.innerHTML = '';
+        container.appendChild(table);
+        calculateMonthlyStats();
+    }
+
+    // 监听员工姓名修改，存为全局配置（所有账号共享名字，或者你可以改成账号独立）
+    document.querySelectorAll('.s-name').forEach(input => {
+        input.addEventListener('change', () => generateSmartSchedule());
+    });
+
+    // 初始化
+    window.onload = function() {
+        renderAuthUI(); // 渲染登录状态并初始化排班表
+    };
+</script>
+</body>
+</html>
