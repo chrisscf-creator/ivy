@@ -422,14 +422,18 @@
                 </span>
             </div>
             <div class="header-actions">
+                <!-- 登录 / 退出按钮（根据登录状态切换显示） -->
+                <button class="btn-icon primary" id="loginBtn" title="管理员登录">
+                    <i class="fas fa-sign-in-alt"></i> <span class="btn-label">登录</span>
+                </button>
+                <button class="btn-icon" id="logoutBtn" title="退出登录" style="display:none;">
+                    <i class="fas fa-sign-out-alt"></i> <span class="btn-label">退出</span>
+                </button>
                 <button class="btn-icon" id="themeToggle" title="切换主题">
                     <i class="fas fa-moon"></i> <span class="btn-label">主题</span>
                 </button>
                 <button class="btn-icon" id="refreshBtn" title="刷新数据">
                     <i class="fas fa-sync-alt"></i> <span class="btn-label">刷新</span>
-                </button>
-                <button class="btn-icon primary" id="logoutBtn" title="退出登录">
-                    <i class="fas fa-sign-out-alt"></i> <span class="btn-label">退出</span>
                 </button>
             </div>
         </header>
@@ -478,6 +482,10 @@
             const auth = firebase.auth();
             const db = firebase.database();
 
+            // ===== 写死的管理员账号密码 =====
+            const ADMIN_EMAIL = 'frvc@qq.com';
+            const ADMIN_PASSWORD = '123321';
+
             // ===== Task definitions (copy from user app) =====
             const TASKS = [
                 { id: 1, en: 'Booking Form Approved / Set up Group chat', zh: '预订表格批准 / 建立群聊', dept: 'Leasing' },
@@ -524,11 +532,13 @@
             const statTasksDone = document.getElementById('statTasksDone');
             const statAvgProgress = document.getElementById('statAvgProgress');
             const lastRefreshLabel = document.getElementById('lastRefreshLabel');
+            const loginBtn = document.getElementById('loginBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
 
             // ===== State =====
-            let allUsers = [];          // [{ uid, email, data: { doneStatus, doneTimestamps, outletName, ... } }]
+            let allUsers = [];
             let searchQuery = '';
-            let expandedUsers = new Set();   // UIDs of expanded cards
+            let expandedUsers = new Set();
             let theme = 'light';
             let currentAdmin = null;
 
@@ -553,6 +563,46 @@
             function toggleTheme() {
                 applyTheme(theme === 'light' ? 'dark' : 'light');
                 showToast(theme === 'light' ? '🌙 暗色模式' : '☀️ 亮色模式');
+            }
+
+            // ===== 登录状态切换 =====
+            function updateAuthUI(user) {
+                if (user) {
+                    // 已登录：显示退出，隐藏登录
+                    loginBtn.style.display = 'none';
+                    logoutBtn.style.display = 'inline-flex';
+                } else {
+                    // 未登录：显示登录，隐藏退出
+                    loginBtn.style.display = 'inline-flex';
+                    logoutBtn.style.display = 'none';
+                }
+            }
+
+            // ===== 登录弹窗 =====
+            function showLoginPrompt() {
+                // 简单使用 prompt 输入，避免额外弹窗组件
+                const email = prompt('请输入管理员邮箱：', ADMIN_EMAIL);
+                if (email === null) return; // 取消
+                if (email.trim() !== ADMIN_EMAIL) {
+                    showToast('❌ 邮箱不正确', 2500);
+                    return;
+                }
+                const password = prompt('请输入密码：', '');
+                if (password === null) return;
+                if (password !== ADMIN_PASSWORD) {
+                    showToast('❌ 密码不正确', 2500);
+                    return;
+                }
+
+                // 调用 Firebase Auth 登录
+                auth.signInWithEmailAndPassword(ADMIN_EMAIL, ADMIN_PASSWORD)
+                    .then(() => {
+                        showToast('✅ 登录成功');
+                    })
+                    .catch(err => {
+                        console.error('Login error:', err);
+                        showToast('❌ 登录失败: ' + err.message, 3000);
+                    });
             }
 
             // ===== Render helpers =====
@@ -697,7 +747,6 @@
                     header.addEventListener('click', function() {
                         const uid = this.dataset.uid;
                         const body = this.nextElementSibling;
-                        const card = this.closest('.user-card');
                         const arrow = this.querySelector('.arrow i');
 
                         this.classList.toggle('collapsed');
@@ -717,18 +766,15 @@
             // ===== Fetch all users from Firebase =====
             async function fetchAllUsers() {
                 try {
-                    // Fetch users from Realtime Database under /users
                     const snapshot = await db.ref('users').once('value');
                     const usersData = snapshot.val() || {};
 
                     const users = [];
                     const uids = Object.keys(usersData);
 
-                    // For each user, get their setupData and email
                     for (const uid of uids) {
                         const userObj = usersData[uid];
                         const setupData = userObj.setupData || {};
-                        // Try to get email from auth (only possible for current user) or from stored email
                         let email = userObj.email || '';
 
                         users.push({
@@ -749,33 +795,53 @@
 
             // ===== Init =====
             function init() {
-                // Theme
                 applyTheme('light');
+
                 document.getElementById('themeToggle').addEventListener('click', toggleTheme);
                 document.getElementById('refreshBtn').addEventListener('click', fetchAllUsers);
-                document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+                // 登录按钮
+                loginBtn.addEventListener('click', showLoginPrompt);
+
+                // 退出按钮
+                logoutBtn.addEventListener('click', function() {
+                    auth.signOut().then(() => {
+                        showToast('👋 已退出登录');
+                    }).catch(err => {
+                        showToast('❌ 退出失败: ' + err.message);
+                    });
+                });
 
                 searchInput.addEventListener('input', function() {
                     searchQuery = this.value;
                     render();
                 });
 
-                // Auth: require login (any authenticated user can access admin panel here)
+                // Auth 状态监听
                 auth.onAuthStateChanged(async function(user) {
+                    currentAdmin = user;
+                    updateAuthUI(user);
+
                     if (user) {
-                        currentAdmin = user;
-                        showToast('欢迎, ' + user.email);
+                        showToast('欢迎, ' + (user.email || '管理员'));
                         await fetchAllUsers();
                     } else {
-                        currentAdmin = null;
+                        // 未登录时清空并显示提示
+                        allUsers = [];
                         userListEl.innerHTML = `
                             <div class="empty-state">
                                 <i class="fas fa-lock"></i>
                                 <p>请先登录以查看管理面板</p>
-                                <p style="margin-top:8px;font-size:13px;">请返回用户页面登录，或使用 Firebase Auth 登录</p>
+                                <p style="margin-top:8px;font-size:13px;">点击右上角“登录”按钮，使用管理员账号进入</p>
                             </div>
                         `;
-                        showToast('🔐 未登录', 3000);
+                        // 更新统计为 0
+                        statUsers.textContent = '0';
+                        statTasksTotal.textContent = '0';
+                        statTasksDone.textContent = '0';
+                        statAvgProgress.textContent = '0';
+                        totalUsersDisplay.textContent = '0 位用户';
+                        lastRefreshLabel.textContent = '--';
                     }
                 });
             }
