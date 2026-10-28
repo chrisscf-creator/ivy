@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>** Breadtalk **</title>
+    <style>
+        /* ================= 基础全局与主题变量 ================= */
+        :root {
+            --primary-color: #f39c12;
+            --primary-hover: #e08e0b;
+            --primary-light: #fef6e7;
+            --primary-text: #b03a2e;
+            --bg-body: #f2f4f8;
+            --text-main: #1e2b3c;
+            --border-color: #e9edf4;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: var(--bg-body);
+            padding: 16px;
+            margin: 0;
+            transition: background 0.3s;
+        }
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            background: white;
+            padding: 18px 16px 20px;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
+
+        /* ================= 顶部导航与用户信息 ================= */
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h1 small {
+            font-size: 13px;
+            font-weight: 400;
+            color: #555;
+            background: #ecf0f1;
+            padding: 4px 14px;
+            border-radius: 30px;
+        }
+        .auth-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .user-email-display {
+            color: #666;
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        /* ================= 控制面板 ================= */
+        .control-panel {
+            background: #f8faff;
+            padding: 14px 18px;
+            border-radius: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 18px;
+            margin: 12px 0 18px 0;
+            border: 1px solid var(--border-color);
+        }
+        .form-group { display: flex; align-items: center; gap: 8px; }
+        .form-group label { font-weight: 600; font-size: 14px; color: var(--text-main); }
+        .form-group input[type="month"] {
+            padding: 8px 12px;
+            border: 1px solid #cdd5e0;
+            border-radius: 30px;
+            font-size: 14px;
+            background: white;
+            outline: none;
+            transition: 0.2s;
+        }
+        .form-group input[type="month"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2);
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* ================= 按钮通用 ================= */
+        button {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+            background: #eaeef3;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            letter-spacing: 0.3px;
+        }
+        button:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-save { background: #27ae60; color: white; }
+        .btn-save:hover { background: #219653; }
+        .btn-pdf { background: #c0392b; color: white; }
+        .btn-fullscreen { background: #8e44ad; color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
+        .btn-admin { background: #2c3e50; color: white; }
+        .btn-danger { background: #e74c3c; color: white; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .btn-view { background: #3498db; color: white; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+        /* ================= 员工配置区 ================= */
+        .staff-config {
+            background: #fbfdff;
+            border: 1px solid #e2e8f0;
+            padding: 14px 18px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .staff-config strong { font-size: 15px; color: var(--text-main); }
+        .staff-inputs { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 8px 0 4px; }
+        .staff-row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+        .staff-row span { font-weight: 500; color: #2c3e50; width: 60px; }
+        .staff-row input {
+            border: 1px solid #d0d7e2;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 13px;
+            width: 130px;
+            background: white;
+            transition: 0.2s;
+        }
+        .staff-row input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(243,156,18,0.15);
+        }
+        .rule-note {
+            font-size: 13px;
+            color: #2c3e50;
+            background: #f0f7fe;
+            padding: 10px 16px;
+            border-radius: 30px;
+            margin: 10px 0 0 0;
+            border-left: 4px solid var(--primary-color);
+            line-height: 1.5;
+        }
+        .rule-note b { color: #c0392b; }
+
+        /* ================= 表格 ================= */
+        .table-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid #e2e8f0; background: white; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 780px; }
+        th, td { border: 1px solid #d5dce6; padding: 6px 4px; text-align: center !important; vertical-align: middle !important; }
+        
+        .header-brand { background: var(--primary-light); font-weight: 700; font-size: 16px; color: var(--primary-text); }
+        .header-title { background: var(--primary-light); font-weight: 600; font-size: 15px; color: var(--text-main); }
+        .meta-label { background: #f2f6fc; font-weight: 600; }
+        .date-col { background: #f8faff; font-weight: 600; color: var(--text-main); min-width: 72px; }
+        .shift-select {
+            width: 100%; border: none; background: transparent; text-align: center;
+            font-weight: 600; font-size: 13px; cursor: pointer; appearance: none;
+            padding: 4px 0; border-radius: 20px; transition: 0.1s;
+        }
+        .shift-select:focus { outline: none; background: rgba(0,0,0,0.03); }
+
+        /* 班次颜色 */
+        .shift-M { background-color: #d4edda; color: #1e6f3f; }
+        .shift-MM { background-color: #fff3cd; color: #8a6d2b; }
+        .shift-A { background-color: #ffffff; color: var(--text-main); }
+        .shift-REST { background-color: #999999; color: #ffffff; }
+        .shift-AL { background-color: #fdebd0; color: #a04000; }
+        .shift-PH { background-color: #e8d5f5; color: #6c3483; }
+        .rest-auto { background-color: #999999 !important; color: #ffffff !important; }
+
+        .summary-row { background: #eef3fa; font-weight: 600; }
+        .summary-row td { padding: 8px 4px; }
+        .weekend-row { background-color: #f7f9fc; }
+
+        /* ================= 模态框通用 ================= */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal {
+            background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); transform: translateY(20px); transition: transform 0.3s;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal h2 { margin: 0 0 20px 0; color: var(--text-main); font-size: 20px; text-align: center; }
+        
+        .modal .form-group { margin-bottom: 15px; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .modal .form-group input {
+            width: 100%; padding: 10px 14px; border: 1px solid #cdd5e0; border-radius: 12px; font-size: 14px; outline: none;
+        }
+        .modal .form-group input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2); }
+        .modal .btn-group { margin: 20px 0 10px; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+        .modal .btn-group button { width: 100%; padding: 12px; border-radius: 12px; font-size: 15px; }
+        .modal-switch { text-align: center; font-size: 13px; color: #666; margin-top: 15px; }
+        .modal-switch a { color: var(--primary-color); text-decoration: none; font-weight: 600; cursor: pointer; }
+        .error-msg { color: #c0392b; font-size: 12px; margin-top: 5px; display: none; text-align: center; }
+
+        /* ================= Admin 后台专属样式 ================= */
+        .admin-modal { max-width: 900px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .admin-header h2 { margin: 0; color: #2c3e50; }
+        .account-list { display: flex; flex-direction: column; gap: 10px; }
+        .account-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f8faff; padding: 12px 18px; border-radius: 12px; border: 1px solid #e2e8f0;
+        }
+        .account-info { display: flex; flex-direction: column; gap: 4px; }
+        .account-email { font-weight: 600; color: #1e2b3c; font-size: 15px; }
+        .account-meta { font-size: 12px; color: #7f8c8d; }
+        .account-actions { display: flex; gap: 8px; }
+
+        .preview-modal { max-width: 900px; }
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .preview-table th, .preview-table td { border: 1px solid #d5dce6; padding: 6px; text-align: center; }
+        .preview-table th { background: #f2f6fc; }
+
+        /* 全屏适配 */
+        :fullscreen .container { max-width: 100%; border-radius: 0; padding: 20px; }
+        
+        /* PDF 打印样式 */
+        @media print {
+            .control-panel, .staff-config, button, .auth-area, h1 small, .modal-overlay { display: none !important; }
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; border-radius: 0; padding: 10px; }
+            .shift-select { border: none !important; appearance: none; -webkit-appearance: none; }
+            .table-wrapper { border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 顶部导航 -->
+    <div class="top-nav">
+        <h1>
+            <span>** Breadtalk **</span>
+            <small>每周一休 · 固定日期</small>
+        </h1>
+        <div class="auth-area" id="auth-area">
+            <span style="color:#999;">系统加载中...</span>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="form-group">
+            <label>📅 月份</label>
+            <input type="month" id="schedule-month" value="2026-06">
+        </div>
+        <div class="btn-group">
+            <button class="btn-primary" onclick="generateSmartSchedule()">⚡ 智能排班</button>
+            <button class="btn-save" id="save-btn" onclick="saveRosterData()" disabled>💾 保存排班</button>
+            <button class="btn-pdf" onclick="generatePDF()">📄 生成 PDF</button>
+            <button class="btn-fullscreen" id="fs-btn" onclick="toggleFullScreen()">⛶ 全屏</button>
+        </div>
+    </div>
+
+    <div class="staff-config">
+        <strong>👥 员工名单 (5人)</strong>
+        <div class="staff-inputs" id="staff-inputs-container">
+            <div class="staff-row"><span>1.</span> <input type="text" class="s-name" value="Elva Yang"></div>
+            <div class="staff-row"><span>2.</span> <input type="text" class="s-name" value="Leon Ng"></div>
+            <div class="staff-row"><span>3.</span> <input type="text" class="s-name" value="Christopher"></div>
+            <div class="staff-row"><span>4.</span> <input type="text" class="s-name" value="Yee Fei Lim"></div>
+            <div class="staff-row"><span>5.</span> <input type="text" class="s-name" value="Darlene"></div>
+        </div>
+        <div class="rule-note">
+            ✅ <b>固定休息</b>：员工1→周一休，员工2→周二休，员工3→周三休，员工4→周四休，员工5→周五休。<br>
+            ✅ 每月每个员工休息 <b>4天</b>（每个星期几的前4个日期），周六日全员上班。<br>
+            ✅ 班次分配：1人M，1人MM，2人A；若5人上班则2人MM，若4人上班则1人MM。
+        </div>
+    </div>
+
+    <div class="table-wrapper" id="schedule-table-container"></div>
+</div>
+
+<!-- 登录/注册模态框 -->
+<div class="modal-overlay" id="auth-modal">
+    <div class="modal">
+        <h2 id="modal-title">登录排班系统</h2>
+        <div class="form-group">
+            <label>邮箱地址</label>
+            <input type="email" id="auth-email" placeholder="example@breadtalk.com">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" id="auth-password" placeholder="输入密码 (至少6位)">
+        </div>
+        <div class="error-msg" id="auth-error"></div>
+        <div class="btn-group">
+            <button class="btn-primary" id="auth-submit-btn" onclick="handleAuthSubmit()">登录</button>
+            <button class="btn-outline" onclick="closeModal('auth-modal')">取消</button>
+        </div>
+        <div class="modal-switch">
+            <span id="switch-text">还没有账号？</span>
+            <a id="switch-link" onclick="toggleAuthMode()">立即注册</a>
+        </div>
+    </div>
+</div>
+
+<!-- Admin 管理后台模态框 -->
+<div class="modal-overlay" id="admin-modal">
+    <div class="modal admin-modal">
+        <div class="admin-header">
+            <h2>🛡️ 管理员控制台 (云端实时数据)</h2>
+            <button class="btn-outline" onclick="closeModal('admin-modal')">关闭</button>
+        </div>
+        <div id="admin-content" style="max-height: 60vh; overflow-y: auto;">
+            <p style="text-align:center; color:#999;">加载中...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Admin 查看排班预览模态框 -->
+<div class="modal-overlay" id="preview-modal">
+    <div class="modal preview-modal">
+        <div class="admin-header">
+            <h2 id="preview-title">排班预览</h2>
+            <button class="btn-outline" onclick="closeModal('preview-modal')">关闭</button>
+        </div>
+        <div class="table-wrapper" id="preview-content" style="max-height: 60vh; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<!-- ================= Firebase 模块化引入 ================= -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, remove, onValue } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB5i1olNlIneuvsfCtvpa6FE7v36j6iM94",
+        authDomain: "sgjb-transport.firebaseapp.com",
+        databaseURL: "https://sgjb-transport-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "sgjb-transport",
+        storageBucket: "sgjb-transport.firebasestorage.app",
+        messagingSenderId: "2473753409",
+        appId: "1:2473753409:web:7994f6ac5189276a79bfc0",
+        measurementId: "G-B6X14MYF92"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth(app);
+
+    const ADMIN_EMAIL = 'frops1997@gmail.com';
+    // 账号密码由 Firebase 管理，管理员密码请在 Firebase 后台自行设置（推荐 admin123）
+
+    let currentUser = null; 
+    let isRegisterMode = false;
+
+    const defaultTheme = {
+        primary: '#f39c12', hover: '#e08e0b', light: '#fef6e7', text: '#b03a2e', bg: '#f2f4f8', border: '#e9edf4'
+    };
+    const adminTheme = {
+        primary: '#2c3e50', hover: '#1a252f', light: '#ecf0f1', text: '#2c3e50', bg: '#f2f4f8', border: '#bdc3c7'
+    };
+
+    function getThemeForEmail(email) {
+        if (!email) return defaultTheme;
+        if (email === ADMIN_EMAIL) return adminTheme;
+        let hash = 0;
+        for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
+        const hue = Math.abs(hash) % 60 + 10;
+        return {
+            primary: `hsl(${hue}, 85%, 50%)`,
+            hover: `hsl(${hue}, 85%, 40%)`,
+            light: `hsl(${hue}, 90%, 95%)`,
+            text: `hsl(${hue}, 80%, 30%)`,
+            bg: defaultTheme.bg, border: defaultTheme.border
+        };
+    }
+
+    function applyTheme(theme) {
+        const root = document.documentElement;
+        root.style.setProperty('--primary-color', theme.primary);
+        root.style.setProperty('--primary-hover', theme.hover);
+        root.style.setProperty('--primary-light', theme.light);
+        root.style.setProperty('--primary-text', theme.text);
+    }
+
+    // 监听登录状态
+    onAuthStateChanged(auth, async (user) => {
+        const authArea = document.getElementById('auth-area');
+        const saveBtn = document.getElementById('save-btn');
+        
+        if (user) {
+            // 检查是否被封禁
+            const bannedSnapshot = await get(ref(db, `banned_users/${btoa(user.email)}`));
+            if (bannedSnapshot.exists()) {
+                alert('🚫 您的账号已被管理员删除，请联系管理员。');
+                await signOut(auth);
+                return;
+            }
+
+            currentUser = user.email;
+            applyTheme(getThemeForEmail(user.email));
+            
+            let adminBtn = '';
+            if (user.email === ADMIN_EMAIL) {
+                adminBtn = `<button class="btn-admin" onclick="openAdminPanel()">🛡️ 管理后台</button>`;
+                saveBtn.disabled = true;
+                saveBtn.innerText = "💾 管理员只读模式";
+            } else {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "💾 保存排班";
+            }
+
+            authArea.innerHTML = `
+                ${adminBtn}
+                <span class="user-email-display">👤 ${user.email}</span>
+                <button class="btn-outline" onclick="handleLogout()">退出登录</button>
+            `;
+            await loadUserData(user.email);
+        } else {
+            currentUser = null;
+            applyTheme(defaultTheme);
+            saveBtn.disabled = true;
+            saveBtn.innerText = "💾 请先登录再保存";
+            authArea.innerHTML = `<button class="btn-outline" onclick="openModal('login')">登录 / 注册</button>`;
+            renderTable(null, null);
+        }
+    });
+
+    // ================= 登录/注册 =================
+    window.openModal = function(mode) {
+        isRegisterMode = (mode === 'register');
+        document.getElementById('modal-title').innerText = isRegisterMode ? '注册新账号' : '登录排班系统';
+        document.getElementById('auth-submit-btn').innerText = isRegisterMode ? '注册并登录' : '登录';
+        document.getElementById('switch-text').innerText = isRegisterMode ? '已有账号？' : '还没有账号？';
+        document.getElementById('switch-link').innerText = isRegisterMode ? '去登录' : '立即注册';
+        document.getElementById('auth-email').value = '';
+        document.getElementById('auth-password').value = '';
+        document.getElementById('auth-error').style.display = 'none';
+        document.getElementById('auth-modal').classList.add('active');
+    };
+
+    window.closeModal = function(id) {
+        document.getElementById(id).classList.remove('active');
+    };
+
+    window.toggleAuthMode = function() {
+        openModal(isRegisterMode ? 'login' : 'register');
+    };
+
+    window.handleAuthSubmit = async function() {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value.trim();
+        const errorEl = document.getElementById('auth-error');
+        const submitBtn = document.getElementById('auth-submit-btn');
+
+        if (!email || !password) {
+            errorEl.innerText = '邮箱和密码不能为空';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (password.length < 6) {
+            errorEl.innerText = '密码至少需要6位';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        // 检查邮箱是否被拉黑 (注册时)
+        if (isRegisterMode) {
+            const bannedSnapshot = await get(ref(db, `banned_users/${btoa(email)}`));
+            if (bannedSnapshot.exists()) {
+                errorEl.innerText = '该邮箱已被系统封禁，无法注册。';
+                errorEl.style.display = 'block';
+                return;
+            }
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = '处理中...';
+
+        try {
+            if (email === ADMIN_EMAIL) {
+                await signInWithEmailAndPassword(auth, email, password);
+            } else if (isRegisterMode) {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } else {
+                await signInWithEmailAndPassword(auth, email, password);
+            }
+            closeModal('auth-modal');
+        } catch (error) {
+            console.error(error);
+            let msg = '操作失败，请重试';
+            if (error.code === 'auth/email-already-in-use') msg = '该邮箱已被注册';
+            else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') msg = '邮箱或密码错误';
+            else if (error.code === 'auth/invalid-email') msg = '邮箱格式不正确';
+            errorEl.innerText = msg;
+            errorEl.style.display = 'block';
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = isRegisterMode ? '注册并登录' : '登录';
+        }
+    };
+
+    window.handleLogout = async function() {
+        await signOut(auth);
+    };
+
+    // ================= 读取/保存 =================
+    async function loadUserData(email) {
+        if (!email) {
+            renderTable(null, null);
+            return;
+        }
+        try {
+            const snapshot = await get(ref(db, `users/${btoa(email)}`));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if (data.names && data.names.length === 5) {
+                    document.querySelectorAll('.s-name').forEach((inp, i) => inp.value = data.names[i]);
+                }
+                renderTable(data.month, data.shifts);
+            } else {
+                renderTable(null, null);
+            }
+        } catch (e) {
+            console.error("读取失败", e);
+            renderTable(null, null);
+        }
+    }
+
+    window.saveRosterData = async function() {
+        if (!currentUser || currentUser === ADMIN_EMAIL) return;
+        
+        const names = Array.from(document.querySelectorAll('.s-name')).map(el => el.value);
+        const monthVal = document.getElementById('schedule-month').value;
+        const shifts = [];
+        document.querySelectorAll('.data-row').forEach(row => {
+            const rowShifts = [];
+            row.querySelectorAll('.shift-select').forEach(sel => rowShifts.push(sel.value));
+            shifts.push(rowShifts);
+        });
+
+        const saveBtn = document.getElementById('save-btn');
+        saveBtn.disabled = true;
+        saveBtn.innerText = '⏳ 保存中...';
+
+        try {
+            await set(ref(db, `users/${btoa(currentUser)}`), {
+                email: currentUser,
+                month: monthVal,
+                names: names,
+                shifts: shifts,
+                lastUpdated: new Date().toISOString()
+            });
+            alert(`✅ [${currentUser}] 的排班已成功同步到云端！`);
+        } catch (e) {
+            console.error(e);
+            alert('❌ 保存失败，请检查 Firebase 权限。');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerText = '💾 保存排班';
+        }
+    };
+
+    // ================= 管理员后台 =================
+    window.openAdminPanel = function() {
+        if (currentUser !== ADMIN_EMAIL) return;
+        document.getElementById('admin-modal').classList.add('active');
+        loadAdminAccounts();
+    };
+
+    async function loadAdminAccounts() {
+        const container = document.getElementById('admin-content');
+        container.innerHTML = '<p style="text-align:center; color:#999;">加载云端数据中...</p>';
+        
+        try {
+            const snapshot = await get(ref(db, 'users'));
+            let html = '<div class="account-list">';
+            let hasUsers = false;
+
+            if (snapshot.exists()) {
+                const usersData = snapshot.val();
+                for (let key in usersData) {
+                    const u = usersData[key];
+                    hasUsers = true;
+                    const dateStr = u.lastUpdated ? new Date(u.lastUpdated).toLocaleString() : '未知';
+                    html += `
+                        <div class="account-item">
+                            <div class="account-info">
+                                <span class="account-email">${u.email}</span>
+                                <span class="account-meta">📅 月份: ${u.month || '无'} | 🕒 最后更新: ${dateStr}</span>
+                            </div>
+                            <div class="account-actions">
+                                <button class="btn-view" onclick="viewUserRoster('${key}', '${u.email}')">查看排班</button>
+                                <button class="btn-danger" onclick="deleteCloudAccount('${key}', '${u.email}')">删除账号</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            html += '</div>';
+            container.innerHTML = hasUsers ? html : '<p style="text-align:center; color:#999;">云端暂无员工数据</p>';
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = '<p style="text-align:center; color:#e74c3c;">获取数据失败，请检查 Firebase 规则。</p>';
+        }
+    }
+
+    window.viewUserRoster = async function(key, email) {
+        try {
+            const snapshot = await get(ref(db, `users/${key}`));
+            if (!snapshot.exists()) return;
+            const data = snapshot.val();
+            
+            document.getElementById('preview-title').innerText = `📅 ${email} 的排班预览 (${data.month})`;
+            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const [y, m] = data.month.split('-');
+            
+            let tableHtml = `
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">日期</th>
+                            ${data.names.map(n => `<th>${n}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            data.shifts.forEach((rowShifts, dayIdx) => {
+                const day = dayIdx + 1;
+                const dateObj = new Date(y, m - 1, day);
+                const weekDay = weekdays[dateObj.getDay()];
+                tableHtml += `<tr>
+                    <td style="background:#f8faff; font-weight:600;">${weekDay}</td>
+                    <td style="background:#f8faff;">${day}</td>`;
+                rowShifts.forEach(shift => {
+                    tableHtml += `<td class="shift-${shift}">${shift}</td>`;
+                });
+                tableHtml += `</tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            
+            document.getElementById('preview-content').innerHTML = tableHtml;
+            document.getElementById('preview-modal').classList.add('active');
+        } catch (e) {
+            alert('读取失败');
+        }
+    };
+
+    window.deleteCloudAccount = async function(key, email) {
+        if (!confirm(`⚠️ 确定要删除 [${email}] 的账号吗？\n(此操作将删除排班记录并将其列入黑名单，但无法直接移除 Firebase Auth 中的登录凭证。如需彻底删除，请前往 Firebase Console 删除该用户。)`)) return;
+        
+        try {
+            // 1. 删除排班数据
+            await remove(ref(db, `users/${key}`));
+            // 2. 将账号拉入黑名单
+            await set(ref(db, `banned_users/${key}`), { email: email, bannedAt: new Date().toISOString() });
+            
+            alert(`✅ [${email}] 的云端数据已删除，且已被加入黑名单。`);
+            loadAdminAccounts();
+        } catch (e) {
+            console.error(e);
+            alert('删除失败，请检查权限。');
+        }
+    };
+
+    // ================= 原有排班渲染 =================
+    window.toggleFullScreen = function() {
+        const btn = document.getElementById('fs-btn');
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+            btn.textContent = "⛶ 退出";
+        } else {
+            document.exitFullscreen();
+            btn.textContent = "⛶ 全屏";
+        }
+    };
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fs-btn');
+        btn.textContent = document.fullscreenElement ? "⛶ 退出" : "⛶ 全屏";
+    });
+
+    window.generatePDF = function() { window.print(); };
+
+    function calculateMonthlyStats() {
+        const rows = document.querySelectorAll('.data-row');
+        const counts = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0, REST: 0, AL: 0, PH: 0 }));
+        rows.forEach(row => {
+            row.querySelectorAll('.shift-select').forEach((sel, idx) => {
+                if (counts[idx] && counts[idx][sel.value] !== undefined) counts[idx][sel.value]++;
+            });
+        });
+        for (let i = 0; i < 5; i++) {
+            if(document.getElementById(`stat-M-${i}`)) {
+                document.getElementById(`stat-M-${i}`).innerText = counts[i].M;
+                document.getElementById(`stat-MM-${i}`).innerText = counts[i].MM;
+                document.getElementById(`stat-A-${i}`).innerText = counts[i].A;
+                document.getElementById(`stat-OFF-${i}`).innerText = counts[i].REST + counts[i].AL + counts[i].PH;
+            }
+        }
+    }
+
+    window.updateCellColor = function(sel) {
+        const td = sel.parentNode;
+        td.className = 'shift-' + sel.value;
+        calculateMonthlyStats();
+    };
+
+    window.generateSmartSchedule = function() {
+        renderTable(null, null, true);
+    };
+
+    function renderTable(savedMonth, savedShifts, isForceRegenerate = false) {
+        const names = Array.from(document.querySelectorAll('.s-name')).map(inp => inp.value.trim() || '未命名');
+        const monthVal = document.getElementById('schedule-month').value;
+        const [year, month] = monthVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        let actualSavedShifts = null;
+        if (!isForceRegenerate && savedShifts && savedMonth === monthVal) {
+            actualSavedShifts = savedShifts;
+        }
+
+        const locked = {};
+        const oldTable = document.querySelector('table');
+        if (oldTable && isForceRegenerate) {
+            oldTable.querySelectorAll('.data-row').forEach((row, rIdx) => {
+                row.querySelectorAll('.shift-select').forEach((sel, cIdx) => {
+                    const val = sel.value;
+                    if (['AL', 'PH'].includes(val)) locked[`${rIdx+1}-${cIdx}`] = val;
+                });
+            });
+        }
+
+        const restDays = Array.from({ length: 5 }, () => []);
+        for (let empIdx = 0; empIdx < 5; empIdx++) {
+            const targetWeekday = empIdx + 1;
+            const dates = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month - 1, d);
+                if (date.getDay() === targetWeekday) dates.push(d);
+            }
+            restDays[empIdx] = dates.slice(0, 4);
+        }
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr>
+                <th colspan="2" class="header-brand">BREADTALK</th>
+                <th colspan="5" class="header-title">Duty Roster · ${monthVal}</th>
+            </tr>
+            <tr>
+                <td colspan="2" class="meta-label">Staff</td>
+                ${names.map(n => `<td><b>${n}</b></td>`).join('')}
+            </tr>
+        `;
+
+        const counter = Array.from({ length: 5 }, () => ({ M: 0, MM: 0, A: 0 }));
+        let prevShift = new Array(5).fill('REST');
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateObj = new Date(year, month - 1, day);
+            const dow = dateObj.getDay();
+            const weekDay = weekdays[dow];
+
+            const row = document.createElement('tr');
+            row.className = 'data-row' + (dow === 0 || dow === 6 ? ' weekend-row' : '');
+            row.innerHTML = `<td class="date-col">${weekDay}</td><td class="date-col">${day}</td>`;
+
+            const assigned = new Array(5).fill(null);
+
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (restDays[empIdx].includes(day)) assigned[empIdx] = 'REST';
+            }
+
+            if (actualSavedShifts && actualSavedShifts[day-1]) {
+                for (let empIdx = 0; empIdx < 5; empIdx++) {
+                    assigned[empIdx] = actualSavedShifts[day-1][empIdx];
+                }
+            } else {
+                for (let empIdx = 0; empIdx < 5; empIdx++) {
+                    const key = `${day}-${empIdx}`;
+                    if (locked[key]) assigned[empIdx] = locked[key];
+                }
+            }
+
+            let available = [];
+            for (let empIdx = 0; empIdx < 5; empIdx++) {
+                if (assigned[empIdx] === null) available.push(empIdx);
+            }
+
+            if (!actualSavedShifts) {
+                let requiredShifts = [];
+                const numWorking = available.length;
+                if (numWorking === 1) requiredShifts = ['A'];
+                else if (numWorking === 2) requiredShifts = ['M', 'A'];
+                else if (numWorking === 3) requiredShifts = ['M', 'A', 'A'];
+                else if (numWorking === 4) requiredShifts = ['M', 'MM', 'A', 'A'];
+                else if (numWorking === 5) requiredShifts = ['M', 'MM', 'MM', 'A', 'A'];
+
+                const sortedShifts = requiredShifts.slice().sort((a, b) => {
+                    if (a === 'M') return -1;
+                    if (b === 'M') return 1;
+                    if (a === 'MM' && b === 'A') return -1;
+                    if (a === 'A' && b === 'MM') return 1;
+                    return 0;
+                });
+
+                sortedShifts.forEach(shift => {
+                    let bestIdx = -1, minCount = Infinity;
+                    const candidates = available.filter(idx => {
+                        if (shift === 'M' && prevShift[idx] === 'A') return false;
+                        return true;
+                    });
+                    if (candidates.length === 0) candidates.push(...available);
+                    
+                    candidates.forEach(idx => {
+                        if (counter[idx][shift] < minCount) {
+                            minCount = counter[idx][shift];
+                            bestIdx = idx;
+                        }
+                    });
+                    if (bestIdx !== -1) {
+                        assigned[bestIdx] = shift;
+                        counter[bestIdx][shift]++;
+                        available = available.filter(idx => idx !== bestIdx);
+                    }
+                });
+
+                available.forEach(idx => {
+                    assigned[idx] = 'A';
+                    counter[idx]['A']++;
+                });
+            }
+
+            prevShift = [...assigned];
+
+            assigned.forEach((shift, empIdx) => {
+                const td = document.createElement('td');
+                const isRest = (shift === 'REST');
+                td.className = 'shift-' + shift + (isRest ? ' rest-auto' : '');
+                
+                const isAdmin = (currentUser === ADMIN_EMAIL);
+                const disabledAttr = isAdmin ? 'disabled' : '';
+                const cursorStyle = isAdmin ? 'cursor: not-allowed; opacity: 0.8;' : '';
+
+                td.innerHTML = `
+                    <select class="shift-select" style="${cursorStyle}" ${disabledAttr} onchange="updateCellColor(this)">
+                        <option value="A" ${shift==='A'?'selected':''}>A</option>
+                        <option value="M" ${shift==='M'?'selected':''}>M</option>
+                        <option value="MM" ${shift==='MM'?'selected':''}>MM</option>
+                        <option value="REST" ${shift==='REST'?'selected':''}>REST</option>
+                        <option value="AL" ${shift==='AL'?'selected':''}>AL</option>
+                        <option value="PH" ${shift==='PH'?'selected':''}>PH</option>
+                    </select>
+                `;
+                row.appendChild(td);
+            });
+            table.appendChild(row);
+        }
+
+        const statTypes = [
+            { label: 'M 班合计', key: 'M' },
+            { label: 'MM 班合计', key: 'MM' },
+            { label: 'A 班合计', key: 'A' },
+            { label: '总休假/OFF', key: 'OFF' }
+        ];
+        statTypes.forEach(cfg => {
+            const tr = document.createElement('tr');
+            tr.className = 'summary-row';
+            tr.innerHTML = `<td colspan="2">${cfg.label}</td>` +
+                Array.from({ length: 5 }, (_, i) => `<td id="stat-${cfg.key}-${i}">0</td>`).join('');
+            table.appendChild(tr);
+        });
+
+        const container = document.getElementById('schedule-table-container');
+        container.innerHTML = '';
+        container.appendChild(table);
+        calculateMonthlyStats();
+    }
+
+    // 监听员工姓名修改
+    document.querySelectorAll('.s-name').forEach(input => {
+        input.addEventListener('change', () => renderTable(null, null, false));
+    });
+
+</script>
+</body>
+</html>
