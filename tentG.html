@@ -692,11 +692,19 @@ document.getElementById('doDeleteBtn').addEventListener('click', async () => {
     isProcessing = false;
   }
 });
+ const qrData = JSON.stringify({
+    type: 'merchant',
+    merchantId: currentMerchant.uid,
+    amount: amount,
+    orderId: 'ORD' + Date.now()
+  });
+  const canvas = document.getElementById('qrCanvas');
 
-// 生成收款码
-document.getElementById('generateQrBtn').addEventListener('click', async () => {
-  const amount = parseFloat(document.getElementById('amountInput').value);
-  if (!amount || amount <= 0) { showToast('请输入有效金额', 'error'); return; }
+  try {
+    await QRCode.toCanvas(canvas, qrData, { width: 240, margin: 3 });
+    ...
+  }
+});
 
   const qrData = `PAY:${amount}:${currentMerchant.uid}`;
   const canvas = document.getElementById('qrCanvas');
