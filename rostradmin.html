@@ -422,11 +422,15 @@
         
         if (user) {
             // 检查是否被封禁
-            const bannedSnapshot = await get(ref(db, `banned_users/${btoa(user.email)}`));
-            if (bannedSnapshot.exists()) {
-                alert('🚫 您的账号已被管理员删除，请联系管理员。');
-                await signOut(auth);
-                return;
+            try {
+                const bannedSnapshot = await get(ref(db, `banned_users/${btoa(user.email)}`));
+                if (bannedSnapshot.exists()) {
+                    alert('🚫 您的账号已被管理员删除，请联系管理员。');
+                    await signOut(auth);
+                    return;
+                }
+            } catch (e) {
+                console.warn("权限或网络问题，无法检查封禁状态", e);
             }
 
             currentUser = user.email;
@@ -481,49 +485,61 @@
 
     window.handleAuthSubmit = async function() {
         const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value.trim();
+        const password = document.getElementById('auth-password').value.trim(); // trim() 去除了首尾空格
         const errorEl = document.getElementById('auth-error');
         const submitBtn = document.getElementById('auth-submit-btn');
 
+        // 1. 基础校验
         if (!email || !password) {
             errorEl.innerText = '邮箱和密码不能为空';
             errorEl.style.display = 'block';
             return;
         }
         if (password.length < 6) {
-            errorEl.innerText = '密码至少需要6位';
+            errorEl.innerText = '密码至少需要6位 (当前输入了 ' + password.length + ' 位)';
             errorEl.style.display = 'block';
             return;
-        }
-
-        // 检查邮箱是否被拉黑 (注册时)
-        if (isRegisterMode) {
-            const bannedSnapshot = await get(ref(db, `banned_users/${btoa(email)}`));
-            if (bannedSnapshot.exists()) {
-                errorEl.innerText = '该邮箱已被系统封禁，无法注册。';
-                errorEl.style.display = 'block';
-                return;
-            }
         }
 
         submitBtn.disabled = true;
         submitBtn.innerText = '处理中...';
 
         try {
+            // 2. 注册模式下检查黑名单 (防止网络卡死，加个超时)
+            if (isRegisterMode) {
+                try {
+                    const bannedSnapshot = await get(ref(db, `banned_users/${btoa(email)}`));
+                    if (bannedSnapshot.exists()) {
+                        throw new Error('该邮箱已被系统封禁，无法注册。');
+                    }
+                } catch (err) {
+                    // 如果因为权限问题读取不到黑名单，也不应该阻断注册（可忽略）
+                    console.warn("黑名单查询异常，跳过该检查", err);
+                }
+            }
+
+            // 3. 调用 Firebase 注册或登录
             if (email === ADMIN_EMAIL) {
+                if (isRegisterMode) throw new Error('管理员账号不支持在此注册');
                 await signInWithEmailAndPassword(auth, email, password);
             } else if (isRegisterMode) {
+                // 这里如果失败，大概率是 Firebase 后台未开启“电子邮件/密码”登录方式
                 await createUserWithEmailAndPassword(auth, email, password);
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
             closeModal('auth-modal');
         } catch (error) {
-            console.error(error);
-            let msg = '操作失败，请重试';
-            if (error.code === 'auth/email-already-in-use') msg = '该邮箱已被注册';
+            console.error("认证失败:", error);
+            let msg = error.message || '操作失败，请重试';
+            
+            // 常见 Firebase 错误翻译
+            if (error.code === 'auth/email-already-in-use') msg = '该邮箱已被注册，请直接登录';
             else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') msg = '邮箱或密码错误';
             else if (error.code === 'auth/invalid-email') msg = '邮箱格式不正确';
+            else if (error.code === 'auth/weak-password') msg = '密码强度太弱，请设置至少6位密码';
+            else if (error.code === 'auth/operation-not-allowed') msg = '管理员未在 Firebase 后台开启"邮箱/密码"登录方式！';
+            
             errorEl.innerText = msg;
             errorEl.style.display = 'block';
         } finally {
