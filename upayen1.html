@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Customer - Scan to Pay & Vouchers</title>
+<title>Customer App - Scan to Pay & Vouchers</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
@@ -28,15 +28,15 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
 .btn-sm { width: auto; padding: 8px 16px; font-size: 0.85rem; margin: 0; border-radius: 8px; }
 
-/* Errors & toasts */
+/* Errors & toast */
 .error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 0.9rem; }
 .error.show { display: block; }
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Tabs navigation */
+/* Auth tabs */
 .tabs-nav { display: flex; background: #f0edf5; border-radius: 14px; padding: 4px; margin-bottom: 24px; }
-.tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; }
+.tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
 .tab-btn.active { background: white; color: #2d2642; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
 /* Main app */
@@ -56,11 +56,11 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .tab-pane.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Card list */
+/* Cards */
 .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); border: 1px solid #f0edf5; }
 .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 0.95rem; }
 
-/* Scanner box */
+/* Scanner */
 .scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow: hidden; }
 #reader { width: 100%; min-height: 300px; border-radius: 8px; overflow: hidden; }
 
@@ -71,17 +71,17 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .pay-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
 
-/* Voucher specific styles */
+/* Voucher styles */
 .voucher-card { border-left: 4px solid #2e7d32; }
 .voucher-expired { border-left-color: #c62828; opacity: 0.7; }
 .voucher-used { border-left-color: #888; opacity: 0.5; }
 #voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; }
 
-/* reCAPTCHA container: keep it visible and centered */
-#recaptcha-container { 
-  margin-top: 16px; 
-  min-height: 78px; 
-  display: flex; 
+/* reCAPTCHA container */
+#recaptcha-container {
+  margin-top: 16px;
+  min-height: 78px;
+  display: flex;
   justify-content: center;
   border: 1px dashed #ccc;
   border-radius: 8px;
@@ -91,20 +91,19 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 </head>
 <body>
 <div class="container">
-  
-  <!-- ================= Login / Registration ================= -->
+
+  <!-- ================= Auth Screen ================= -->
   <div class="auth-card" id="authScreen">
     <h2><i class="fas fa-shield-alt"></i> Welcome Back</h2>
     <div class="error" id="authError"></div>
-    
-    <!-- Top tab switcher -->
+
     <div class="tabs-nav">
-      <button class="tab-btn active" id="tabPwdLogin">Password Login</button>
-      <button class="tab-btn" id="tabPhoneLogin">Phone Login</button>
-      <button class="tab-btn" id="tabRegister">Register</button>
+      <button class="tab-btn active" id="tabPwdLogin">Password</button>
+      <button class="tab-btn" id="tabPhoneLogin">Phone (OTP)</button>
+      <button class="tab-btn" id="tabRegister">Sign Up</button>
     </div>
-    
-    <!-- 1. Password login panel -->
+
+    <!-- 1. Password login -->
     <form id="loginForm">
       <div class="form-group">
         <label>Email or Phone</label>
@@ -114,46 +113,45 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
         <label>Password</label>
         <input type="password" id="loginPassword" required placeholder="Enter your password">
       </div>
-      <button type="submit" class="btn btn-primary">Login Now</button>
+      <button type="submit" class="btn btn-primary">Sign In</button>
     </form>
-    
-    <!-- 2. Phone OTP login panel -->
+
+    <!-- 2. Phone OTP login -->
     <div id="phoneLoginPanel" style="display:none;">
       <div class="form-group">
-        <label>Phone number (with country code, e.g. +65)</label>
-        <input type="tel" id="phoneNumberInput" placeholder="+65">
+        <label>Phone Number (with country code, e.g. +6581234567)</label>
+        <input type="tel" id="phoneNumberInput" placeholder="+65 8123 4567">
       </div>
       <button class="btn btn-primary" id="sendOtpBtn" type="button">Send Verification Code</button>
 
-      <!-- reCAPTCHA container - always present -->
       <div id="recaptcha-container"></div>
 
       <div id="otpInputGroup" style="display:none; margin-top:16px;">
         <div class="form-group">
-          <label>SMS Verification Code</label>
+          <label>SMS Code</label>
           <input type="text" id="otpCodeInput" placeholder="Enter 6-digit code" autocomplete="one-time-code">
         </div>
-        <button class="btn btn-success" id="verifyOtpBtn" type="button">Verify & Login</button>
+        <button class="btn btn-success" id="verifyOtpBtn" type="button">Verify & Sign In</button>
       </div>
-      
+
       <p style="font-size:0.75rem; color:#999; margin-top:12px; text-align:center;">
-        By logging in, you agree to receive verification SMS. Standard message rates may apply.
+        By signing in you agree to receive verification SMS. Standard message rates may apply.
       </p>
     </div>
 
-    <!-- 3. Registration panel -->
+    <!-- 3. Register -->
     <form id="registerForm" style="display:none;">
       <div class="form-group">
         <label>Email or Phone</label>
-        <input type="text" id="regAccount" required placeholder="Enter email or phone number">
+        <input type="text" id="regAccount" required placeholder="Enter email or phone">
       </div>
       <div class="form-group">
         <label>Your Name</label>
-        <input type="text" id="regUserName" required placeholder="What should we call you?">
+        <input type="text" id="regUserName" required placeholder="How should we call you?">
       </div>
       <div class="form-group">
-        <label>Set Password (at least 6 characters)</label>
-        <input type="password" id="regPassword" required minlength="6" placeholder="Enter password">
+        <label>Password (min 6 characters)</label>
+        <input type="password" id="regPassword" required minlength="6" placeholder="Create a password">
       </div>
       <button type="submit" class="btn btn-primary">Create Account</button>
     </form>
@@ -161,32 +159,30 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 
   <!-- ================= Main App ================= -->
   <div class="main-app" id="mainApp">
-    <!-- Header with user info -->
     <div class="header">
-      <h3 style="font-size:1.2rem; margin-bottom:4px;">Hello, <span id="userNameDisplay">User</span></h3>
+      <h3 style="font-size:1.2rem; margin-bottom:4px;">Hi, <span id="userNameDisplay">User</span></h3>
       <p style="opacity:0.7; font-size:0.85rem;" id="userEmailDisplay"></p>
-      
+
       <div class="balance" id="balanceDisplay">$0.00</div>
-      
+
       <div class="voucher-balance">
         <span><i class="fas fa-ticket-alt"></i> Total Voucher Value</span>
         <span style="font-weight:bold; font-size:1.1rem;" id="voucherBalanceDisplay">$0.00</span>
       </div>
-      
+
       <button class="btn-sm" style="position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.15); color:white; border:none;" id="logoutBtn">
-        <i class="fas fa-sign-out-alt"></i> Logout
+        <i class="fas fa-sign-out-alt"></i> Sign Out
       </button>
     </div>
-    
-    <!-- Main tab navigation -->
+
     <div class="main-tabs">
       <button class="main-tab active" data-pane="scan">Scan to Pay</button>
       <button class="main-tab" data-pane="vouchers">My Vouchers</button>
-      <button class="main-tab" data-pane="history">Transactions</button>
-      <button class="main-tab" data-pane="topup">Top-up Request</button>
+      <button class="main-tab" data-pane="history">History</button>
+      <button class="main-tab" data-pane="topup">Top Up</button>
     </div>
-    
-    <!-- 1. Scan to Pay -->
+
+    <!-- 1. Scan to pay -->
     <div class="tab-pane active" id="pane-scan">
       <div class="scanner-box">
         <div id="reader"></div>
@@ -195,29 +191,29 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
         <i class="fas fa-qrcode"></i> Start Camera Scan
       </button>
       <button class="btn" style="background:#e0e0e0; display:none; color:#333;" id="stopScanBtn">
-        <i class="fas fa-stop"></i> Stop Scan
+        <i class="fas fa-stop"></i> Stop Scanning
       </button>
       <p style="text-align:center; margin-top:16px; color:#888; font-size:0.9rem;">
-        Scan merchant QR code to pay
+        Scan a merchant payment QR code to pay
       </p>
     </div>
-    
-    <!-- 2. My Vouchers -->
+
+    <!-- 2. My vouchers -->
     <div class="tab-pane" id="pane-vouchers">
       <div id="voucherList"></div>
     </div>
-    
-    <!-- 3. Transaction History -->
+
+    <!-- 3. Transaction history -->
     <div class="tab-pane" id="pane-history">
       <div id="historyList"></div>
     </div>
-    
-    <!-- 4. Top-up Request -->
+
+    <!-- 4. Top-up -->
     <div class="tab-pane" id="pane-topup">
       <div class="card">
-        <h4 style="margin-bottom:16px; color:#2d2642;">Request Top-up</h4>
+        <h4 style="margin-bottom:16px; color:#2d2642;">Request Top-Up</h4>
         <div class="form-group">
-          <label>Amount ($)</label>
+          <label>Top-up Amount ($)</label>
           <input type="number" id="topupAmount" min="1" step="0.01" placeholder="e.g. 100">
         </div>
         <button class="btn btn-primary" id="submitTopup">Submit Request</button>
@@ -234,7 +230,7 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 <div class="pay-modal" id="payModal">
   <div class="pay-content">
     <h3 style="text-align:center; color:#2d2642;">Confirm Payment</h3>
-    <p style="text-align:center; color:#666; margin-top:8px; font-size:0.9rem;" id="payTypeText">Pay to merchant</p>
+    <p style="text-align:center; color:#666; margin-top:8px; font-size:0.9rem;" id="payTypeText">Pay merchant</p>
     <div class="pay-amount" id="payAmountText">$0.00</div>
     <p style="text-align:center; font-size:0.9rem; color:#888; margin-bottom:20px;" id="merchantInfoText"></p>
     <button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
@@ -242,7 +238,7 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
   </div>
 </div>
 
-<!-- Voucher QR code modal -->
+<!-- Voucher QR modal -->
 <div class="voucher-modal" id="voucherQrModal">
   <div class="voucher-content">
     <h3 style="text-align:center; color:#2d2642;">Voucher Redemption Code</h3>
@@ -257,12 +253,12 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
+import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getDatabase, ref, set, push, update, get, onValue, serverTimestamp 
+import {
+  getDatabase, ref, set, push, update, get, onValue, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -288,7 +284,7 @@ let availableVouchers = [];
 let confirmationResult = null;
 let recaptchaVerifier = null;
 
-// ============ Utility functions ============
+// ============ Utilities ============
 function showToast(msg, type='info') {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -311,12 +307,12 @@ function formatTime(ts) {
 }
 function formatMoney(n) { return `$${(Number(n)||0).toFixed(2)}`; }
 
-// Process account input (email or phone)
+// Parse account input (email or phone)
 function processAccountInput(input) {
   const value = input.trim();
   if (value.includes('@')) {
     return { type: 'email', authEmail: value, raw: value };
-  } 
+  }
   const phone = value.replace(/\D/g, '');
   if (phone.length >= 8) {
     return { type: 'phone', authEmail: `${phone}@phone.local`, raw: phone };
@@ -324,21 +320,20 @@ function processAccountInput(input) {
   throw new Error('Please enter a valid email or phone number');
 }
 
-// ============ Auth state listener ============
+// ============ Auth state ============
 onAuthStateChanged(auth, user => {
   if (user) {
     currentUser = user;
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').classList.add('active');
-    
-    // Fetch and display user info
+
     const userRef = ref(db, `users/${user.uid}`);
     get(userRef).then(snap => {
       const d = snap.val();
       document.getElementById('userNameDisplay').textContent = d?.name || user.displayName || 'User';
       document.getElementById('userEmailDisplay').textContent = d?.rawAccount || user.email || user.phoneNumber || '';
     });
-    
+
     initUserData();
   } else {
     stopScanner();
@@ -346,13 +341,12 @@ onAuthStateChanged(auth, user => {
     clearListeners();
     document.getElementById('authScreen').style.display = 'block';
     document.getElementById('mainApp').classList.remove('active');
-    // Reset login UI state
     document.getElementById('otpInputGroup').style.display = 'none';
     document.getElementById('otpCodeInput').value = '';
   }
 });
 
-// ============ Login UI Tab switching ============
+// ============ Auth tab switching ============
 const tabPwdLogin = document.getElementById('tabPwdLogin');
 const tabPhoneLogin = document.getElementById('tabPhoneLogin');
 const tabRegister = document.getElementById('tabRegister');
@@ -384,33 +378,33 @@ tabRegister.addEventListener('click', () => {
   registerForm.style.display = 'block';
 });
 
-// ============ Email/Password Registration ============
+// ============ Email/password registration ============
 registerForm.addEventListener('submit', async e => {
   e.preventDefault();
   if (isProcessing) return;
   isProcessing = true;
   const btn = e.submitter;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing up...';
   try {
     const accountInput = document.getElementById('regAccount').value;
     const { type, authEmail, raw } = processAccountInput(accountInput);
     const name = document.getElementById('regUserName').value.trim();
     const pwd = document.getElementById('regPassword').value;
-    
+
     const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
-    
+
     await set(ref(db, `users/${userCred.user.uid}`), {
-      name, 
+      name,
       email: type === 'email' ? raw : '',
       phone: type === 'phone' ? raw : '',
       rawAccount: raw,
-      balance: 0, 
-      role: 'customer', 
+      balance: 0,
+      role: 'customer',
       createdAt: serverTimestamp()
     });
     await userCred.user.updateProfile({ displayName: name });
-    showToast('Registration successful! Automatically logged in.', 'success');
+    showToast('Registration successful, signed in!', 'success');
   } catch (err) {
     showError('Registration failed: ' + err.message);
   } finally {
@@ -420,37 +414,37 @@ registerForm.addEventListener('submit', async e => {
   }
 });
 
-// ============ Email/Password Login ============
+// ============ Email/password login ============
 loginForm.addEventListener('submit', async e => {
   e.preventDefault();
   if (isProcessing) return;
   isProcessing = true;
   const btn = e.submitter;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
   try {
     const accountInput = document.getElementById('loginAccount').value;
     const { authEmail } = processAccountInput(accountInput);
     const pwd = document.getElementById('loginPassword').value;
     await signInWithEmailAndPassword(auth, authEmail, pwd);
-    showToast('Login successful!', 'success');
+    showToast('Signed in successfully!', 'success');
   } catch (err) {
-    showError('Login failed: incorrect account or password');
+    showError('Sign-in failed: incorrect account or password');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = 'Login Now';
+    btn.innerHTML = 'Sign In';
     isProcessing = false;
   }
 });
 
-// ============ OTP Phone Login ============
+// ============ Phone OTP login ============
 document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   if (isProcessing) return;
   let phoneNumber = document.getElementById('phoneNumberInput').value.trim();
   phoneNumber = phoneNumber.replace(/\s+/g, '');
-  
+
   if (!phoneNumber || !phoneNumber.startsWith('+')) {
-    showToast('Please enter a phone number with country code (e.g. +65)', 'error');
+    showToast('Please enter a phone number with country code (e.g. +6581234567)', 'error');
     return;
   }
 
@@ -460,7 +454,6 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   btn.textContent = 'Sending...';
 
   try {
-    // 1. Clean up old instance
     if (recaptchaVerifier) {
       try { recaptchaVerifier.clear(); } catch(_) {}
       recaptchaVerifier = null;
@@ -468,25 +461,18 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
     const container = document.getElementById('recaptcha-container');
     if (container) container.innerHTML = '';
 
-    // 2. Create new visible reCAPTCHA
     recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'normal', 
-      'callback': (response) => {
-        console.log('reCAPTCHA verification passed');
-      },
-      'expired-callback': () => {
-        showToast('Verification expired, please send again', 'error');
-      }
+      'size': 'normal',
+      'callback': (response) => { console.log('reCAPTCHA verified'); },
+      'expired-callback': () => { showToast('Verification expired, please resend', 'error'); }
     });
 
-    // 3. Send code
     confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     document.getElementById('otpInputGroup').style.display = 'block';
     showToast('Verification code sent', 'success');
   } catch (e) {
-    console.error(e); // Important: shows detailed error in console
-    showToast('Send failed: ' + e.message, 'error');
-    // Cleanup on failure
+    console.error(e);
+    showToast('Failed to send: ' + e.message, 'error');
     if (recaptchaVerifier) {
       try { recaptchaVerifier.clear(); } catch(_) {}
       recaptchaVerifier = null;
@@ -517,12 +503,12 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   try {
     const result = await confirmationResult.confirm(code);
     const user = result.user;
-    
+
     const userRef = ref(db, `users/${user.uid}`);
     const snap = await get(userRef);
     if (!snap.exists()) {
       await set(userRef, {
-        name: 'User' + user.phoneNumber.slice(-4),
+        name: 'User' + (user.phoneNumber || '').slice(-4),
         email: '',
         phone: user.phoneNumber || '',
         rawAccount: user.phoneNumber || '',
@@ -531,42 +517,42 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
         createdAt: serverTimestamp()
       });
     }
-    showToast('Login successful!', 'success');
+    showToast('Signed in successfully!', 'success');
     document.getElementById('otpInputGroup').style.display = 'none';
     document.getElementById('otpCodeInput').value = '';
     document.getElementById('phoneNumberInput').value = '';
     confirmationResult = null;
   } catch (e) {
-    showToast('Incorrect or expired verification code', 'error');
+    showToast('Invalid or expired code', 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Verify & Login';
+    btn.textContent = 'Verify & Sign In';
     isProcessing = false;
   }
 });
 
-// ============ Logout ============
+// ============ Sign out ============
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   if (isProcessing) return;
   isProcessing = true;
   stopScanner();
   await signOut(auth);
-  showToast('Logged out securely', 'success');
+  showToast('Signed out', 'success');
   isProcessing = false;
 });
 
 // ============ Load main app data ============
 function initUserData() {
   const userRef = ref(db, `users/${currentUser.uid}`);
-  
+
   unsubs.push(onValue(userRef, snap => {
     const d = snap.val() || {};
     document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
-    
+
     availableVouchers = [];
     let totalVoucherValue = 0;
     const now = Date.now();
-    
+
     if (d.vouchers) {
       for (const [code, v] of Object.entries(d.vouchers)) {
         if (v.used === true) continue;
@@ -579,7 +565,7 @@ function initUserData() {
     document.getElementById('voucherBalanceDisplay').textContent = formatMoney(totalVoucherValue);
     renderVouchers(d.vouchers || {});
   }));
-  
+
   unsubs.push(onValue(ref(db, `users/${currentUser.uid}/history`), snap => {
     const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
     document.getElementById('historyList').innerHTML = items.length ? items.map(h => {
@@ -595,11 +581,11 @@ function initUserData() {
       `;
     }).join('') : '<p class="empty">No transactions yet</p>';
   }));
-  
+
   unsubs.push(onValue(ref(db, `users/${currentUser.uid}/topupRequests`), snap => {
     const reqs = Object.entries(snap.val() || {}).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
     document.getElementById('topupReqList').innerHTML = reqs.length ? reqs.map(([id, r]) => {
-      const statusText = { pending:'Pending approval', approved:'Approved', rejected:'Rejected' }[r.status] || r.status;
+      const statusText = { pending:'Pending', approved:'Approved', rejected:'Rejected' }[r.status] || r.status;
       const statusColor = { pending:'#f57c00', approved:'#2e7d32', rejected:'#c62828' }[r.status] || '#888';
       return `
         <div class="card">
@@ -611,25 +597,25 @@ function initUserData() {
   }));
 }
 
-// ============ Render voucher list ============
+// ============ Render vouchers ============
 function renderVouchers(vouchers) {
   const now = Date.now();
   const container = document.getElementById('voucherList');
-  
+
   if (!Object.keys(vouchers).length) {
     container.innerHTML = '<p class="empty">No vouchers</p>';
     return;
   }
-  
+
   container.innerHTML = '';
   for (const [code, v] of Object.entries(vouchers)) {
     const isExpired = v.expiry && v.expiry < now;
     const isUsed = v.used === true;
     let extraClass = '';
-    let statusText = 'Valid';
+    let statusText = 'Active';
     if (isUsed) { extraClass = 'voucher-used'; statusText = 'Used'; }
     else if (isExpired) { extraClass = 'voucher-expired'; statusText = 'Expired'; }
-    
+
     container.innerHTML += `
       <div class="card voucher-card ${extraClass}">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -637,15 +623,15 @@ function renderVouchers(vouchers) {
             <p style="font-weight:bold; font-size:1.1rem; color:#2d2642;">${code}</p>
             <p style="font-size:0.9rem; color:#666; margin-top:6px;">
               Value: ${formatMoney(v.amount)}
-              ${v.minSpend > 0 ? ` · Min. spend ${formatMoney(v.minSpend)}` : ''}
+              ${v.minSpend > 0 ? ` · Min spend ${formatMoney(v.minSpend)}` : ''}
             </p>
             <p style="font-size:0.8rem; color:#999; margin-top:4px;">
-              Valid until: ${formatTime(v.expiry)}
+              Expires: ${formatTime(v.expiry)}
             </p>
           </div>
           ${!isUsed && !isExpired ? `
             <button class="btn btn-sm btn-success" onclick="showVoucherQr('${code}')" style="white-space:nowrap;">
-              Show Redemption Code
+              Show QR
             </button>
           ` : `<span style="color:#888; font-size:0.85rem; font-weight:bold;">${statusText}</span>`}
         </div>
@@ -654,30 +640,29 @@ function renderVouchers(vouchers) {
   }
 }
 
-// ============ Show voucher redemption QR ============
+// ============ Show voucher QR ============
 window.showVoucherQr = async function(code) {
   const userSnap = await get(ref(db, `users/${currentUser.uid}`));
   const userData = userSnap.val() || {};
   const voucher = userData.vouchers?.[code];
-  
+
   if (!voucher || voucher.used === true) {
-    showToast('Voucher does not exist or has been used', 'error');
+    showToast('Voucher not found or already used', 'error');
     return;
   }
   if (voucher.expiry && voucher.expiry < Date.now()) {
     showToast('Voucher has expired', 'error');
     return;
   }
-  
+
   document.getElementById('voucherQrModal').classList.add('show');
   document.getElementById('voucherCodeText').textContent = code;
-  
-  // Generate QR code
+
   const display = document.getElementById('voucherQrDisplay');
   display.innerHTML = '';
   const canvas = document.createElement('canvas');
   display.appendChild(canvas);
-  
+
   try {
     await QRCode.toCanvas(canvas, JSON.stringify({
       type: 'voucher',
@@ -688,92 +673,133 @@ window.showVoucherQr = async function(code) {
       margin: 2,
       color: { dark: '#2d2642', light: '#ffffff' }
     });
-  } catch (err) {
-    display.innerHTML = '<p style="color:#c62828;">Failed to generate QR code</p>';
+  } catch (e) {
+    console.error('QR generation failed', e);
+    display.innerHTML = '<p style="color:#c62828;">Failed to generate QR</p>';
   }
 };
 
 document.getElementById('closeVoucherQrBtn').addEventListener('click', () => {
   document.getElementById('voucherQrModal').classList.remove('show');
-  document.getElementById('voucherQrDisplay').innerHTML = '';
 });
 
-// ============ Main tab navigation ============
-document.querySelectorAll('.main-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
-    if (tab.dataset.pane !== 'scan') stopScanner();
-  });
-});
-
-// ============ QR Scanner ============
+// ============ Scanner ============
 const startScanBtn = document.getElementById('startScanBtn');
 const stopScanBtn = document.getElementById('stopScanBtn');
 
 async function startScanner() {
-  if (html5QrCode) return;
-  startScanBtn.disabled = true;
-  startScanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting camera...';
+  // Already scanning -> no-op
+  if (html5QrCode && html5QrCode.isScanning) return;
+
+  // Clean up stale instance
+  if (html5QrCode) {
+    try { await html5QrCode.clear(); } catch(_) {}
+    html5QrCode = null;
+  }
+
+  html5QrCode = new Html5Qrcode('reader');
 
   try {
-    html5QrCode = new Html5Qrcode("reader");
     await html5QrCode.start(
-      { facingMode: "environment" },
+      { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       onScanSuccess,
-      () => {} // ignore per-frame errors
+      () => {} // ignore per-frame failures
     );
     startScanBtn.style.display = 'none';
     stopScanBtn.style.display = 'block';
-  } catch (err) {
-    showToast('Camera start failed: ' + err.message, 'error');
+  } catch (e) {
+    console.error(e);
+    showToast('Unable to start camera: ' + e.message, 'error');
+    try { await html5QrCode.clear(); } catch(_) {}
     html5QrCode = null;
-    startScanBtn.disabled = false;
-    startScanBtn.innerHTML = '<i class="fas fa-qrcode"></i> Start Camera Scan';
   }
 }
 
 async function stopScanner() {
   if (!html5QrCode) return;
   try {
-    await html5QrCode.stop();
+    if (html5QrCode.isScanning) await html5QrCode.stop();
     await html5QrCode.clear();
-  } catch (e) {}
+  } catch (e) {
+    console.error(e);
+  }
   html5QrCode = null;
   startScanBtn.style.display = 'block';
-  startScanBtn.disabled = false;
-  startScanBtn.innerHTML = '<i class="fas fa-qrcode"></i> Start Camera Scan';
   stopScanBtn.style.display = 'none';
 }
 
 startScanBtn.addEventListener('click', startScanner);
 stopScanBtn.addEventListener('click', stopScanner);
 
+// ============ Scan success handler ============
 function onScanSuccess(decodedText) {
-  let data;
+  if (isProcessing) return;
+
+  let payload = null;
+
+  // Try JSON first (new format)
   try {
-    data = JSON.parse(decodedText);
+    payload = JSON.parse(decodedText);
   } catch (e) {
-    showToast('Invalid QR code', 'error');
+    // Compatible with legacy format: PAY:amount:merchantUid
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length >= 3) {
+        payload = {
+          type: 'merchant',
+          amount: Number(parts[1]),
+          merchantId: parts[2],
+          orderId: null
+        };
+      }
+    }
+  }
+
+  if (!payload || payload.type !== 'merchant' || !payload.merchantId) {
+    showToast('Invalid merchant QR code, please ask the merchant to regenerate', 'error');
     return;
   }
-  if (data.type !== 'merchant' && data.type !== 'payment') {
-    showToast('Not a valid payment QR code', 'error');
-    return;
+
+  isProcessing = true;
+  stopScanner().then(() => {
+    isProcessing = false;
+    promptPayment(payload);
+  });
+}
+
+// ============ Prompt payment modal (reads from merchants node) ============
+async function promptPayment(payload) {
+  try {
+    const merchantSnap = await get(ref(db, `merchants/${payload.merchantId}`));
+    const merchant = merchantSnap.val();
+
+    if (!merchant) {
+      showToast('Merchant not found or invalid', 'error');
+      return;
+    }
+
+    const amount = Number(payload.amount);
+    if (!amount || amount <= 0) {
+      showToast('Invalid amount', 'error');
+      return;
+    }
+
+    pendingPayData = {
+      merchantId: payload.merchantId,
+      merchantName: merchant.name || 'Merchant',
+      amount: amount,
+      orderId: payload.orderId || null
+    };
+
+    document.getElementById('payAmountText').textContent = formatMoney(amount);
+    document.getElementById('merchantInfoText').textContent = `Pay to: ${merchant.name || 'Merchant'}`;
+    document.getElementById('payTypeText').textContent = 'Pay merchant';
+    document.getElementById('payModal').classList.add('show');
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to fetch merchant info: ' + e.message, 'error');
   }
-  if (!data.merchantUid || !data.amount) {
-    showToast('Invalid payment data', 'error');
-    return;
-  }
-  stopScanner();
-  pendingPayData = data;
-  document.getElementById('payAmountText').textContent = formatMoney(data.amount);
-  document.getElementById('merchantInfoText').textContent =
-    (data.merchantName || 'Merchant') + (data.note ? ' · ' + data.note : '');
-  document.getElementById('payModal').classList.add('show');
 }
 
 document.getElementById('closePayModalBtn').addEventListener('click', () => {
@@ -781,67 +807,107 @@ document.getElementById('closePayModalBtn').addEventListener('click', () => {
   pendingPayData = null;
 });
 
-// ============ Confirm payment ============
+// ============ Confirm payment (writes to merchants node) ============
 document.getElementById('confirmPayBtn').addEventListener('click', async () => {
-  if (!pendingPayData || isProcessing || !currentUser) return;
+  if (!pendingPayData || isProcessing) return;
   isProcessing = true;
+
   const btn = document.getElementById('confirmPayBtn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Paying...';
 
   try {
-    const amount = Number(pendingPayData.amount);
-    if (!amount || amount <= 0) throw new Error('Invalid amount');
+    const { merchantId, merchantName, amount, orderId } = pendingPayData;
 
-    // Read fresh balance
+    // Read latest balance
     const userSnap = await get(ref(db, `users/${currentUser.uid}`));
     const userData = userSnap.val() || {};
     const balance = Number(userData.balance || 0);
 
-    if (balance < amount) {
-      throw new Error('Insufficient balance');
-    }
+    // Pick best voucher: satisfies min spend, largest value
+    let voucherUsed = null;
+    let voucherDeduct = 0;
+    const now = Date.now();
 
-    // Deduct customer balance
-    await update(ref(db, `users/${currentUser.uid}`), {
-      balance: balance - amount
-    });
+    if (userData.vouchers) {
+      const candidates = Object.entries(userData.vouchers)
+        .filter(([, v]) => {
+          if (v.used === true) return false;
+          if (v.expiry && v.expiry < now) return false;
+          return amount >= Number(v.minSpend || 0);
+        })
+        .sort(([, a], [, b]) => Number(b.amount) - Number(a.amount));
 
-    // Write history for customer
-    const histRef = push(ref(db, `users/${currentUser.uid}/history`));
-    await set(histRef, {
-      type: 'payment',
-      amount: amount,
-      description: 'Payment to ' + (pendingPayData.merchantName || 'merchant'),
-      merchantUid: pendingPayData.merchantUid,
-      createdAt: serverTimestamp()
-    });
-
-    // Credit merchant (if merchant record exists)
-    try {
-      const merchantSnap = await get(ref(db, `users/${pendingPayData.merchantUid}`));
-      if (merchantSnap.exists()) {
-        const m = merchantSnap.val();
-        await update(ref(db, `users/${pendingPayData.merchantUid}`), {
-          balance: Number(m.balance || 0) + amount
-        });
-        const mHistRef = push(ref(db, `users/${pendingPayData.merchantUid}/history`));
-        await set(mHistRef, {
-          type: 'received',
-          amount: amount,
-          description: 'Payment from customer',
-          createdAt: serverTimestamp()
-        });
+      if (candidates.length > 0) {
+        const [code, v] = candidates[0];
+        voucherUsed = code;
+        voucherDeduct = Math.min(Number(v.amount), amount);
       }
-    } catch (e) {
-      console.warn('Merchant credit failed:', e);
     }
 
-    showToast('Payment successful', 'success');
+    const cashNeeded = amount - voucherDeduct;
+
+    if (balance < cashNeeded) {
+      showToast(`Insufficient balance, need ${formatMoney(cashNeeded - balance)} more`, 'error');
+      return;
+    }
+
+    // ===== Batch update =====
+    const updates = {};
+
+    // 1. Deduct customer balance
+    updates[`users/${currentUser.uid}/balance`] = balance - cashNeeded;
+
+    // 2. Mark voucher used
+    if (voucherUsed) {
+      updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/used`] = true;
+      updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAt`] = serverTimestamp();
+      updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAtMerchant`] = merchantId;
+    }
+
+    // 3. Customer history
+    const historyRef = push(ref(db, `users/${currentUser.uid}/history`));
+    updates[`users/${currentUser.uid}/history/${historyRef.key}`] = {
+      type: 'payment',
+      description: `Paid ${merchantName}` + (voucherUsed ? ` (voucher ${voucherUsed} deducted ${formatMoney(voucherDeduct)})` : ''),
+      amount: cashNeeded,
+      originalAmount: amount,
+      voucherUsed: voucherUsed || null,
+      voucherDeduct: voucherDeduct,
+      merchantId,
+      orderId,
+      createdAt: serverTimestamp()
+    };
+
+    // 4. Merchant history (merchants node)
+    const merchantHistoryRef = push(ref(db, `merchants/${merchantId}/history`));
+    updates[`merchants/${merchantId}/history/${merchantHistoryRef.key}`] = {
+      type: 'income',
+      description: `Payment from customer ${userData.name || currentUser.uid}`,
+      amount: cashNeeded,
+      voucherAmount: voucherDeduct,
+      cashAmount: cashNeeded,
+      originalAmount: amount,
+      voucherUsed: voucherUsed || null,
+      voucherDeduct: voucherDeduct,
+      customerUid: currentUser.uid,
+      orderId,
+      createdAt: serverTimestamp()
+    };
+
+    // 5. Merchant balance (merchants node)
+    const merchantBalSnap = await get(ref(db, `merchants/${merchantId}/balance`));
+    const merchantBalance = Number(merchantBalSnap.val() || 0);
+    updates[`merchants/${merchantId}/balance`] = merchantBalance + cashNeeded;
+
+    await update(ref(db), updates);
+
     document.getElementById('payModal').classList.remove('show');
     pendingPayData = null;
-  } catch (err) {
-    showToast(err.message || 'Payment failed', 'error');
+    showToast(`Payment successful: ${formatMoney(cashNeeded)}`, 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Payment failed: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Confirm Payment';
@@ -851,12 +917,16 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
 
 // ============ Top-up request ============
 document.getElementById('submitTopup').addEventListener('click', async () => {
-  if (!currentUser || isProcessing) return;
-  const amount = Number(document.getElementById('topupAmount').value);
+  if (isProcessing) return;
+
+  const amountInput = document.getElementById('topupAmount');
+  const amount = Number(amountInput.value);
+
   if (!amount || amount <= 0) {
-    showToast('Please enter a valid amount', 'error');
+    showToast('Please enter a valid top-up amount', 'error');
     return;
   }
+
   isProcessing = true;
   const btn = document.getElementById('submitTopup');
   btn.disabled = true;
@@ -869,16 +939,56 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
       status: 'pending',
       createdAt: serverTimestamp()
     });
-    document.getElementById('topupAmount').value = '';
-    showToast('Top-up request submitted', 'success');
-  } catch (err) {
-    showToast('Submission failed: ' + err.message, 'error');
+
+    // Also write to admin approval queue
+    const nameSnap = await get(ref(db, `users/${currentUser.uid}/name`));
+    const adminReqRef = push(ref(db, `topupRequests/${currentUser.uid}`));
+    await set(adminReqRef, {
+      userId: currentUser.uid,
+      userName: nameSnap.val() || '',
+      amount: amount,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+
+    amountInput.value = '';
+    showToast('Top-up request submitted, awaiting admin approval', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Submission failed: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Submit Request';
     isProcessing = false;
   }
 });
+
+// ============ Main tab switching ============
+document.querySelectorAll('.main-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const paneId = tab.dataset.pane;
+
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+    tab.classList.add('active');
+    document.getElementById(`pane-${paneId}`).classList.add('active');
+
+    if (paneId !== 'scan') {
+      stopScanner();
+    }
+  });
+});
+
+// ============ Unload cleanup ============
+window.addEventListener('beforeunload', () => {
+  stopScanner();
+});
+
+// ============ Init: show password login by default ============
+loginForm.style.display = 'block';
+phoneLoginPanel.style.display = 'none';
+registerForm.style.display = 'none';
 </script>
 </body>
 </html>
