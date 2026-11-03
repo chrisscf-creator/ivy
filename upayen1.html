@@ -12,7 +12,6 @@
 body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .container { max-width: 480px; margin: 0 auto; }
 
-/* Auth card */
 .auth-card { background: white; border-radius: 24px; padding: 32px 24px; box-shadow: 0 10px 40px -12px rgba(45, 38, 66, 0.15); margin: 40px auto; }
 .auth-card h2 { text-align: center; margin-bottom: 24px; color: #2d2642; font-size: 1.5rem; }
 .form-group { margin-bottom: 16px; }
@@ -20,7 +19,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; transition: border 0.2s; outline: none; }
 .form-group input:focus { border-color: #2d2642; }
 
-/* Buttons */
 .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; transition: all 0.2s; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
@@ -28,25 +26,21 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
 .btn-sm { width: auto; padding: 8px 16px; font-size: 0.85rem; margin: 0; border-radius: 8px; }
 
-/* Errors & toast */
 .error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; font-size: 0.9rem; }
 .error.show { display: block; }
 .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1e1b2f; color: #f9e076; padding: 14px 24px; border-radius: 60px; opacity: 0; transition: all 0.3s; z-index: 2000; max-width: 90%; text-align: center; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Auth tabs */
 .tabs-nav { display: flex; background: #f0edf5; border-radius: 14px; padding: 4px; margin-bottom: 24px; }
 .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; }
 .tab-btn.active { background: white; color: #2d2642; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-/* Main app */
 .main-app { display: none; }
 .main-app.active { display: block; }
 .header { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; padding: 24px; border-radius: 20px; margin-bottom: 20px; position: relative; }
 .balance { font-size: 2.5rem; font-weight: 800; margin: 8px 0; }
 .voucher-balance { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 16px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
 
-/* Main tabs */
 .main-tabs { display: flex; background: white; border-radius: 14px; padding: 4px; margin-bottom: 20px; overflow-x: auto; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); }
 .main-tabs::-webkit-scrollbar { display: none; }
 .main-tab { flex: 1; min-width: 90px; padding: 12px 10px; border: none; background: transparent; border-radius: 10px; font-weight: 600; color: #8b7aa8; cursor: pointer; white-space: nowrap; font-size: 0.9rem; transition: all 0.2s; }
@@ -56,28 +50,23 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .tab-pane.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Cards */
 .card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 10px -4px rgba(88,28,135,0.08); border: 1px solid #f0edf5; }
 .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 0.95rem; }
 
-/* Scanner */
 .scanner-box { background: #000; border-radius: 16px; padding: 16px; margin-bottom: 16px; overflow: hidden; }
 #reader { width: 100%; min-height: 300px; border-radius: 8px; overflow: hidden; }
 
-/* Modals */
 .pay-modal, .voucher-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
 .pay-modal.show, .voucher-modal.show { display: flex; }
 .pay-content, .voucher-content { background: white; border-radius: 24px; padding: 28px; max-width: 380px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: scaleIn 0.3s; }
 @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .pay-amount { font-size: 2.5rem; font-weight: 800; color: #2d2642; text-align: center; margin: 20px 0; }
 
-/* Voucher styles */
 .voucher-card { border-left: 4px solid #2e7d32; }
 .voucher-expired { border-left-color: #c62828; opacity: 0.7; }
 .voucher-used { border-left-color: #888; opacity: 0.5; }
 #voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; }
 
-/* reCAPTCHA container */
 #recaptcha-container {
   margin-top: 16px;
   min-height: 78px;
@@ -92,7 +81,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 <body>
 <div class="container">
 
-  <!-- ================= Auth Screen ================= -->
   <div class="auth-card" id="authScreen">
     <h2><i class="fas fa-shield-alt"></i> Welcome Back</h2>
     <div class="error" id="authError"></div>
@@ -103,7 +91,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       <button class="tab-btn" id="tabRegister">Sign Up</button>
     </div>
 
-    <!-- 1. Password login -->
     <form id="loginForm">
       <div class="form-group">
         <label>Email or Phone</label>
@@ -116,7 +103,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       <button type="submit" class="btn btn-primary">Sign In</button>
     </form>
 
-    <!-- 2. Phone OTP login -->
     <div id="phoneLoginPanel" style="display:none;">
       <div class="form-group">
         <label>Phone Number (with country code, e.g. +6581234567)</label>
@@ -139,7 +125,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       </p>
     </div>
 
-    <!-- 3. Register -->
     <form id="registerForm" style="display:none;">
       <div class="form-group">
         <label>Email or Phone</label>
@@ -157,7 +142,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
     </form>
   </div>
 
-  <!-- ================= Main App ================= -->
   <div class="main-app" id="mainApp">
     <div class="header">
       <h3 style="font-size:1.2rem; margin-bottom:4px;">Hi, <span id="userNameDisplay">User</span></h3>
@@ -182,7 +166,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       <button class="main-tab" data-pane="topup">Top Up</button>
     </div>
 
-    <!-- 1. Scan to pay -->
     <div class="tab-pane active" id="pane-scan">
       <div class="scanner-box">
         <div id="reader"></div>
@@ -198,17 +181,14 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       </p>
     </div>
 
-    <!-- 2. My vouchers -->
     <div class="tab-pane" id="pane-vouchers">
       <div id="voucherList"></div>
     </div>
 
-    <!-- 3. Transaction history -->
     <div class="tab-pane" id="pane-history">
       <div id="historyList"></div>
     </div>
 
-    <!-- 4. Top-up -->
     <div class="tab-pane" id="pane-topup">
       <div class="card">
         <h4 style="margin-bottom:16px; color:#2d2642;">Request Top-Up</h4>
@@ -226,7 +206,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
   </div>
 </div>
 
-<!-- Payment confirmation modal -->
 <div class="pay-modal" id="payModal">
   <div class="pay-content">
     <h3 style="text-align:center; color:#2d2642;">Confirm Payment</h3>
@@ -238,7 +217,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
   </div>
 </div>
 
-<!-- Voucher QR modal -->
 <div class="voucher-modal" id="voucherQrModal">
   <div class="voucher-content">
     <h3 style="text-align:center; color:#2d2642;">Voucher Redemption Code</h3>
@@ -307,7 +285,6 @@ function formatTime(ts) {
 }
 function formatMoney(n) { return `$${(Number(n)||0).toFixed(2)}`; }
 
-// Parse account input (email or phone)
 function processAccountInput(input) {
   const value = input.trim();
   if (value.includes('@')) {
@@ -346,7 +323,7 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// ============ Auth tab switching ============
+// ============ Auth tabs ============
 const tabPwdLogin = document.getElementById('tabPwdLogin');
 const tabPhoneLogin = document.getElementById('tabPhoneLogin');
 const tabRegister = document.getElementById('tabRegister');
@@ -358,27 +335,20 @@ function resetAuthTabs() {
   document.querySelectorAll('.tabs-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
   document.getElementById('authError').classList.remove('show');
 }
-
 tabPwdLogin.addEventListener('click', () => {
   resetAuthTabs(); tabPwdLogin.classList.add('active');
-  loginForm.style.display = 'block';
-  phoneLoginPanel.style.display = 'none';
-  registerForm.style.display = 'none';
+  loginForm.style.display = 'block'; phoneLoginPanel.style.display = 'none'; registerForm.style.display = 'none';
 });
 tabPhoneLogin.addEventListener('click', () => {
   resetAuthTabs(); tabPhoneLogin.classList.add('active');
-  loginForm.style.display = 'none';
-  phoneLoginPanel.style.display = 'block';
-  registerForm.style.display = 'none';
+  loginForm.style.display = 'none'; phoneLoginPanel.style.display = 'block'; registerForm.style.display = 'none';
 });
 tabRegister.addEventListener('click', () => {
   resetAuthTabs(); tabRegister.classList.add('active');
-  loginForm.style.display = 'none';
-  phoneLoginPanel.style.display = 'none';
-  registerForm.style.display = 'block';
+  loginForm.style.display = 'none'; phoneLoginPanel.style.display = 'none'; registerForm.style.display = 'block';
 });
 
-// ============ Email/password registration ============
+// ============ Register ============
 registerForm.addEventListener('submit', async e => {
   e.preventDefault();
   if (isProcessing) return;
@@ -414,7 +384,7 @@ registerForm.addEventListener('submit', async e => {
   }
 });
 
-// ============ Email/password login ============
+// ============ Login ============
 loginForm.addEventListener('submit', async e => {
   e.preventDefault();
   if (isProcessing) return;
@@ -437,33 +407,25 @@ loginForm.addEventListener('submit', async e => {
   }
 });
 
-// ============ Phone OTP login ============
+// ============ OTP ============
 document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   if (isProcessing) return;
-  let phoneNumber = document.getElementById('phoneNumberInput').value.trim();
-  phoneNumber = phoneNumber.replace(/\s+/g, '');
-
+  let phoneNumber = document.getElementById('phoneNumberInput').value.trim().replace(/\s+/g, '');
   if (!phoneNumber || !phoneNumber.startsWith('+')) {
     showToast('Please enter a phone number with country code (e.g. +6581234567)', 'error');
     return;
   }
-
   isProcessing = true;
   const btn = document.getElementById('sendOtpBtn');
-  btn.disabled = true;
-  btn.textContent = 'Sending...';
-
+  btn.disabled = true; btn.textContent = 'Sending...';
   try {
-    if (recaptchaVerifier) {
-      try { recaptchaVerifier.clear(); } catch(_) {}
-      recaptchaVerifier = null;
-    }
+    if (recaptchaVerifier) { try { recaptchaVerifier.clear(); } catch(_) {} recaptchaVerifier = null; }
     const container = document.getElementById('recaptcha-container');
     if (container) container.innerHTML = '';
 
     recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       'size': 'normal',
-      'callback': (response) => { console.log('reCAPTCHA verified'); },
+      'callback': () => { console.log('reCAPTCHA verified'); },
       'expired-callback': () => { showToast('Verification expired, please resend', 'error'); }
     });
 
@@ -473,48 +435,30 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   } catch (e) {
     console.error(e);
     showToast('Failed to send: ' + e.message, 'error');
-    if (recaptchaVerifier) {
-      try { recaptchaVerifier.clear(); } catch(_) {}
-      recaptchaVerifier = null;
-    }
-    if (document.getElementById('recaptcha-container')) {
-      document.getElementById('recaptcha-container').innerHTML = '';
-    }
+    if (recaptchaVerifier) { try { recaptchaVerifier.clear(); } catch(_) {} recaptchaVerifier = null; }
+    if (document.getElementById('recaptcha-container')) document.getElementById('recaptcha-container').innerHTML = '';
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Send Verification Code';
-    isProcessing = false;
+    btn.disabled = false; btn.textContent = 'Send Verification Code'; isProcessing = false;
   }
 });
 
 document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   if (isProcessing || !confirmationResult) return;
   const code = document.getElementById('otpCodeInput').value.trim();
-  if (!code) {
-    showToast('Please enter the verification code', 'error');
-    return;
-  }
-
+  if (!code) { showToast('Please enter the verification code', 'error'); return; }
   isProcessing = true;
   const btn = document.getElementById('verifyOtpBtn');
-  btn.disabled = true;
-  btn.textContent = 'Verifying...';
-
+  btn.disabled = true; btn.textContent = 'Verifying...';
   try {
     const result = await confirmationResult.confirm(code);
     const user = result.user;
-
     const userRef = ref(db, `users/${user.uid}`);
     const snap = await get(userRef);
     if (!snap.exists()) {
       await set(userRef, {
         name: 'User' + (user.phoneNumber || '').slice(-4),
-        email: '',
-        phone: user.phoneNumber || '',
-        rawAccount: user.phoneNumber || '',
-        balance: 0,
-        role: 'customer',
-        createdAt: serverTimestamp()
+        email: '', phone: user.phoneNumber || '', rawAccount: user.phoneNumber || '',
+        balance: 0, role: 'customer', createdAt: serverTimestamp()
       });
     }
     showToast('Signed in successfully!', 'success');
@@ -525,9 +469,7 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   } catch (e) {
     showToast('Invalid or expired code', 'error');
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Verify & Sign In';
-    isProcessing = false;
+    btn.disabled = false; btn.textContent = 'Verify & Sign In'; isProcessing = false;
   }
 });
 
@@ -535,13 +477,13 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   if (isProcessing) return;
   isProcessing = true;
-  stopScanner();
+  await stopScanner();
   await signOut(auth);
   showToast('Signed out', 'success');
   isProcessing = false;
 });
 
-// ============ Load main app data ============
+// ============ Load user data ============
 function initUserData() {
   const userRef = ref(db, `users/${currentUser.uid}`);
 
@@ -552,7 +494,6 @@ function initUserData() {
     availableVouchers = [];
     let totalVoucherValue = 0;
     const now = Date.now();
-
     if (d.vouchers) {
       for (const [code, v] of Object.entries(d.vouchers)) {
         if (v.used === true) continue;
@@ -601,18 +542,13 @@ function initUserData() {
 function renderVouchers(vouchers) {
   const now = Date.now();
   const container = document.getElementById('voucherList');
-
-  if (!Object.keys(vouchers).length) {
-    container.innerHTML = '<p class="empty">No vouchers</p>';
-    return;
-  }
+  if (!Object.keys(vouchers).length) { container.innerHTML = '<p class="empty">No vouchers</p>'; return; }
 
   container.innerHTML = '';
   for (const [code, v] of Object.entries(vouchers)) {
     const isExpired = v.expiry && v.expiry < now;
     const isUsed = v.used === true;
-    let extraClass = '';
-    let statusText = 'Active';
+    let extraClass = '', statusText = 'Active';
     if (isUsed) { extraClass = 'voucher-used'; statusText = 'Used'; }
     else if (isExpired) { extraClass = 'voucher-expired'; statusText = 'Expired'; }
 
@@ -646,14 +582,8 @@ window.showVoucherQr = async function(code) {
   const userData = userSnap.val() || {};
   const voucher = userData.vouchers?.[code];
 
-  if (!voucher || voucher.used === true) {
-    showToast('Voucher not found or already used', 'error');
-    return;
-  }
-  if (voucher.expiry && voucher.expiry < Date.now()) {
-    showToast('Voucher has expired', 'error');
-    return;
-  }
+  if (!voucher || voucher.used === true) { showToast('Voucher not found or already used', 'error'); return; }
+  if (voucher.expiry && voucher.expiry < Date.now()) { showToast('Voucher has expired', 'error'); return; }
 
   document.getElementById('voucherQrModal').classList.add('show');
   document.getElementById('voucherCodeText').textContent = code;
@@ -665,14 +595,8 @@ window.showVoucherQr = async function(code) {
 
   try {
     await QRCode.toCanvas(canvas, JSON.stringify({
-      type: 'voucher',
-      code: code,
-      uid: currentUser.uid
-    }), {
-      width: 220,
-      margin: 2,
-      color: { dark: '#2d2642', light: '#ffffff' }
-    });
+      type: 'voucher', code: code, uid: currentUser.uid
+    }), { width: 220, margin: 2, color: { dark: '#2d2642', light: '#ffffff' } });
   } catch (e) {
     console.error('QR generation failed', e);
     display.innerHTML = '<p style="color:#c62828;">Failed to generate QR</p>';
@@ -688,10 +612,8 @@ const startScanBtn = document.getElementById('startScanBtn');
 const stopScanBtn = document.getElementById('stopScanBtn');
 
 async function startScanner() {
-  // Already scanning -> no-op
   if (html5QrCode && html5QrCode.isScanning) return;
 
-  // Clean up stale instance
   if (html5QrCode) {
     try { await html5QrCode.clear(); } catch(_) {}
     html5QrCode = null;
@@ -704,7 +626,7 @@ async function startScanner() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       onScanSuccess,
-      () => {} // ignore per-frame failures
+      () => {}
     );
     startScanBtn.style.display = 'none';
     stopScanBtn.style.display = 'block';
@@ -716,15 +638,21 @@ async function startScanner() {
   }
 }
 
+// ✅ FIX: 先置空实例，避免并发 stop/clear
 async function stopScanner() {
-  if (!html5QrCode) return;
+  const inst = html5QrCode;
+  html5QrCode = null;
+  if (!inst) {
+    startScanBtn.style.display = 'block';
+    stopScanBtn.style.display = 'none';
+    return;
+  }
   try {
-    if (html5QrCode.isScanning) await html5QrCode.stop();
-    await html5QrCode.clear();
+    if (inst.isScanning) await inst.stop();
+    await inst.clear();
   } catch (e) {
     console.error(e);
   }
-  html5QrCode = null;
   startScanBtn.style.display = 'block';
   stopScanBtn.style.display = 'none';
 }
@@ -732,67 +660,73 @@ async function stopScanner() {
 startScanBtn.addEventListener('click', startScanner);
 stopScanBtn.addEventListener('click', stopScanner);
 
-// ============ Scan success handler ============
+// ============ ✅ 修复后的扫码回调 ============
 function onScanSuccess(decodedText) {
   if (isProcessing) return;
+  isProcessing = true;                     // 先锁，防重复触发
 
+  // 立即触发停止（不 await），避免每帧多次触发
+  if (html5QrCode && html5QrCode.isScanning) {
+    html5QrCode.stop().catch(() => {});
+  }
+
+  const text = (decodedText || '').trim();
   let payload = null;
 
-  // Try JSON first (new format)
+  // 1) 先尝试 JSON（推荐格式）
   try {
-    payload = JSON.parse(decodedText);
-  } catch (e) {
-    // Compatible with legacy format: PAY:amount:merchantUid
-    if (decodedText.startsWith('PAY:')) {
-      const parts = decodedText.split(':');
-      if (parts.length >= 3) {
-        payload = {
-          type: 'merchant',
-          amount: Number(parts[1]),
-          merchantId: parts[2],
-          orderId: null
-        };
+    const obj = JSON.parse(text);
+    if (obj && obj.type === 'merchant' && obj.merchantId && Number(obj.amount) > 0) {
+      payload = {
+        type: 'merchant',
+        merchantId: String(obj.merchantId),
+        amount: Number(obj.amount),
+        orderId: obj.orderId || null
+      };
+    }
+  } catch (_) { /* not JSON */ }
+
+  // 2) 兼容旧格式 PAY:amount:merchantUid
+  if (!payload && text.startsWith('PAY:')) {
+    const parts = text.split(':');
+    if (parts.length >= 3) {
+      const amt = Number(parts[1]);
+      if (!isNaN(amt) && amt > 0 && parts[2]) {
+        payload = { type: 'merchant', amount: amt, merchantId: parts[2], orderId: null };
       }
     }
   }
 
-  if (!payload || payload.type !== 'merchant' || !payload.merchantId) {
+  if (!payload) {
     showToast('Invalid merchant QR code, please ask the merchant to regenerate', 'error');
+    isProcessing = false;
+    // 恢复按钮显示
+    startScanBtn.style.display = 'block';
+    stopScanBtn.style.display = 'none';
     return;
   }
 
-  isProcessing = true;
-  stopScanner().then(() => {
+  // 处理支付弹窗
+  promptPayment(payload).finally(() => {
     isProcessing = false;
-    promptPayment(payload);
   });
 }
 
-// ============ Prompt payment modal (reads from merchants node) ============
+// ============ Payment prompt ============
 async function promptPayment(payload) {
   try {
     const merchantSnap = await get(ref(db, `merchants/${payload.merchantId}`));
     const merchant = merchantSnap.val();
-
-    if (!merchant) {
-      showToast('Merchant not found or invalid', 'error');
-      return;
-    }
-
-    const amount = Number(payload.amount);
-    if (!amount || amount <= 0) {
-      showToast('Invalid amount', 'error');
-      return;
-    }
+    if (!merchant) { showToast('Merchant not found or invalid', 'error'); return; }
 
     pendingPayData = {
       merchantId: payload.merchantId,
       merchantName: merchant.name || 'Merchant',
-      amount: amount,
+      amount: payload.amount,
       orderId: payload.orderId || null
     };
 
-    document.getElementById('payAmountText').textContent = formatMoney(amount);
+    document.getElementById('payAmountText').textContent = formatMoney(payload.amount);
     document.getElementById('merchantInfoText').textContent = `Pay to: ${merchant.name || 'Merchant'}`;
     document.getElementById('payTypeText').textContent = 'Pay merchant';
     document.getElementById('payModal').classList.add('show');
@@ -807,28 +741,22 @@ document.getElementById('closePayModalBtn').addEventListener('click', () => {
   pendingPayData = null;
 });
 
-// ============ Confirm payment (writes to merchants node) ============
+// ============ Confirm payment ============
 document.getElementById('confirmPayBtn').addEventListener('click', async () => {
   if (!pendingPayData || isProcessing) return;
   isProcessing = true;
-
   const btn = document.getElementById('confirmPayBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Paying...';
 
   try {
     const { merchantId, merchantName, amount, orderId } = pendingPayData;
-
-    // Read latest balance
     const userSnap = await get(ref(db, `users/${currentUser.uid}`));
     const userData = userSnap.val() || {};
     const balance = Number(userData.balance || 0);
 
-    // Pick best voucher: satisfies min spend, largest value
-    let voucherUsed = null;
-    let voucherDeduct = 0;
+    let voucherUsed = null, voucherDeduct = 0;
     const now = Date.now();
-
     if (userData.vouchers) {
       const candidates = Object.entries(userData.vouchers)
         .filter(([, v]) => {
@@ -837,7 +765,6 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
           return amount >= Number(v.minSpend || 0);
         })
         .sort(([, a], [, b]) => Number(b.amount) - Number(a.amount));
-
       if (candidates.length > 0) {
         const [code, v] = candidates[0];
         voucherUsed = code;
@@ -846,26 +773,20 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
     }
 
     const cashNeeded = amount - voucherDeduct;
-
     if (balance < cashNeeded) {
       showToast(`Insufficient balance, need ${formatMoney(cashNeeded - balance)} more`, 'error');
       return;
     }
 
-    // ===== Batch update =====
     const updates = {};
-
-    // 1. Deduct customer balance
     updates[`users/${currentUser.uid}/balance`] = balance - cashNeeded;
 
-    // 2. Mark voucher used
     if (voucherUsed) {
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/used`] = true;
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAt`] = serverTimestamp();
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAtMerchant`] = merchantId;
     }
 
-    // 3. Customer history
     const historyRef = push(ref(db, `users/${currentUser.uid}/history`));
     updates[`users/${currentUser.uid}/history/${historyRef.key}`] = {
       type: 'payment',
@@ -879,7 +800,6 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
       createdAt: serverTimestamp()
     };
 
-    // 4. Merchant history (merchants node)
     const merchantHistoryRef = push(ref(db, `merchants/${merchantId}/history`));
     updates[`merchants/${merchantId}/history/${merchantHistoryRef.key}`] = {
       type: 'income',
@@ -895,7 +815,6 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
       createdAt: serverTimestamp()
     };
 
-    // 5. Merchant balance (merchants node)
     const merchantBalSnap = await get(ref(db, `merchants/${merchantId}/balance`));
     const merchantBalance = Number(merchantBalSnap.val() || 0);
     updates[`merchants/${merchantId}/balance`] = merchantBalance + cashNeeded;
@@ -915,17 +834,12 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
   }
 });
 
-// ============ Top-up request ============
+// ============ Top-up ============
 document.getElementById('submitTopup').addEventListener('click', async () => {
   if (isProcessing) return;
-
   const amountInput = document.getElementById('topupAmount');
   const amount = Number(amountInput.value);
-
-  if (!amount || amount <= 0) {
-    showToast('Please enter a valid top-up amount', 'error');
-    return;
-  }
+  if (!amount || amount <= 0) { showToast('Please enter a valid top-up amount', 'error'); return; }
 
   isProcessing = true;
   const btn = document.getElementById('submitTopup');
@@ -934,19 +848,14 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
 
   try {
     const reqRef = push(ref(db, `users/${currentUser.uid}/topupRequests`));
-    await set(reqRef, {
-      amount: amount,
-      status: 'pending',
-      createdAt: serverTimestamp()
-    });
+    await set(reqRef, { amount, status: 'pending', createdAt: serverTimestamp() });
 
-    // Also write to admin approval queue
     const nameSnap = await get(ref(db, `users/${currentUser.uid}/name`));
     const adminReqRef = push(ref(db, `topupRequests/${currentUser.uid}`));
     await set(adminReqRef, {
       userId: currentUser.uid,
       userName: nameSnap.val() || '',
-      amount: amount,
+      amount,
       status: 'pending',
       createdAt: serverTimestamp()
     });
@@ -967,25 +876,18 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
 document.querySelectorAll('.main-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     const paneId = tab.dataset.pane;
-
     document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-
     tab.classList.add('active');
     document.getElementById(`pane-${paneId}`).classList.add('active');
-
-    if (paneId !== 'scan') {
-      stopScanner();
-    }
+    if (paneId !== 'scan') stopScanner();
   });
 });
 
-// ============ Unload cleanup ============
-window.addEventListener('beforeunload', () => {
-  stopScanner();
-});
+// ============ Unload ============
+window.addEventListener('beforeunload', () => { stopScanner(); });
 
-// ============ Init: show password login by default ============
+// ============ Init ============
 loginForm.style.display = 'block';
 phoneLoginPanel.style.display = 'none';
 registerForm.style.display = 'none';
