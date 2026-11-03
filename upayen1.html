@@ -361,26 +361,20 @@ registerForm.addEventListener('submit', async e => {
     const { type, authEmail, raw } = processAccountInput(accountInput);
     const name = document.getElementById('regUserName').value.trim();
     const pwd = document.getElementById('regPassword').value;
-
     const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
-
     await set(ref(db, `users/${userCred.user.uid}`), {
       name,
       email: type === 'email' ? raw : '',
       phone: type === 'phone' ? raw : '',
       rawAccount: raw,
-      balance: 0,
-      role: 'customer',
-      createdAt: serverTimestamp()
+      balance: 0, role: 'customer', createdAt: serverTimestamp()
     });
     await userCred.user.updateProfile({ displayName: name });
     showToast('Registration successful, signed in!', 'success');
   } catch (err) {
     showError('Registration failed: ' + err.message);
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Create Account';
-    isProcessing = false;
+    btn.disabled = false; btn.innerHTML = 'Create Account'; isProcessing = false;
   }
 });
 
@@ -401,9 +395,7 @@ loginForm.addEventListener('submit', async e => {
   } catch (err) {
     showError('Sign-in failed: incorrect account or password');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Sign In';
-    isProcessing = false;
+    btn.disabled = false; btn.innerHTML = 'Sign In'; isProcessing = false;
   }
 });
 
@@ -422,13 +414,11 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
     if (recaptchaVerifier) { try { recaptchaVerifier.clear(); } catch(_) {} recaptchaVerifier = null; }
     const container = document.getElementById('recaptcha-container');
     if (container) container.innerHTML = '';
-
     recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       'size': 'normal',
       'callback': () => { console.log('reCAPTCHA verified'); },
       'expired-callback': () => { showToast('Verification expired, please resend', 'error'); }
     });
-
     confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     document.getElementById('otpInputGroup').style.display = 'block';
     showToast('Verification code sent', 'success');
@@ -486,11 +476,9 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 // ============ Load user data ============
 function initUserData() {
   const userRef = ref(db, `users/${currentUser.uid}`);
-
   unsubs.push(onValue(userRef, snap => {
     const d = snap.val() || {};
     document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
-
     availableVouchers = [];
     let totalVoucherValue = 0;
     const now = Date.now();
@@ -543,7 +531,6 @@ function renderVouchers(vouchers) {
   const now = Date.now();
   const container = document.getElementById('voucherList');
   if (!Object.keys(vouchers).length) { container.innerHTML = '<p class="empty">No vouchers</p>'; return; }
-
   container.innerHTML = '';
   for (const [code, v] of Object.entries(vouchers)) {
     const isExpired = v.expiry && v.expiry < now;
@@ -551,7 +538,6 @@ function renderVouchers(vouchers) {
     let extraClass = '', statusText = 'Active';
     if (isUsed) { extraClass = 'voucher-used'; statusText = 'Used'; }
     else if (isExpired) { extraClass = 'voucher-expired'; statusText = 'Expired'; }
-
     container.innerHTML += `
       <div class="card voucher-card ${extraClass}">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -581,7 +567,6 @@ window.showVoucherQr = async function(code) {
   const userSnap = await get(ref(db, `users/${currentUser.uid}`));
   const userData = userSnap.val() || {};
   const voucher = userData.vouchers?.[code];
-
   if (!voucher || voucher.used === true) { showToast('Voucher not found or already used', 'error'); return; }
   if (voucher.expiry && voucher.expiry < Date.now()) { showToast('Voucher has expired', 'error'); return; }
 
@@ -592,7 +577,6 @@ window.showVoucherQr = async function(code) {
   display.innerHTML = '';
   const canvas = document.createElement('canvas');
   display.appendChild(canvas);
-
   try {
     await QRCode.toCanvas(canvas, JSON.stringify({
       type: 'voucher', code: code, uid: currentUser.uid
@@ -607,20 +591,17 @@ document.getElementById('closeVoucherQrBtn').addEventListener('click', () => {
   document.getElementById('voucherQrModal').classList.remove('show');
 });
 
-// ============ Scanner ============
+// ============ Scanner (identical to Chinese version) ============
 const startScanBtn = document.getElementById('startScanBtn');
 const stopScanBtn = document.getElementById('stopScanBtn');
 
 async function startScanner() {
   if (html5QrCode && html5QrCode.isScanning) return;
-
   if (html5QrCode) {
     try { await html5QrCode.clear(); } catch(_) {}
     html5QrCode = null;
   }
-
   html5QrCode = new Html5Qrcode('reader');
-
   try {
     await html5QrCode.start(
       { facingMode: 'environment' },
@@ -638,21 +619,15 @@ async function startScanner() {
   }
 }
 
-// ✅ FIX: 先置空实例，避免并发 stop/clear
 async function stopScanner() {
-  const inst = html5QrCode;
-  html5QrCode = null;
-  if (!inst) {
-    startScanBtn.style.display = 'block';
-    stopScanBtn.style.display = 'none';
-    return;
-  }
+  if (!html5QrCode) return;
   try {
-    if (inst.isScanning) await inst.stop();
-    await inst.clear();
+    if (html5QrCode.isScanning) await html5QrCode.stop();
+    await html5QrCode.clear();
   } catch (e) {
     console.error(e);
   }
+  html5QrCode = null;
   startScanBtn.style.display = 'block';
   stopScanBtn.style.display = 'none';
 }
@@ -660,73 +635,51 @@ async function stopScanner() {
 startScanBtn.addEventListener('click', startScanner);
 stopScanBtn.addEventListener('click', stopScanner);
 
-// ============ ✅ 修复后的扫码回调 ============
+// ============ Scan success (identical flow to Chinese version) ============
 function onScanSuccess(decodedText) {
   if (isProcessing) return;
-  isProcessing = true;                     // 先锁，防重复触发
-
-  // 立即触发停止（不 await），避免每帧多次触发
-  if (html5QrCode && html5QrCode.isScanning) {
-    html5QrCode.stop().catch(() => {});
-  }
-
-  const text = (decodedText || '').trim();
   let payload = null;
-
-  // 1) 先尝试 JSON（推荐格式）
   try {
-    const obj = JSON.parse(text);
-    if (obj && obj.type === 'merchant' && obj.merchantId && Number(obj.amount) > 0) {
-      payload = {
-        type: 'merchant',
-        merchantId: String(obj.merchantId),
-        amount: Number(obj.amount),
-        orderId: obj.orderId || null
-      };
-    }
-  } catch (_) { /* not JSON */ }
-
-  // 2) 兼容旧格式 PAY:amount:merchantUid
-  if (!payload && text.startsWith('PAY:')) {
-    const parts = text.split(':');
-    if (parts.length >= 3) {
-      const amt = Number(parts[1]);
-      if (!isNaN(amt) && amt > 0 && parts[2]) {
-        payload = { type: 'merchant', amount: amt, merchantId: parts[2], orderId: null };
+    payload = JSON.parse(decodedText);
+  } catch (e) {
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length >= 3) {
+        payload = {
+          type: 'merchant',
+          amount: Number(parts[1]),
+          merchantId: parts[2],
+          orderId: null
+        };
       }
     }
   }
-
-  if (!payload) {
+  if (!payload || payload.type !== 'merchant' || !payload.merchantId) {
     showToast('Invalid merchant QR code, please ask the merchant to regenerate', 'error');
-    isProcessing = false;
-    // 恢复按钮显示
-    startScanBtn.style.display = 'block';
-    stopScanBtn.style.display = 'none';
     return;
   }
-
-  // 处理支付弹窗
-  promptPayment(payload).finally(() => {
+  isProcessing = true;
+  stopScanner().then(() => {
     isProcessing = false;
+    promptPayment(payload);
   });
 }
 
-// ============ Payment prompt ============
+// ============ Prompt payment (reads merchants node) ============
 async function promptPayment(payload) {
   try {
     const merchantSnap = await get(ref(db, `merchants/${payload.merchantId}`));
     const merchant = merchantSnap.val();
     if (!merchant) { showToast('Merchant not found or invalid', 'error'); return; }
-
+    const amount = Number(payload.amount);
+    if (!amount || amount <= 0) { showToast('Invalid amount', 'error'); return; }
     pendingPayData = {
       merchantId: payload.merchantId,
       merchantName: merchant.name || 'Merchant',
-      amount: payload.amount,
+      amount: amount,
       orderId: payload.orderId || null
     };
-
-    document.getElementById('payAmountText').textContent = formatMoney(payload.amount);
+    document.getElementById('payAmountText').textContent = formatMoney(amount);
     document.getElementById('merchantInfoText').textContent = `Pay to: ${merchant.name || 'Merchant'}`;
     document.getElementById('payTypeText').textContent = 'Pay merchant';
     document.getElementById('payModal').classList.add('show');
@@ -741,7 +694,7 @@ document.getElementById('closePayModalBtn').addEventListener('click', () => {
   pendingPayData = null;
 });
 
-// ============ Confirm payment ============
+// ============ Confirm payment (writes to merchants node) ============
 document.getElementById('confirmPayBtn').addEventListener('click', async () => {
   if (!pendingPayData || isProcessing) return;
   isProcessing = true;
@@ -791,13 +744,9 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
     updates[`users/${currentUser.uid}/history/${historyRef.key}`] = {
       type: 'payment',
       description: `Paid ${merchantName}` + (voucherUsed ? ` (voucher ${voucherUsed} deducted ${formatMoney(voucherDeduct)})` : ''),
-      amount: cashNeeded,
-      originalAmount: amount,
-      voucherUsed: voucherUsed || null,
-      voucherDeduct: voucherDeduct,
-      merchantId,
-      orderId,
-      createdAt: serverTimestamp()
+      amount: cashNeeded, originalAmount: amount,
+      voucherUsed: voucherUsed || null, voucherDeduct: voucherDeduct,
+      merchantId, orderId, createdAt: serverTimestamp()
     };
 
     const merchantHistoryRef = push(ref(db, `merchants/${merchantId}/history`));
@@ -805,14 +754,10 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
       type: 'income',
       description: `Payment from customer ${userData.name || currentUser.uid}`,
       amount: cashNeeded,
-      voucherAmount: voucherDeduct,
-      cashAmount: cashNeeded,
+      voucherAmount: voucherDeduct, cashAmount: cashNeeded,
       originalAmount: amount,
-      voucherUsed: voucherUsed || null,
-      voucherDeduct: voucherDeduct,
-      customerUid: currentUser.uid,
-      orderId,
-      createdAt: serverTimestamp()
+      voucherUsed: voucherUsed || null, voucherDeduct: voucherDeduct,
+      customerUid: currentUser.uid, orderId, createdAt: serverTimestamp()
     };
 
     const merchantBalSnap = await get(ref(db, `merchants/${merchantId}/balance`));
@@ -828,9 +773,7 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
     console.error(e);
     showToast('Payment failed: ' + e.message, 'error');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Confirm Payment';
-    isProcessing = false;
+    btn.disabled = false; btn.innerHTML = 'Confirm Payment'; isProcessing = false;
   }
 });
 
@@ -840,35 +783,26 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
   const amountInput = document.getElementById('topupAmount');
   const amount = Number(amountInput.value);
   if (!amount || amount <= 0) { showToast('Please enter a valid top-up amount', 'error'); return; }
-
   isProcessing = true;
   const btn = document.getElementById('submitTopup');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-
   try {
     const reqRef = push(ref(db, `users/${currentUser.uid}/topupRequests`));
     await set(reqRef, { amount, status: 'pending', createdAt: serverTimestamp() });
-
     const nameSnap = await get(ref(db, `users/${currentUser.uid}/name`));
     const adminReqRef = push(ref(db, `topupRequests/${currentUser.uid}`));
     await set(adminReqRef, {
-      userId: currentUser.uid,
-      userName: nameSnap.val() || '',
-      amount,
-      status: 'pending',
-      createdAt: serverTimestamp()
+      userId: currentUser.uid, userName: nameSnap.val() || '',
+      amount, status: 'pending', createdAt: serverTimestamp()
     });
-
     amountInput.value = '';
     showToast('Top-up request submitted, awaiting admin approval', 'success');
   } catch (e) {
     console.error(e);
     showToast('Submission failed: ' + e.message, 'error');
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Submit Request';
-    isProcessing = false;
+    btn.disabled = false; btn.innerHTML = 'Submit Request'; isProcessing = false;
   }
 });
 
@@ -884,10 +818,8 @@ document.querySelectorAll('.main-tab').forEach(tab => {
   });
 });
 
-// ============ Unload ============
 window.addEventListener('beforeunload', () => { stopScanner(); });
 
-// ============ Init ============
 loginForm.style.display = 'block';
 phoneLoginPanel.style.display = 'none';
 registerForm.style.display = 'none';
