@@ -77,11 +77,11 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 .voucher-used { border-left-color: #888; opacity: 0.5; }
 #voucherQrDisplay { text-align: center; margin: 20px 0; min-height: 250px; display: flex; align-items: center; justify-content: center; }
 
-/* reCAPTCHA 容器：让它可见并居中 */
-#recaptcha-container { 
-  margin-top: 16px; 
-  min-height: 78px; 
-  display: flex; 
+/* reCAPTCHA 容器 */
+#recaptcha-container {
+  margin-top: 16px;
+  min-height: 78px;
+  display: flex;
   justify-content: center;
   border: 1px dashed #ccc;
   border-radius: 8px;
@@ -91,19 +91,19 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 </head>
 <body>
 <div class="container">
-  
+
   <!-- ================= 登录/注册界面 ================= -->
   <div class="auth-card" id="authScreen">
     <h2><i class="fas fa-shield-alt"></i> 欢迎回来</h2>
     <div class="error" id="authError"></div>
-    
+
     <!-- 顶部切换标签 -->
     <div class="tabs-nav">
       <button class="tab-btn active" id="tabPwdLogin">密码登录</button>
       <button class="tab-btn" id="tabPhoneLogin">手机号登录</button>
       <button class="tab-btn" id="tabRegister">注册</button>
     </div>
-    
+
     <!-- 1. 密码登录面板 -->
     <form id="loginForm">
       <div class="form-group">
@@ -116,7 +116,7 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       </div>
       <button type="submit" class="btn btn-primary">立即登录</button>
     </form>
-    
+
     <!-- 2. 手机号快捷登录面板 (OTP) -->
     <div id="phoneLoginPanel" style="display:none;">
       <div class="form-group">
@@ -125,7 +125,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       </div>
       <button class="btn btn-primary" id="sendOtpBtn" type="button">发送验证码</button>
 
-      <!-- 这里放 reCAPTCHA，让它一直存在 -->
       <div id="recaptcha-container"></div>
 
       <div id="otpInputGroup" style="display:none; margin-top:16px;">
@@ -135,7 +134,7 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
         </div>
         <button class="btn btn-success" id="verifyOtpBtn" type="button">验证并登录</button>
       </div>
-      
+
       <p style="font-size:0.75rem; color:#999; margin-top:12px; text-align:center;">
         登录即代表您同意接收验证短信，可能产生标准短信费用。
       </p>
@@ -165,19 +164,19 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
     <div class="header">
       <h3 style="font-size:1.2rem; margin-bottom:4px;">你好, <span id="userNameDisplay">用户</span></h3>
       <p style="opacity:0.7; font-size:0.85rem;" id="userEmailDisplay"></p>
-      
+
       <div class="balance" id="balanceDisplay">$0.00</div>
-      
+
       <div class="voucher-balance">
         <span><i class="fas fa-ticket-alt"></i> 礼券总价值</span>
         <span style="font-weight:bold; font-size:1.1rem;" id="voucherBalanceDisplay">$0.00</span>
       </div>
-      
+
       <button class="btn-sm" style="position:absolute; top:24px; right:24px; background:rgba(255,255,255,0.15); color:white; border:none;" id="logoutBtn">
         <i class="fas fa-sign-out-alt"></i> 退出
       </button>
     </div>
-    
+
     <!-- 功能切换导航 -->
     <div class="main-tabs">
       <button class="main-tab active" data-pane="scan">扫码支付</button>
@@ -185,7 +184,7 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
       <button class="main-tab" data-pane="history">交易记录</button>
       <button class="main-tab" data-pane="topup">充值申请</button>
     </div>
-    
+
     <!-- 1. 扫码支付 -->
     <div class="tab-pane active" id="pane-scan">
       <div class="scanner-box">
@@ -201,17 +200,17 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
         扫描商户收款码进行付款
       </p>
     </div>
-    
+
     <!-- 2. 我的礼券 -->
     <div class="tab-pane" id="pane-vouchers">
       <div id="voucherList"></div>
     </div>
-    
+
     <!-- 3. 交易记录 -->
     <div class="tab-pane" id="pane-history">
       <div id="historyList"></div>
     </div>
-    
+
     <!-- 4. 充值申请 -->
     <div class="tab-pane" id="pane-topup">
       <div class="card">
@@ -257,12 +256,12 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
+import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getDatabase, ref, set, push, update, get, onValue, serverTimestamp 
+import {
+  getDatabase, ref, set, push, update, get, onValue, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -316,7 +315,7 @@ function processAccountInput(input) {
   const value = input.trim();
   if (value.includes('@')) {
     return { type: 'email', authEmail: value, raw: value };
-  } 
+  }
   const phone = value.replace(/\D/g, '');
   if (phone.length >= 8) {
     return { type: 'phone', authEmail: `${phone}@phone.local`, raw: phone };
@@ -330,15 +329,14 @@ onAuthStateChanged(auth, user => {
     currentUser = user;
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('mainApp').classList.add('active');
-    
-    // 获取用户信息并显示
+
     const userRef = ref(db, `users/${user.uid}`);
     get(userRef).then(snap => {
       const d = snap.val();
       document.getElementById('userNameDisplay').textContent = d?.name || user.displayName || '用户';
       document.getElementById('userEmailDisplay').textContent = d?.rawAccount || user.email || user.phoneNumber || '';
     });
-    
+
     initUserData();
   } else {
     stopScanner();
@@ -346,7 +344,6 @@ onAuthStateChanged(auth, user => {
     clearListeners();
     document.getElementById('authScreen').style.display = 'block';
     document.getElementById('mainApp').classList.remove('active');
-    // 重置登录UI状态
     document.getElementById('otpInputGroup').style.display = 'none';
     document.getElementById('otpCodeInput').value = '';
   }
@@ -397,16 +394,16 @@ registerForm.addEventListener('submit', async e => {
     const { type, authEmail, raw } = processAccountInput(accountInput);
     const name = document.getElementById('regUserName').value.trim();
     const pwd = document.getElementById('regPassword').value;
-    
+
     const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
-    
+
     await set(ref(db, `users/${userCred.user.uid}`), {
-      name, 
+      name,
       email: type === 'email' ? raw : '',
       phone: type === 'phone' ? raw : '',
       rawAccount: raw,
-      balance: 0, 
-      role: 'customer', 
+      balance: 0,
+      role: 'customer',
       createdAt: serverTimestamp()
     });
     await userCred.user.updateProfile({ displayName: name });
@@ -448,7 +445,7 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   if (isProcessing) return;
   let phoneNumber = document.getElementById('phoneNumberInput').value.trim();
   phoneNumber = phoneNumber.replace(/\s+/g, '');
-  
+
   if (!phoneNumber || !phoneNumber.startsWith('+')) {
     showToast('请输入含国家代码的手机号（如 +6581234567）', 'error');
     return;
@@ -460,7 +457,6 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
   btn.textContent = '发送中...';
 
   try {
-    // 1. 清理旧实例
     if (recaptchaVerifier) {
       try { recaptchaVerifier.clear(); } catch(_) {}
       recaptchaVerifier = null;
@@ -468,25 +464,18 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
     const container = document.getElementById('recaptcha-container');
     if (container) container.innerHTML = '';
 
-    // 2. 创建新的可见的 reCAPTCHA
     recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'normal', 
-      'callback': (response) => {
-        console.log('reCAPTCHA 验证通过');
-      },
-      'expired-callback': () => {
-        showToast('验证已过期，请重新发送', 'error');
-      }
+      'size': 'normal',
+      'callback': (response) => { console.log('reCAPTCHA 验证通过'); },
+      'expired-callback': () => { showToast('验证已过期，请重新发送', 'error'); }
     });
 
-    // 3. 发起发送
     confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     document.getElementById('otpInputGroup').style.display = 'block';
     showToast('验证码已发送', 'success');
   } catch (e) {
-    console.error(e); // 这行很重要，F12 控制台能看到详细错误
+    console.error(e);
     showToast('发送失败：' + e.message, 'error');
-    // 失败清理
     if (recaptchaVerifier) {
       try { recaptchaVerifier.clear(); } catch(_) {}
       recaptchaVerifier = null;
@@ -517,12 +506,12 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   try {
     const result = await confirmationResult.confirm(code);
     const user = result.user;
-    
+
     const userRef = ref(db, `users/${user.uid}`);
     const snap = await get(userRef);
     if (!snap.exists()) {
       await set(userRef, {
-        name: '用户' + user.phoneNumber.slice(-4),
+        name: '用户' + (user.phoneNumber || '').slice(-4),
         email: '',
         phone: user.phoneNumber || '',
         rawAccount: user.phoneNumber || '',
@@ -558,15 +547,15 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 // ============ 加载主应用数据 ============
 function initUserData() {
   const userRef = ref(db, `users/${currentUser.uid}`);
-  
+
   unsubs.push(onValue(userRef, snap => {
     const d = snap.val() || {};
     document.getElementById('balanceDisplay').textContent = formatMoney(d.balance);
-    
+
     availableVouchers = [];
     let totalVoucherValue = 0;
     const now = Date.now();
-    
+
     if (d.vouchers) {
       for (const [code, v] of Object.entries(d.vouchers)) {
         if (v.used === true) continue;
@@ -579,7 +568,7 @@ function initUserData() {
     document.getElementById('voucherBalanceDisplay').textContent = formatMoney(totalVoucherValue);
     renderVouchers(d.vouchers || {});
   }));
-  
+
   unsubs.push(onValue(ref(db, `users/${currentUser.uid}/history`), snap => {
     const items = Object.values(snap.val() || {}).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
     document.getElementById('historyList').innerHTML = items.length ? items.map(h => {
@@ -595,7 +584,7 @@ function initUserData() {
       `;
     }).join('') : '<p class="empty">暂无交易记录</p>';
   }));
-  
+
   unsubs.push(onValue(ref(db, `users/${currentUser.uid}/topupRequests`), snap => {
     const reqs = Object.entries(snap.val() || {}).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
     document.getElementById('topupReqList').innerHTML = reqs.length ? reqs.map(([id, r]) => {
@@ -615,12 +604,12 @@ function initUserData() {
 function renderVouchers(vouchers) {
   const now = Date.now();
   const container = document.getElementById('voucherList');
-  
+
   if (!Object.keys(vouchers).length) {
     container.innerHTML = '<p class="empty">暂无礼券</p>';
     return;
   }
-  
+
   container.innerHTML = '';
   for (const [code, v] of Object.entries(vouchers)) {
     const isExpired = v.expiry && v.expiry < now;
@@ -629,7 +618,7 @@ function renderVouchers(vouchers) {
     let statusText = '有效';
     if (isUsed) { extraClass = 'voucher-used'; statusText = '已使用'; }
     else if (isExpired) { extraClass = 'voucher-expired'; statusText = '已过期'; }
-    
+
     container.innerHTML += `
       <div class="card voucher-card ${extraClass}">
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -659,7 +648,7 @@ window.showVoucherQr = async function(code) {
   const userSnap = await get(ref(db, `users/${currentUser.uid}`));
   const userData = userSnap.val() || {};
   const voucher = userData.vouchers?.[code];
-  
+
   if (!voucher || voucher.used === true) {
     showToast('礼券不存在或已使用', 'error');
     return;
@@ -668,16 +657,15 @@ window.showVoucherQr = async function(code) {
     showToast('礼券已过期', 'error');
     return;
   }
-  
+
   document.getElementById('voucherQrModal').classList.add('show');
   document.getElementById('voucherCodeText').textContent = code;
-  
-  // 生成二维码
+
   const display = document.getElementById('voucherQrDisplay');
   display.innerHTML = '';
   const canvas = document.createElement('canvas');
   display.appendChild(canvas);
-  
+
   try {
     await QRCode.toCanvas(canvas, JSON.stringify({
       type: 'voucher',
@@ -703,25 +691,30 @@ const startScanBtn = document.getElementById('startScanBtn');
 const stopScanBtn = document.getElementById('stopScanBtn');
 
 async function startScanner() {
-  if (html5QrCode) return;
-  
+  // 如果已存在且正在扫描，直接返回
+  if (html5QrCode && html5QrCode.isScanning) return;
+
+  // 如果存在旧的实例但未扫描，先清掉
+  if (html5QrCode) {
+    try { await html5QrCode.clear(); } catch(_) {}
+    html5QrCode = null;
+  }
+
   html5QrCode = new Html5Qrcode('reader');
-  
+
   try {
     await html5QrCode.start(
       { facingMode: 'environment' },
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 250 }
-      },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
       onScanSuccess,
-      () => {} // 忽略扫描失败（每帧都会触发）
+      () => {} // 忽略每帧扫描失败
     );
     startScanBtn.style.display = 'none';
     stopScanBtn.style.display = 'block';
   } catch (e) {
     console.error(e);
     showToast('无法启动摄像头：' + e.message, 'error');
+    try { await html5QrCode.clear(); } catch(_) {}
     html5QrCode = null;
   }
 }
@@ -729,7 +722,7 @@ async function startScanner() {
 async function stopScanner() {
   if (!html5QrCode) return;
   try {
-    await html5QrCode.stop();
+    if (html5QrCode.isScanning) await html5QrCode.stop();
     await html5QrCode.clear();
   } catch (e) {
     console.error(e);
@@ -742,24 +735,35 @@ async function stopScanner() {
 startScanBtn.addEventListener('click', startScanner);
 stopScanBtn.addEventListener('click', stopScanner);
 
-// 扫描成功回调
+// ============ 扫描成功回调（兼容 JSON 与 PAY: 旧格式） ============
 function onScanSuccess(decodedText) {
-  // 先暂停扫描，避免重复触发
   if (isProcessing) return;
-  
-  let payload;
+
+  let payload = null;
+
+  // 优先按 JSON 解析（新格式）
   try {
     payload = JSON.parse(decodedText);
   } catch (e) {
-    showToast('无法识别的二维码', 'error');
+    // 兼容旧格式：PAY:金额:商户UID
+    if (decodedText.startsWith('PAY:')) {
+      const parts = decodedText.split(':');
+      if (parts.length >= 3) {
+        payload = {
+          type: 'merchant',
+          amount: Number(parts[1]),
+          merchantId: parts[2],
+          orderId: null
+        };
+      }
+    }
+  }
+
+  if (!payload || payload.type !== 'merchant' || !payload.merchantId) {
+    showToast('无效的商户收款码，请让商户重新生成', 'error');
     return;
   }
-  
-  if (payload.type !== 'merchant' || !payload.merchantId) {
-    showToast('无效的商户收款码', 'error');
-    return;
-  }
-  
+
   isProcessing = true;
   stopScanner().then(() => {
     isProcessing = false;
@@ -767,38 +771,37 @@ function onScanSuccess(decodedText) {
   });
 }
 
-// 显示支付确认弹窗
+// ============ 显示支付确认弹窗（✅ 读取 merchants 节点） ============
 async function promptPayment(payload) {
   try {
-    // 读取商户信息
-    const merchantSnap = await get(ref(db, `users/${payload.merchantId}`));
+    const merchantSnap = await get(ref(db, `merchants/${payload.merchantId}`));
     const merchant = merchantSnap.val();
-    
-    if (!merchant || merchant.role !== 'merchant') {
+
+    if (!merchant) {
       showToast('商户不存在或无效', 'error');
       return;
     }
-    
+
     const amount = Number(payload.amount);
     if (!amount || amount <= 0) {
       showToast('金额无效', 'error');
       return;
     }
-    
+
     pendingPayData = {
       merchantId: payload.merchantId,
       merchantName: merchant.name || '商户',
       amount: amount,
       orderId: payload.orderId || null
     };
-    
+
     document.getElementById('payAmountText').textContent = formatMoney(amount);
     document.getElementById('merchantInfoText').textContent = `收款方：${merchant.name || '商户'}`;
     document.getElementById('payTypeText').textContent = '向商户付款';
     document.getElementById('payModal').classList.add('show');
   } catch (e) {
     console.error(e);
-    showToast('获取商户信息失败', 'error');
+    showToast('获取商户信息失败：' + e.message, 'error');
   }
 }
 
@@ -807,63 +810,65 @@ document.getElementById('closePayModalBtn').addEventListener('click', () => {
   pendingPayData = null;
 });
 
-// ============ 确认支付 ============
+// ============ 确认支付（✅ 写 merchants 节点） ============
 document.getElementById('confirmPayBtn').addEventListener('click', async () => {
   if (!pendingPayData || isProcessing) return;
   isProcessing = true;
-  
+
   const btn = document.getElementById('confirmPayBtn');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 支付中...';
-  
+
   try {
     const { merchantId, merchantName, amount, orderId } = pendingPayData;
-    
+
     // 读取最新余额
     const userSnap = await get(ref(db, `users/${currentUser.uid}`));
     const userData = userSnap.val() || {};
     const balance = Number(userData.balance || 0);
-    
-    // 尝试礼券抵扣：选择满足条件且面值最大的礼券
+
+    // 礼券抵扣：选满足条件且面值最大的
     let voucherUsed = null;
     let voucherDeduct = 0;
     const now = Date.now();
-    
+
     if (userData.vouchers) {
       const candidates = Object.entries(userData.vouchers)
         .filter(([, v]) => {
           if (v.used === true) return false;
           if (v.expiry && v.expiry < now) return false;
-          const minSpend = Number(v.minSpend || 0);
-          return amount >= minSpend;
+          return amount >= Number(v.minSpend || 0);
         })
         .sort(([, a], [, b]) => Number(b.amount) - Number(a.amount));
-      
+
       if (candidates.length > 0) {
         const [code, v] = candidates[0];
         voucherUsed = code;
         voucherDeduct = Math.min(Number(v.amount), amount);
       }
     }
-    
+
     const cashNeeded = amount - voucherDeduct;
-    
+
     if (balance < cashNeeded) {
       showToast(`余额不足，还需 ${formatMoney(cashNeeded - balance)}`, 'error');
       return;
     }
-    
-    // ===== 执行扣款（客户端事务式更新）=====
+
+    // ===== 批量更新 =====
     const updates = {};
+
+    // 1. 扣顾客余额
     updates[`users/${currentUser.uid}/balance`] = balance - cashNeeded;
-    
+
+    // 2. 礼券标记已用
     if (voucherUsed) {
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/used`] = true;
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAt`] = serverTimestamp();
       updates[`users/${currentUser.uid}/vouchers/${voucherUsed}/usedAtMerchant`] = merchantId;
     }
-    
-    // 记录到用户历史
+
+    // 3. 顾客历史
     const historyRef = push(ref(db, `users/${currentUser.uid}/history`));
     updates[`users/${currentUser.uid}/history/${historyRef.key}`] = {
       type: 'payment',
@@ -876,28 +881,30 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
       orderId,
       createdAt: serverTimestamp()
     };
-    
-    // 记录到商户历史
-    const merchantHistoryRef = push(ref(db, `users/${merchantId}/history`));
-    updates[`users/${merchantId}/history/${merchantHistoryRef.key}`] = {
+
+    // 4. ✅ 商户历史（merchants 节点）
+    const merchantHistoryRef = push(ref(db, `merchants/${merchantId}/history`));
+    updates[`merchants/${merchantId}/history/${merchantHistoryRef.key}`] = {
       type: 'income',
       description: `来自顾客 ${userData.name || currentUser.uid} 的付款`,
       amount: cashNeeded,
+      voucherAmount: voucherDeduct,
+      cashAmount: cashNeeded,
       originalAmount: amount,
       voucherUsed: voucherUsed || null,
       voucherDeduct: voucherDeduct,
-      customerId: currentUser.uid,
+      customerUid: currentUser.uid,
       orderId,
       createdAt: serverTimestamp()
     };
-    
-    // 商户余额增加
-    const merchantSnap = await get(ref(db, `users/${merchantId}/balance`));
-    const merchantBalance = Number(merchantSnap.val() || 0);
-    updates[`users/${merchantId}/balance`] = merchantBalance + cashNeeded;
-    
+
+    // 5. ✅ 商户余额增加（merchants 节点）
+    const merchantBalSnap = await get(ref(db, `merchants/${merchantId}/balance`));
+    const merchantBalance = Number(merchantBalSnap.val() || 0);
+    updates[`merchants/${merchantId}/balance`] = merchantBalance + cashNeeded;
+
     await update(ref(db), updates);
-    
+
     document.getElementById('payModal').classList.remove('show');
     pendingPayData = null;
     showToast(`支付成功 ${formatMoney(cashNeeded)}`, 'success');
@@ -914,20 +921,20 @@ document.getElementById('confirmPayBtn').addEventListener('click', async () => {
 // ============ 充值申请 ============
 document.getElementById('submitTopup').addEventListener('click', async () => {
   if (isProcessing) return;
-  
+
   const amountInput = document.getElementById('topupAmount');
   const amount = Number(amountInput.value);
-  
+
   if (!amount || amount <= 0) {
     showToast('请输入有效的充值金额', 'error');
     return;
   }
-  
+
   isProcessing = true;
   const btn = document.getElementById('submitTopup');
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
-  
+
   try {
     const reqRef = push(ref(db, `users/${currentUser.uid}/topupRequests`));
     await set(reqRef, {
@@ -935,17 +942,18 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
       status: 'pending',
       createdAt: serverTimestamp()
     });
-    
-    // 同时写入管理员待审批队列（可选）
+
+    // 写入管理员审批队列
+    const nameSnap = await get(ref(db, `users/${currentUser.uid}/name`));
     const adminReqRef = push(ref(db, `topupRequests/${currentUser.uid}`));
     await set(adminReqRef, {
       userId: currentUser.uid,
-      userName: (await get(ref(db, `users/${currentUser.uid}/name`))).val() || '',
+      userName: nameSnap.val() || '',
       amount: amount,
       status: 'pending',
       createdAt: serverTimestamp()
     });
-    
+
     amountInput.value = '';
     showToast('充值申请已提交，等待管理员审批', 'success');
   } catch (e) {
@@ -962,14 +970,13 @@ document.getElementById('submitTopup').addEventListener('click', async () => {
 document.querySelectorAll('.main-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     const paneId = tab.dataset.pane;
-    
+
     document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    
+
     tab.classList.add('active');
     document.getElementById(`pane-${paneId}`).classList.add('active');
-    
-    // 离开扫码页时停止摄像头
+
     if (paneId !== 'scan') {
       stopScanner();
     }
@@ -981,7 +988,7 @@ window.addEventListener('beforeunload', () => {
   stopScanner();
 });
 
-// ============ 初始化：显示密码登录面板 ============
+// ============ 初始化：默认显示密码登录 ============
 loginForm.style.display = 'block';
 phoneLoginPanel.style.display = 'none';
 registerForm.style.display = 'none';
