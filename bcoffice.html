@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GPS 上下班考勤系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5; --primary-hover: #4338CA;
+            --success: #10B981; --danger: #EF4444;
+            --bg: #F3F4F6; --card-bg: #FFFFFF;
+            --text-main: #111827; --text-muted: #6B7280;
+            --border: #E5E7EB;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg); color: var(--text-main);
+            min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px;
+        }
+        .app-container {
+            width: 100%; max-width: 480px; background: var(--card-bg);
+            border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            overflow: hidden; position: relative; min-height: 500px;
+        }
+        .header { background: var(--primary); color: white; padding: 24px 20px; text-align: center; cursor: pointer; user-select: none;}
+        .header h1 { font-size: 22px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .header p { font-size: 14px; opacity: 0.8; margin-top: 4px;}
+
+        .user-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .user-info { display: flex; align-items: center; gap: 8px; font-weight: 500;}
+        .avatar { width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;}
+        .logout-btn { color: var(--danger); font-weight: 500; background: none; border: none; cursor: pointer;}
+
+        .content { padding: 20px; }
+        .auth-form { display: flex; flex-direction: column; gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+        .form-control {
+            padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; font-family: inherit;
+        }
+        .form-control:focus { border-color: var(--primary); }
+        
+        .row { display: flex; gap: 12px; }
+        .row .form-control { flex: 1; }
+
+        .btn {
+            padding: 16px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        .error-msg { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: -8px;}
+
+        /* 主界面 */
+        .main-feature { display: none; }
+        .main-feature.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .clock-display { text-align: center; margin-bottom: 24px; }
+        .clock-time { font-size: 42px; font-weight: 700; letter-spacing: -1px; }
+        .clock-date { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+        .gps-status {
+            background: #F9FAFB; border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 20px;
+        }
+        .gps-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;}
+        .gps-badge { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; background: #E5E7EB; color: var(--text-muted); }
+        .gps-badge.active { background: #D1FAE5; color: var(--success); }
+        .gps-badge.error { background: #FEE2E2; color: var(--danger); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.5;}
+        
+        .action-group { display: flex; gap: 12px; margin-bottom: 24px; }
+        .action-group .btn { flex: 1; padding: 20px 10px; font-size: 18px; flex-direction: column; }
+        .action-group .btn span.icon { font-size: 24px; }
+
+        .logs-section { border-top: 1px solid var(--border); padding-top: 20px; }
+        .logs-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .log-list { display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #F9FAFB; border-radius: 12px; font-size: 14px; }
+        .log-item.in { border-left: 4px solid var(--success); }
+        .log-item.out { border-left: 4px solid var(--danger); }
+        .log-loc { font-family: monospace; font-size: 12px; color: var(--text-muted); text-align: right; }
+        
+        /* 后台管理面板 (隐藏) */
+        #adminPanel {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 100; flex-direction: column; overflow-y: auto;
+        }
+        #adminPanel.active { display: flex; }
+        .admin-header { background: #1F2937; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;}
+        .admin-header h2 { font-size: 18px; }
+        .admin-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        
+        .admin-body { padding: 16px; }
+        .admin-card { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+        .admin-card-header { background: #F9FAFB; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px;}
+        .admin-card-body { padding: 16px; font-size: 13px; }
+        .admin-log-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px;}
+        .admin-log-table th, .admin-log-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
+        .admin-log-table th { color: var(--text-muted); font-weight: 500; }
+        .del-btn { background: #FEE2E2; color: var(--danger); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;}
+
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1F2937; color: white; padding: 12px 24px; border-radius: 100px; font-size: 14px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 9999;}
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .hidden { display: none !important; }
+        #recaptcha-container { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 顶部 (连点5次进入后台) -->
+    <div class="header" id="headerTrigger">
+        <h1>📍 GPS 考勤打卡</h1>
+        <p>真实位置校验 · 云端记录</p>
+    </div>
+
+    <!-- 用户信息 -->
+    <div id="userBar" class="user-bar hidden">
+        <div class="user-info">
+            <div class="avatar" id="userAvatar">👤</div>
+            <span id="userPhone">--</span>
+        </div>
+        <button class="logout-btn" id="logoutBtn">退出登录</button>
+    </div>
+
+    <div class="content">
+        <!-- 登录注册 -->
+        <div id="authSection">
+            <div class="auth-form">
+                <div class="form-group">
+                    <label>手机号码 (包含国家代码)</label>
+                    <input type="tel" id="phoneInput" class="form-control" placeholder="例如：+6591234567" value="+65">
+                </div>
+                <div class="form-group">
+                    <label>短信验证码</label>
+                    <div class="row">
+                        <input type="text" id="codeInput" class="form-control" placeholder="6位验证码" maxlength="6" inputmode="numeric">
+                        <button id="sendCodeBtn" class="btn btn-outline" style="width: 130px; padding: 0;">获取验证码</button>
+                    </div>
+                </div>
+                <div class="error-msg" id="authError"></div>
+                <div id="recaptcha-container"></div>
+                <button id="loginBtn" class="btn btn-primary" style="margin-top: 8px;">
+                    <span>🔐</span> 验证并登录
+                </button>
+            </div>
+        </div>
+
+        <!-- 打卡区 -->
+        <div id="mainSection" class="main-feature">
+            <div class="clock-display">
+                <div class="clock-time" id="liveTime">00:00:00</div>
+                <div class="clock-date" id="liveDate">2024年01月01日</div>
+            </div>
+
+            <div class="gps-status">
+                <div class="gps-header">
+                    <span>当前定位状态</span>
+                    <div class="gps-badge" id="gpsBadge">
+                        <div class="dot"></div><span id="gpsText">等待获取</span>
+                    </div>
+                </div>
+                <div class="coord-info" id="coordInfo">
+                    纬度: -- <br>经度: -- <br>精度: --
+                </div>
+            </div>
+
+            <div class="action-group">
+                <button id="clockInBtn" class="btn btn-success"><span class="icon">☀️</span>上班打卡</button>
+                <button id="clockOutBtn" class="btn btn-danger"><span class="icon">🌙</span>下班打卡</button>
+            </div>
+
+            <div class="logs-section">
+                <div class="logs-header">
+                    <h3>📋 我的记录</h3>
+                    <button id="clearLogsBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">清空</button>
+                </div>
+                <div class="log-list" id="logList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 后台管理面板 (覆盖在上面) ================= -->
+    <div id="adminPanel">
+        <div class="admin-header">
+            <h2>⚙️ 管理员控制台</h2>
+            <button class="admin-close" id="adminCloseBtn">✕</button>
+        </div>
+        <div class="admin-body">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <span style="font-size:14px; color:var(--text-muted);">所有用户打卡数据</span>
+                <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
+            </div>
+            <div id="adminUserList">
+                <!-- 动态渲染所有用户数据 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">提示</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+    // ================= 1. 初始化 =================
+    const firebaseConfig = {
+        apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
+        authDomain: "payment-2084a.firebaseapp.com",
+        databaseURL: "https://payment-2084a-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "payment-2084a",
+        storageBucket: "payment-2084a.firebasestorage.app",
+        messagingSenderId: "320939990652",
+        appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // ================= 2. 全局变量 =================
+    let currentUser = null, currentPosition = null;
+    let confirmationResult = null, recaptchaVerifier = null;
+    let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
+    let headerClickCount = 0, headerClickTimer = null; // 用于连点触发后台
+
+    // DOM
+    const headerTrigger = document.getElementById('headerTrigger');
+    const userBar = document.getElementById('userBar'), userPhone = document.getElementById('userPhone'), userAvatar = document.getElementById('userAvatar'), logoutBtn = document.getElementById('logoutBtn');
+    const authSection = document.getElementById('authSection'), mainSection = document.getElementById('mainSection');
+    const phoneInput = document.getElementById('phoneInput'), codeInput = document.getElementById('codeInput'), sendCodeBtn = document.getElementById('sendCodeBtn'), loginBtn = document.getElementById('loginBtn'), authError = document.getElementById('authError');
+    const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
+    const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
+    const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
+    const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
+    // 后台管理 DOM
+    const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
+
+    // ================= 3. 基础工具 =================
+    function showToast(msg, duration = 2500) {
+        toastEl.textContent = msg; toastEl.classList.add('show');
+        clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+    }
+
+    setInterval(() => {
+        const now = new Date();
+        liveTime.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+        liveDate.textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+    }, 1000);
+
+    // ================= 4. 登录鉴权 =================
+    function initRecaptcha() {
+        if (!recaptchaVerifier) {
+            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+        }
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            userBar.classList.remove('hidden');
+            authSection.classList.add('hidden');
+            mainSection.classList.add('active');
+            userPhone.textContent = (user.phoneNumber || '').replace(/(\+\d{2})(\d{4})\d{4}(\d+)/, '$1 $2****$3');
+            userAvatar.textContent = (user.phoneNumber || '👤').slice(-2);
+            
+            fetchLocation();
+            loadMyLogs();
+        } else {
+            currentUser = null;
+            userBar.classList.add('hidden');
+            authSection.classList.remove('hidden');
+            mainSection.classList.remove('active');
+            if (logsRef) { logsRef.off(); logsRef = null; }
+            logList.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无记录</div>';
+            currentPosition = null;
+            updateGPSUI('waiting', '等待获取');
+            clearInterval(cooldownTimer);
+            sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码';
+            authError.textContent = ''; codeInput.value = '';
+        }
+    });
+
+    sendCodeBtn.addEventListener('click', async () => {
+        const phone = phoneInput.value.trim();
+        if (!phone || phone.length < 8) { authError.textContent = '请输入有效手机号'; return; }
+        authError.textContent = '';
+        sendCodeBtn.disabled = true; sendCodeBtn.textContent = '发送中...';
+        try {
+            initRecaptcha();
+            confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
+            showToast('✅ 验证码已发送');
+            let count = 60; sendCodeBtn.textContent = `${count}s`;
+            clearInterval(cooldownTimer);
+            cooldownTimer = setInterval(() => {
+                count--;
+                if (count <= 0) { clearInterval(cooldownTimer); sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码'; }
+                else sendCodeBtn.textContent = `${count}s`;
+            }, 1000);
+        } catch (err) {
+            console.error(err);
+            authError.textContent = err.message.includes('quota') ? '短信额度已满' : '发送失败，请检查号码';
+            sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码';
+            if (recaptchaVerifier) { recaptchaVerifier.clear(); recaptchaVerifier = null; }
+        }
+    });
+
+    loginBtn.addEventListener('click', async () => {
+        const code = codeInput.value.trim();
+        if (!code || code.length < 6) { authError.textContent = '请输入6位验证码'; return; }
+        if (!confirmationResult) { authError.textContent = '请先获取验证码'; return; }
+        authError.textContent = ''; loginBtn.disabled = true; loginBtn.textContent = '验证中...';
+        try {
+            await confirmationResult.confirm(code);
+            showToast('🎉 登录成功');
+        } catch (err) {
+            authError.textContent = '验证码错误或已过期';
+        } finally { loginBtn.disabled = false; loginBtn.textContent = '验证并登录'; }
+    });
+
+    logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
+
+    // ================= 5. GPS 定位 & 打卡 =================
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null) {
+        gpsBadge.className = 'gps-badge';
+        if (status === 'active') gpsBadge.classList.add('active');
+        if (status === 'error') gpsBadge.classList.add('error');
+        gpsText.textContent = text;
+        if (lat !== null) coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
+        else coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --`;
+    }
+
+    function fetchLocation() {
+        if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
+        if (isFetchingGPS) return;
+        isFetchingGPS = true; updateGPSUI('waiting', '定位中...');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy);
+                isFetchingGPS = false;
+            },
+            (err) => {
+                updateGPSUI('error', '定位失败'); showToast('❌ 请允许获取位置'); isFetchingGPS = false;
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    async function doClockAction(type) {
+        if (!currentUser || !currentPosition) { showToast('位置未就绪，请稍候'); return; }
+        const btn = type === 'in' ? clockInBtn : clockOutBtn;
+        const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
+        try {
+            await db.ref(`attendance/${currentUser.uid}`).push({
+                type: type, lat: currentPosition.lat, lng: currentPosition.lng, accuracy: currentPosition.accuracy, timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
+        } catch (err) { showToast('❌ 打卡失败'); }
+        finally { btn.disabled = false; btn.innerHTML = originalText; }
+    }
+    clockInBtn.addEventListener('click', () => doClockAction('in'));
+    clockOutBtn.addEventListener('click', () => doClockAction('out'));
+
+    // 加载我的记录
+    function loadMyLogs() {
+        if (!currentUser) return;
+        logsRef = db.ref(`attendance/${currentUser.uid}`);
+        logsRef.on('value', snap => {
+            const data = snap.val(); const logs = [];
+            if (data) Object.keys(data).forEach(k => logs.push({ id: k, ...data[k] }));
+            logs.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (logs.length === 0) { logList.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无记录</div>'; return; }
+            logList.innerHTML = logs.map(log => {
+                const d = new Date(log.timestamp);
+                const isIn = log.type === 'in';
+                return `
+                <div class="log-item ${isIn ? 'in' : 'out'}">
+                    <div><div class="log-type" style="font-weight:600;color:${isIn ? 'var(--success)' : 'var(--danger)'}">${isIn ? '☀️ 上班' : '🌙 下班'}</div>
+                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div></div>
+                    <div class="log-loc">${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br><span style="font-size:10px;">±${log.accuracy.toFixed(0)}m</span></div>
+                </div>`;
+            }).join('');
+        });
+    }
+    
+    clearLogsBtn.addEventListener('click', async () => {
+        if (!currentUser || !confirm('确定清空您的所有记录吗？')) return;
+        await db.ref(`attendance/${currentUser.uid}`).remove();
+        showToast('🧹 已清空');
+    });
+
+    // ================= 6. 后台管理系统 (连点 5 次触发) =================
+    headerTrigger.addEventListener('click', () => {
+        headerClickCount++;
+        if (headerClickCount === 1) {
+            headerClickTimer = setTimeout(() => { headerClickCount = 0; }, 2000); // 2秒内未连点完毕重置
+        }
+        if (headerClickCount >= 5) {
+            clearTimeout(headerClickTimer);
+            headerClickCount = 0;
+            // 弹出密码框
+            const pwd = prompt("请输入管理员密码:");
+            if (pwd === 'admin123') {
+                adminPanel.classList.add('active');
+                loadAdminData(); // 拉取所有数据
+            } else if (pwd !== null) {
+                showToast('❌ 密码错误');
+            }
+        }
+    });
+
+    adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
+    adminRefreshBtn.addEventListener('click', loadAdminData);
+
+    // 加载所有用户的打卡数据
+    function loadAdminData() {
+        adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
+        db.ref('attendance').once('value').then(snap => {
+            const data = snap.val();
+            if (!data) {
+                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何用户数据</div>';
+                return;
+            }
+            
+            let html = '';
+            // 遍历每个用户 (uid)
+            Object.keys(data).forEach(uid => {
+                const userLogs = data[uid];
+                const logArray = [];
+                Object.keys(userLogs).forEach(logId => logArray.push({ id: logId, ...userLogs[logId] }));
+                logArray.sort((a, b) => b.timestamp - a.timestamp);
+                
+                html += `<div class="admin-card">
+                    <div class="admin-card-header">
+                        <span>用户 ID: ${uid}</span>
+                        <button class="del-btn" onclick="deleteUserData('${uid}')">删除该用户所有数据</button>
+                    </div>
+                    <div class="admin-card-body">`;
+                
+                if (logArray.length === 0) {
+                    html += `<div style="color:#888;">无打卡记录</div>`;
+                } else {
+                    html += `<table class="admin-log-table">
+                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>精度</th></tr></thead><tbody>`;
+                    logArray.forEach(log => {
+                        const d = new Date(log.timestamp);
+                        const isIn = log.type === 'in';
+                        html += `<tr>
+                            <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
+                            <td>${d.toLocaleString()}</td>
+                            <td><a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank" style="color:var(--primary);text-decoration:none;">${log.lat.toFixed(5)}, ${log.lng.toFixed(5)} ↗</a></td>
+                            <td>±${log.accuracy.toFixed(1)}m</td>
+                        </tr>`;
+                    });
+                    html += `</tbody></table>`;
+                }
+                html += `</div></div>`;
+            });
+            adminUserList.innerHTML = html;
+        }).catch(err => {
+            console.error(err);
+            adminUserList.innerHTML = `<div style="color:red;padding:20px;">读取失败：请确保 Firebase 数据库规则允许读取。<br>错误信息：${err.message}</div>`;
+        });
+    }
+
+    // 全局删除用户数据函数 (供后台按钮调用)
+    window.deleteUserData = function(uid) {
+        if (!confirm(`⚠️ 警告：确定要彻底删除该用户 (ID: ${uid}) 的所有打卡数据吗？此操作无法撤销！`)) return;
+        db.ref(`attendance/${uid}`).remove().then(() => {
+            showToast('🗑️ 已成功删除该用户数据');
+            loadAdminData(); // 刷新列表
+        }).catch(err => {
+            showToast('❌ 删除失败: ' + err.message);
+        });
+    };
+
+    // 初始化验证码组件
+    window.addEventListener('load', () => { initRecaptcha(); });
+</script>
+</body>
+</html>
