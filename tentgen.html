@@ -16,15 +16,15 @@
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #2e7d32; }
     .form-group input { width: 100%; padding: 14px; border-radius: 12px; border: 1.5px solid #e8e0f0; font-size: 1rem; }
-    .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; }
+    .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; margin-top: 8px; font-size: 1rem; transition: all 0.2s; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-primary { background: linear-gradient(135deg, #2d2642, #1e1b2f); color: white; }
     .btn-success { background: linear-gradient(135deg, #2e7d32, #1b5e20); color: white; }
     .btn-danger { background: linear-gradient(135deg, #c62828, #8e0000); color: white; }
     .btn-warning { background: linear-gradient(135deg, #f9a825, #ef6c00); color: white; }
-    .btn-sm { width: auto; padding: 8px 12px; font-size: 0.85rem; margin: 4px 2px; }
+    .btn-sm { width: auto; padding: 8px 12px; font-size: 0.85rem; margin: 4px 2px; border-radius: 8px; border: none; cursor: pointer; }
     .btn-outline { background: white; border: 1.5px solid #ddd; color: #444; }
-    .error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; }
+    .error { background: #ffebee; color: #c62828; padding: 12px; border-radius: 10px; margin-bottom: 16px; display: none; word-break: break-all; }
     .error.show { display: block; }
     .main-app { display: none; }
     .main-app.active { display: block; }
@@ -74,8 +74,8 @@
     <div class="error" id="authError"></div>
 
     <div style="display:flex; gap:8px; margin-bottom:20px;">
-      <button class="tab active" id="loginTabBtn" style="flex:1; background: #2e7d32; color: white;">Login</button>
-      <button class="tab" id="regTabBtn" style="flex:1;">Register</button>
+      <button type="button" class="tab active" id="loginTabBtn" style="flex:1; background: #2e7d32; color: white;">Login</button>
+      <button type="button" class="tab" id="regTabBtn" style="flex:1;">Register</button>
     </div>
 
     <form id="loginForm">
@@ -87,7 +87,8 @@
         <label>Password</label>
         <input type="password" id="loginPassword" required>
       </div>
-      <button type="submit" class="btn btn-primary">Login</button>
+      <!-- 添加了 ID 方便获取，防报错 -->
+      <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
     </form>
 
     <form id="registerForm" style="display:none;">
@@ -103,7 +104,8 @@
         <label>Password (min. 6 characters)</label>
         <input type="password" id="regPassword" required minlength="6">
       </div>
-      <button type="submit" class="btn btn-primary">Register Merchant</button>
+      <!-- 添加了 ID 方便获取，防报错 -->
+      <button type="submit" class="btn btn-primary" id="registerBtn">Register Merchant</button>
     </form>
   </div>
 
@@ -326,7 +328,7 @@
     if (!ts) return '-';
     return new Date(ts).toLocaleString('en-US', { hour12: false });
   }
-  function formatMoney(n) { return `$${(n||0).toFixed(2)}`; }
+  function formatMoney(n) { return `$${(Number(n)||0).toFixed(2)}`; }
   function escapeCsv(s) {
     if (s === null || s === undefined) return '';
     const str = String(s);
@@ -429,6 +431,7 @@
     }
   });
 
+  // --- 登录注册 Tab 切换 ---
   document.getElementById('loginTabBtn').addEventListener('click', () => {
     document.getElementById('loginTabBtn').classList.add('active');
     document.getElementById('loginTabBtn').style.background = '#2e7d32';
@@ -452,22 +455,27 @@
     document.getElementById('authError').classList.remove('show');
   });
 
+  // --- 注册逻辑 (修复了按钮无反应) ---
   document.getElementById('registerForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (isProcessing) return;
     isProcessing = true;
-    const btn = e.submitter;
+    
+    const btn = document.getElementById('registerBtn'); // 直接获取
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+    
     try {
       const email = document.getElementById('regEmail').value.trim();
       const name = document.getElementById('merchantName').value.trim();
       const pwd = document.getElementById('regPassword').value;
+      
       const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
       await set(ref(db, `merchants/${userCred.user.uid}`), {
         name, email, balance: 0, role: 'merchant', createdAt: serverTimestamp()
       });
       await userCred.user.updateProfile({ displayName: name });
+      
       showToast('Merchant registered successfully!', 'success');
     } catch (err) {
       showError('Registration failed: ' + err.message);
@@ -478,13 +486,16 @@
     }
   });
 
+  // --- 登录逻辑 (修复了按钮无反应) ---
   document.getElementById('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (isProcessing) return;
     isProcessing = true;
-    const btn = e.submitter;
+    
+    const btn = document.getElementById('loginBtn'); // 直接获取
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    
     try {
       const email = document.getElementById('loginEmail').value.trim();
       const pwd = document.getElementById('loginPassword').value;
@@ -525,6 +536,7 @@
     }));
   }
 
+  // --- 渲染交易记录 (补全了被截断的代码) ---
   function renderHistory(filter='') {
     const entries = Object.entries(allHistoryData).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
     const f = filter.toLowerCase();
@@ -552,4 +564,473 @@
       } else if (hasSplit) {
         amountHtml = `
           <div class="payment-breakdown">
-            ${h.voucherAmount > 0 ? `<span><i class="fas fa-ticket-alt"></i> Voucher:
+            ${h.voucherAmount > 0 ? `<span><i class="fas fa-ticket-alt"></i> Voucher: ${formatMoney(h.voucherAmount)}</span>` : ''}
+            ${h.cashAmount > 0 ? `<span style="margin-left:10px;"><i class="fas fa-wallet"></i> Balance: ${formatMoney(h.cashAmount)}</span>` : ''}
+          </div>
+          <p style="font-weight:bold; color:#2e7d32; font-size:1.1rem; margin-top:4px;">Total ${formatMoney((h.voucherAmount||0) + (h.cashAmount||0))}</p>
+        `;
+      } else {
+        amountHtml = `<p style="font-weight:bold; color:#2e7d32; font-size:1.1rem;">+${formatMoney(h.amount)}</p>`;
+      }
+
+      const badgeHtml = isCashout
+        ? `<span class="badge badge-cashout">${h.type === 'voucher_cash_out' ? 'Voucher Withdrawal' : 'Withdrawal'}</span>`
+        : (isVoucher ? '<span class="badge badge-voucher">Voucher</span>' : '');
+
+      return `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="flex:1;">
+            <p>${h.description || 'Payment'}${badgeHtml}</p>
+            ${amountHtml}
+            <p style="font-size:0.8rem; color:#888; margin-top:4px;">${formatTime(h.createdAt)}</p>
+          </div>
+          <button class="btn-sm btn-outline" onclick="askDeleteOne('${key}')">
+            <i class="fas fa-trash-alt" style="color:#c62828;"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderCashoutList() {
+    const container = document.getElementById('cashoutList');
+    if (!container) return;
+    const list = Object.entries(allHistoryData)
+      .filter(([, h]) => h.type === 'cash_out' || h.type === 'voucher_cash_out')
+      .sort(([,a], [,b]) => (b.createdAt||0) - (a.createdAt||0));
+
+    if (!list.length) {
+      container.innerHTML = '<p class="empty">No withdrawal records</p>';
+      return;
+    }
+
+    container.innerHTML = list.map(([key, h]) => {
+      const rejected = h.status === 'rejected';
+      const completed = h.status === 'completed';
+      const statusText = rejected ? 'Rejected' : (completed ? 'Completed' : 'Processing');
+      const statusColor = rejected ? '#c62828' : (completed ? '#2e7d32' : '#e65100');
+      return `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <p><i class="fas ${h.type === 'voucher_cash_out' ? 'fa-ticket-alt' : 'fa-money-check-alt'}" style="color:#e65100;"></i> ${h.type === 'voucher_cash_out' ? 'Voucher Withdrawal Request' : 'Withdrawal Request'}
+            <span class="badge badge-cashout" style="color:${statusColor};">${statusText}</span>
+          </p>
+          <p style="font-size:0.8rem; color:#888; margin-top:4px;">${formatTime(h.createdAt)}</p>
+        </div>
+        <p style="font-weight:bold; color:${rejected ? '#999' : '#c62828'}; font-size:1.1rem; ${rejected ? 'text-decoration:line-through;' : ''}">-${formatMoney(Math.abs(h.amount))}</p>
+      </div>
+    `;
+    }).join('');
+  }
+
+  document.getElementById('historySearch').addEventListener('input', e => {
+    renderHistory(e.target.value);
+  });
+
+  document.getElementById('exportAllBtn').addEventListener('click', () => {
+    if (!Object.keys(allHistoryData).length) {
+      showToast('No records to export', 'error');
+      return;
+    }
+    const header = ['Time', 'Type', 'Status', 'Total Amount', 'Voucher Amount', 'Cash Amount', 'Description', 'Customer UID', 'Voucher Code'];
+    const rows = Object.entries(allHistoryData).map(([key, h]) => {
+      const isCashout = h.type === 'cash_out' || h.type === 'voucher_cash_out';
+      const typeLabel = h.type === 'voucher_redeem' ? 'Voucher Redeem'
+        : h.type === 'voucher_cash_out' ? 'Voucher Withdrawal'
+        : h.type === 'cash_out' ? 'Withdrawal'
+        : 'Payment';
+      return [
+        formatTime(h.createdAt),
+        typeLabel,
+        isCashout ? (h.status === 'rejected' ? 'Rejected' : h.status === 'completed' ? 'Completed' : 'Processing') : '-',
+        isCashout ? h.amount : ((h.voucherAmount || 0) + (h.cashAmount || h.amount || 0)),
+        h.voucherAmount || 0,
+        isCashout ? h.amount : (h.cashAmount || h.amount || 0),
+        h.description || '',
+        h.customerUid || '-',
+        h.voucherCode || '-'
+      ];
+    });
+    const csv = [header, ...rows].map(row => row.map(escapeCsv).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Merchant_Transactions_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export successful', 'success');
+  });
+
+  window.askDeleteOne = function(key) {
+    pendingDeleteKey = key;
+    deleteAllMode = false;
+    document.getElementById('deleteConfirmText').innerHTML =
+      'Are you sure you want to delete this record?<br><strong style="color:#c62828;">This action cannot be undone!</strong>';
+    document.getElementById('deleteConfirmModal').classList.add('show');
+  };
+
+  document.getElementById('clearAllBtn').addEventListener('click', () => {
+    if (!Object.keys(allHistoryData).length) {
+      showToast('No records', 'error');
+      return;
+    }
+    pendingDeleteKey = null;
+    deleteAllMode = true;
+    document.getElementById('deleteConfirmText').innerHTML =
+      'Are you sure you want to delete <strong>ALL</strong> transaction records?<br><strong style="color:#c62828;">This action cannot be undone!</strong>';
+    document.getElementById('deleteConfirmModal').classList.add('show');
+  });
+
+  document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+    document.getElementById('deleteConfirmModal').classList.remove('show');
+    pendingDeleteKey = null;
+    deleteAllMode = false;
+  });
+
+  document.getElementById('doDeleteBtn').addEventListener('click', async () => {
+    if (isProcessing) return;
+    isProcessing = true;
+    const btn = document.getElementById('doDeleteBtn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting...';
+
+    try {
+      const historyRef = ref(db, `merchants/${currentMerchant.uid}/history`);
+      if (deleteAllMode) {
+        await remove(historyRef);
+        showToast('✅ All records cleared', 'success');
+      } else if (pendingDeleteKey) {
+        await remove(ref(db, `merchants/${currentMerchant.uid}/history/${pendingDeleteKey}`));
+        showToast('✅ Record deleted', 'success');
+      }
+      document.getElementById('deleteConfirmModal').classList.remove('show');
+    } catch (e) {
+      showToast('Delete failed: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Delete';
+      pendingDeleteKey = null;
+      deleteAllMode = false;
+      isProcessing = false;
+    }
+  });
+
+  document.getElementById('generateQrBtn').addEventListener('click', async () => {
+    const amount = parseFloat(document.getElementById('amountInput').value);
+    if (!amount || amount <= 0) { showToast('Please enter a valid amount', 'error'); return; }
+
+    const qrData = `PAY:${amount}:${currentMerchant.uid}`;
+    const canvas = document.getElementById('qrCanvas');
+
+    try {
+      await QRCode.toCanvas(canvas, qrData, { width: 240, margin: 3 });
+      document.getElementById('qrContainer').style.display = 'block';
+      document.getElementById('qrAmountText').textContent = formatMoney(amount);
+      showToast('QR code generated', 'success');
+    } catch (e) {
+      showToast('Generation failed', 'error');
+    }
+  });
+
+  document.querySelectorAll('.tab[data-pane]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab[data-pane]').forEach(t => { t.classList.remove('active'); t.style.background = 'transparent'; t.style.color = '#8b7aa8'; });
+      tab.classList.add('active'); tab.style.background = '#2e7d32'; tab.style.color = 'white';
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+    });
+  });
+
+  document.getElementById('startScanBtn').addEventListener('click', async () => {
+    try {
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess, () => {}
+      );
+      document.getElementById('startScanBtn').style.display = 'none';
+      document.getElementById('stopScanBtn').style.display = 'block';
+      showToast('Please scan customer QR code', 'info');
+    } catch (e) {
+      showToast('Unable to start camera', 'error');
+    }
+  });
+  document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+  function stopScanner() {
+    if (html5QrCode?.isScanning) html5QrCode.stop().catch(() => {});
+    document.getElementById('startScanBtn').style.display = 'block';
+    document.getElementById('stopScanBtn').style.display = 'none';
+  }
+
+  // --- 扫码逻辑核心修复：加入 Trim 防空白，兼容各种格式 ---
+  async function onScanSuccess(decodedText) {
+    if (isProcessing) return;
+    isProcessing = true;
+    stopScanner();
+
+    try {
+      // 去除可能存在的不可见字符、换行符
+      const cleanText = decodedText.trim();
+
+      if (cleanText.startsWith('PAY:')) {
+        const parts = cleanText.split(':');
+        // 兼容5段式（组合支付）和3段式（纯余额支付）
+        if (parts.length >= 5) {
+          const totalAmount = parseFloat(parts[1]);
+          const voucherAmount = parseFloat(parts[2]) || 0;
+          const cashAmount = parseFloat(parts[3]) || 0;
+          const customerUid = parts[4];
+
+          if ((voucherAmount + cashAmount).toFixed(2) !== totalAmount.toFixed(2)) {
+            throw new Error('Invalid payment amount data');
+          }
+
+          const custSnap = await get(ref(db, `users/${customerUid}`));
+          if (!custSnap.exists()) throw new Error('Customer account not found');
+
+          pendingAction = {
+            type: 'combined_payment',
+            totalAmount, voucherAmount, cashAmount, customerUid,
+            customerName: custSnap.val().name || 'Customer'
+          };
+
+          document.getElementById('modalTitle').textContent = 'Confirm Payment';
+          document.getElementById('modalSubtext').innerHTML =
+            (voucherAmount > 0 ? `Voucher deduction ${formatMoney(voucherAmount)}<br>` : '') +
+            (cashAmount > 0 ? `Balance payment ${formatMoney(cashAmount)}` : '');
+          document.getElementById('modalAmount').textContent = formatMoney(totalAmount);
+          document.getElementById('modalUserInfo').textContent = `Customer: ${pendingAction.customerName}`;
+          document.getElementById('confirmModal').classList.add('show');
+        } 
+        else if (parts.length >= 3) {
+          // 兼容纯余额直接付款
+          const totalAmount = parseFloat(parts[1]);
+          const customerUid = parts[2];
+
+          const custSnap = await get(ref(db, `users/${customerUid}`));
+          if (!custSnap.exists()) throw new Error('Customer account not found');
+
+          pendingAction = {
+            type: 'combined_payment',
+            totalAmount, voucherAmount: 0, cashAmount: totalAmount, customerUid,
+            customerName: custSnap.val().name || 'Customer'
+          };
+
+          document.getElementById('modalTitle').textContent = 'Confirm Payment';
+          document.getElementById('modalSubtext').innerHTML = `Balance payment ${formatMoney(totalAmount)}`;
+          document.getElementById('modalAmount').textContent = formatMoney(totalAmount);
+          document.getElementById('modalUserInfo').textContent = `Customer: ${pendingAction.customerName}`;
+          document.getElementById('confirmModal').classList.add('show');
+        } else {
+          throw new Error('Invalid PAY format');
+        }
+      }
+      else if (cleanText.startsWith('VOUCHER:')) {
+        const parts = cleanText.split(':');
+        if (parts.length < 3) throw new Error('Invalid voucher code format');
+        
+        // 加上 decodeURIComponent 防止 UID 含特殊字符
+        const voucherCode = decodeURIComponent(parts[1]);
+        const customerUid = decodeURIComponent(parts[2]);
+
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        if (!custSnap.exists()) throw new Error('Customer account not found');
+
+        const voucher = custSnap.val().vouchers?.[voucherCode];
+        if (!voucher) throw new Error('Voucher not found');
+        if (voucher.used === true) throw new Error('Voucher already used');
+        if (voucher.expiry && voucher.expiry < Date.now()) throw new Error('Voucher expired');
+
+        pendingAction = {
+          type: 'voucher',
+          code: voucherCode, customerUid,
+          amount: voucher.amount,
+          voucherAmount: voucher.amount,
+          cashAmount: 0,
+          minSpend: voucher.minSpend || 0,
+          customerName: custSnap.val().name || 'Customer'
+        };
+
+        document.getElementById('modalTitle').textContent = 'Confirm Voucher Redemption';
+        document.getElementById('modalSubtext').textContent = `Code: ${voucherCode}`;
+        document.getElementById('modalAmount').textContent = formatMoney(voucher.amount);
+        document.getElementById('modalUserInfo').textContent =
+          `Customer: ${pendingAction.customerName} · Min. spend ${formatMoney(pendingAction.minSpend)}`;
+        document.getElementById('confirmModal').classList.add('show');
+      } else {
+        throw new Error('Unrecognized QR code');
+      }
+    } catch (e) {
+      showToast('Scan failed: ' + e.message, 'error');
+    } finally {
+      isProcessing = false;
+    }
+  }
+
+  document.getElementById('closeModalBtn').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.remove('show');
+    pendingAction = null;
+  });
+
+  document.querySelectorAll('.quick-amount').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('cashoutAmount').value = btn.dataset.amount;
+    });
+  });
+  document.getElementById('cashoutAllBtn').addEventListener('click', () => {
+    document.getElementById('cashoutAmount').value = merchantBalance.toFixed(2);
+  });
+  document.getElementById('cashoutBtn').addEventListener('click', () => {
+    const amount = parseFloat(document.getElementById('cashoutAmount').value);
+    if (!amount || amount <= 0) { showToast('Please enter a valid withdrawal amount', 'error'); return; }
+    if (amount > merchantBalance) { showToast('Withdrawal amount exceeds withdrawable balance', 'error'); return; }
+
+    pendingAction = { type: 'cashout', amount };
+    document.getElementById('modalTitle').textContent = 'Confirm Withdrawal';
+    document.getElementById('modalSubtext').textContent = 'Will be deducted from withdrawable balance';
+    document.getElementById('modalAmount').textContent = formatMoney(amount);
+    document.getElementById('modalUserInfo').textContent = 'Estimated arrival in 1–3 business days to linked account';
+    document.getElementById('confirmModal').classList.add('show');
+  });
+
+  document.querySelectorAll('.voucher-quick-amount').forEach(btn => {
+    btn.addEventListener('click', () => { document.getElementById('voucherCashoutAmount').value = btn.dataset.amount; });
+  });
+  document.getElementById('voucherCashoutAllBtn').addEventListener('click', () => {
+    document.getElementById('voucherCashoutAmount').value = getVoucherWithdrawable().toFixed(2);
+  });
+  document.getElementById('voucherCashoutBtn').addEventListener('click', () => {
+    const raw = parseFloat(document.getElementById('voucherCashoutAmount').value);
+    const amount = Number((raw || 0).toFixed(2));
+    const available = getVoucherWithdrawable();
+    if (!amount || amount <= 0) { showToast('Please enter a valid voucher withdrawal amount', 'error'); return; }
+    if (amount > available) { showToast('Voucher withdrawal amount exceeds withdrawable voucher balance', 'error'); return; }
+    pendingAction = { type: 'voucher_cashout', amount };
+    document.getElementById('modalTitle').textContent = 'Confirm Voucher Withdrawal';
+    document.getElementById('modalSubtext').textContent = 'Will be deducted from withdrawable voucher balance and submitted as a pending request';
+    document.getElementById('modalAmount').textContent = formatMoney(amount);
+    document.getElementById('modalUserInfo').textContent = 'This only submits a request; no automatic bank transfer will occur';
+    document.getElementById('confirmModal').classList.add('show');
+  });
+
+  document.getElementById('confirmBtn').addEventListener('click', async () => {
+    if (!pendingAction || isProcessing) return;
+    isProcessing = true;
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+      if (pendingAction.type === 'combined_payment') {
+        const { totalAmount, voucherAmount, cashAmount, customerUid, customerName } = pendingAction;
+
+        if (cashAmount > 0) {
+          const custSnap = await get(ref(db, `users/${customerUid}`));
+          const custData = custSnap.val() || {};
+          const newBalance = Number(custData.balance || 0) - cashAmount;
+          if (newBalance < 0) throw new Error('Insufficient customer balance');
+          await update(ref(db, `users/${customerUid}`), { balance: newBalance });
+        }
+
+        if (voucherAmount > 0 && pendingAction.voucherCode) {
+          await update(ref(db, `users/${customerUid}/vouchers/${pendingAction.voucherCode}`), {
+            used: true, usedAt: serverTimestamp(), merchantUid: currentMerchant.uid
+          });
+        }
+
+        const merchSnap = await get(ref(db, `merchants/${currentMerchant.uid}`));
+        const merchData = merchSnap.val() || {};
+        await update(ref(db, `merchants/${currentMerchant.uid}`), {
+          balance: Number(merchData.balance || 0) + cashAmount
+        });
+
+        await push(ref(db, `users/${customerUid}/history`), {
+          type: 'payment', amount: totalAmount, voucherAmount, cashAmount,
+          description: `Payment to ${currentMerchant.displayName || 'Merchant'}`,
+          merchantUid: currentMerchant.uid, createdAt: serverTimestamp()
+        });
+
+        await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+          type: 'combined_payment', amount: totalAmount, voucherAmount, cashAmount,
+          description: `Customer ${customerName} paid`,
+          customerUid, createdAt: serverTimestamp()
+        });
+
+        showToast('✅ Payment received', 'success');
+      }
+      else if (pendingAction.type === 'voucher') {
+        await update(ref(db, `users/${pendingAction.customerUid}/vouchers/${pendingAction.code}`), {
+          used: true, usedAt: serverTimestamp(), merchantUid: currentMerchant.uid
+        });
+
+        await push(ref(db, `users/${pendingAction.customerUid}/history`), {
+          type: 'voucher_used', amount: pendingAction.amount,
+          voucherAmount: pendingAction.amount, cashAmount: 0,
+          description: `Used voucher ${pendingAction.code} at ${currentMerchant.displayName || 'Merchant'}`,
+          merchantUid: currentMerchant.uid, createdAt: serverTimestamp()
+        });
+
+        await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+          type: 'voucher_redeem', amount: pendingAction.amount,
+          voucherAmount: pendingAction.amount, cashAmount: 0,
+          description: `Customer ${pendingAction.customerName} redeemed voucher ${pendingAction.code}`,
+          customerUid: pendingAction.customerUid, voucherCode: pendingAction.code,
+          createdAt: serverTimestamp()
+        });
+
+        showToast('✅ Voucher redeemed', 'success');
+      }
+      else if (pendingAction.type === 'cashout') {
+        const { amount } = pendingAction;
+        const currentBal = getCashWithdrawable();
+        if (amount > currentBal) throw new Error('Insufficient withdrawable balance');
+
+        await update(ref(db, `merchants/${currentMerchant.uid}`), {
+          balance: Number((currentBal - amount).toFixed(2))
+        });
+
+        await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+          type: 'cash_out',
+          source: 'cash',
+          amount: -Number(amount.toFixed(2)),
+          cashAmount: -Number(amount.toFixed(2)),
+          voucherAmount: 0,
+          description: `Withdrawal request ${formatMoney(amount)}`,
+          status: 'pending',
+          createdAt: serverTimestamp()
+        });
+
+        document.getElementById('cashoutAmount').value = '';
+        showToast('✅ Withdrawal request submitted', 'success');
+      }
+      else if (pendingAction.type === 'voucher_cashout') {
+        const amount = Number(pendingAction.amount);
+        const available = getVoucherWithdrawable();
+        if (amount <= 0 || amount > available) throw new Error('Insufficient withdrawable voucher balance');
+        await push(ref(db, `merchants/${currentMerchant.uid}/history`), {
+          type: 'voucher_cash_out',
+          source: 'voucher',
+          amount: -Number(amount.toFixed(2)),
+          voucherAmount: -Number(amount.toFixed(2)), cashAmount: 0,
+          description: `Voucher withdrawal request ${formatMoney(amount)}`,
+          status: 'pending', createdAt: serverTimestamp()
+        });
+        document.getElementById('voucherCashoutAmount').value = '';
+        showToast('✅ Voucher withdrawal request submitted', 'success');
+      }
+
+      document.getElementById('confirmModal').classList.remove('show');
+      pendingAction = null;
+    } catch (e) {
+      showToast('Operation failed: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
+      isProcessing = false;
+    }
+  });
+</script>
+</body>
+</html>
