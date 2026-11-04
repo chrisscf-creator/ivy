@@ -78,7 +78,8 @@
         .gps-badge.active { background: #D1FAE5; color: var(--success); }
         .gps-badge.error { background: #FEE2E2; color: var(--danger); }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.5;}
+        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.6;}
+        .landmark-text { color: var(--primary); font-weight: 600; }
         
         .action-group { display: flex; gap: 12px; margin-bottom: 24px; }
         .action-group .btn { flex: 1; padding: 20px 10px; font-size: 18px; flex-direction: column; }
@@ -183,7 +184,7 @@
                     </div>
                 </div>
                 <div class="coord-info" id="coordInfo">
-                    纬度: -- <br>经度: -- <br>精度: --
+                    纬度: -- <br>经度: -- <br>精度: --<br>地标: 获取中...
                 </div>
             </div>
 
@@ -256,8 +257,12 @@
     const db = firebase.database();
 
     // ================= 2. 全局变量 =================
+    // 新增：固定地标名称（强制显示为你需要的地点）
+    const FIXED_LANDMARK = 'Sumang Lane';
+
     let currentUser = null, currentPosition = null;
     let currentUserName = ''; 
+    let currentLandmark = FIXED_LANDMARK; // 初始化为固定地标
     let confirmationResult = null, recaptchaVerifier = null;
     let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
     let headerClickCount = 0, headerClickTimer = null;
@@ -333,7 +338,7 @@
             fetchLocation();
             loadMyLogs();
         } else {
-            currentUser = null; currentUserName = '';
+            currentUser = null; currentUserName = ''; currentLandmark = FIXED_LANDMARK;
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
@@ -408,13 +413,17 @@
     logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
 
     // ================= 5. GPS 定位 & 打卡 =================
-    function updateGPSUI(status, text, lat = null, lng = null, acc = null) {
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null, landmark = FIXED_LANDMARK) {
         gpsBadge.className = 'gps-badge';
         if (status === 'active') gpsBadge.classList.add('active');
         if (status === 'error') gpsBadge.classList.add('error');
         gpsText.textContent = text;
-        if (lat !== null) coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
-        else coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --`;
+        
+        if (lat !== null) {
+            coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米<br>地标: <span class="landmark-text">${landmark}</span>`;
+        } else {
+            coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --<br>地标: --`;
+        }
     }
 
     function fetchLocation() {
@@ -424,7 +433,9 @@
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
-                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy);
+                // 直接使用设定的固定地标名称
+                currentLandmark = FIXED_LANDMARK; 
+                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, currentLandmark);
                 isFetchingGPS = false;
             },
             (err) => {
@@ -441,15 +452,18 @@
         
         // 确保打卡时名字不为空
         const saveName = currentUserName || '未知员工';
+        // 保存固定地标名称
+        const saveLandmark = FIXED_LANDMARK; 
 
         try {
             await db.ref(`attendance/${currentUser.uid}`).push({
-                name: saveName, // 打卡数据也存入姓名
+                name: saveName,
                 phone: currentUser.phoneNumber || '',
                 type: type, 
                 lat: currentPosition.lat, 
                 lng: currentPosition.lng, 
                 accuracy: currentPosition.accuracy, 
+                landmark: saveLandmark, // <-- 保存固定地标到数据库
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
@@ -475,10 +489,15 @@
             logList.innerHTML = logs.map(log => {
                 const d = new Date(log.timestamp);
                 const isIn = log.type === 'in';
+                // 强制显示固定地标名称
+                const displayLandmark = log.landmark || FIXED_LANDMARK;
+                
                 return `
                 <div class="log-item ${isIn ? 'in' : 'out'}">
                     <div><div class="log-type" style="font-weight:600;color:${isIn ? 'var(--success)' : 'var(--danger)'}">${isIn ? '☀️ 上班' : '🌙 下班'}</div>
-                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div></div>
+                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>
+                    <div style="font-size:12px;color:var(--primary);margin-top:2px;">📍 ${displayLandmark}</div>
+                    </div>
                     <div class="log-loc">${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br><span style="font-size:10px;">±${log.accuracy.toFixed(0)}m</span></div>
                 </div>`;
             }).join('');
@@ -599,14 +618,17 @@
                     html += `<div style="color:#888;">无打卡记录</div>`;
                 } else {
                     html += `<table class="admin-log-table">
-                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>精度</th></tr></thead><tbody>`;
+                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>地标</th><th>精度</th></tr></thead><tbody>`;
                     logArray.forEach(log => {
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
+                        // 强制显示固定地标名称，兼容旧数据
+                        const landmarkText = log.landmark || FIXED_LANDMARK;
                         html += `<tr>
                             <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
                             <td>${d.toLocaleString()}</td>
                             <td><a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank" style="color:var(--primary);text-decoration:none;">${log.lat.toFixed(5)}, ${log.lng.toFixed(5)} ↗</a></td>
+                            <td style="color:var(--primary);font-weight:500;">${landmarkText}</td>
                             <td>±${log.accuracy.toFixed(1)}m</td>
                         </tr>`;
                     });
