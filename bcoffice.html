@@ -104,12 +104,18 @@
         
         .admin-body { padding: 16px; }
         .admin-card { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
-        .admin-card-header { background: #F9FAFB; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px;}
+        .admin-card-header { background: #F9FAFB; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 14px;}
         .admin-card-body { padding: 16px; font-size: 13px; }
         .admin-log-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px;}
         .admin-log-table th, .admin-log-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
         .admin-log-table th { color: var(--text-muted); font-weight: 500; }
         .del-btn { background: #FEE2E2; color: var(--danger); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;}
+
+        /* 后台新增的注册员工列表样式 */
+        .admin-summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);}
+        .admin-summary-table th, .admin-summary-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        .admin-summary-table th { background: #F3F4F6; font-weight: 600; color: var(--text-muted); }
+        .admin-summary-table td { color: var(--text-main); }
 
         .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1F2937; color: white; padding: 12px 24px; border-radius: 100px; font-size: 14px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 9999;}
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -130,7 +136,7 @@
     <div id="userBar" class="user-bar hidden">
         <div class="user-info">
             <div class="avatar" id="userAvatar">👤</div>
-            <span id="userPhone">--</span>
+            <span id="userNameDisplay">--</span>
         </div>
         <button class="logout-btn" id="logoutBtn">退出登录</button>
     </div>
@@ -139,6 +145,10 @@
         <!-- 登录注册 -->
         <div id="authSection">
             <div class="auth-form">
+                <div class="form-group">
+                    <label>员工姓名</label>
+                    <input type="text" id="nameInput" class="form-control" placeholder="请输入您的真实姓名">
+                </div>
                 <div class="form-group">
                     <label>手机号码 (包含国家代码)</label>
                     <input type="tel" id="phoneInput" class="form-control" placeholder="例如：+6591234567" value="+65">
@@ -192,17 +202,30 @@
         </div>
     </div>
 
-    <!-- ================= 后台管理面板 (覆盖在上面) ================= -->
+    <!-- ================= 后台管理面板 ================= -->
     <div id="adminPanel">
         <div class="admin-header">
             <h2>⚙️ 管理员控制台</h2>
             <button class="admin-close" id="adminCloseBtn">✕</button>
         </div>
         <div class="admin-body">
+            
+            <!-- 新增：已注册员工列表 -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 16px; margin-bottom: 8px;">👥 已注册员工列表</h3>
+                <table class="admin-summary-table" id="adminSummaryTable">
+                    <thead><tr><th>姓名</th><th>手机号</th><th>UID</th></tr></thead>
+                    <tbody id="adminSummaryBody">
+                        <tr><td colspan="3" style="text-align:center;color:#888;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <span style="font-size:14px; color:var(--text-muted);">所有用户打卡数据</span>
+                <h3 style="font-size: 16px;">📋 详细打卡记录</h3>
                 <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
             </div>
+            
             <div id="adminUserList">
                 <!-- 动态渲染所有用户数据 -->
             </div>
@@ -234,21 +257,23 @@
 
     // ================= 2. 全局变量 =================
     let currentUser = null, currentPosition = null;
+    let currentUserName = ''; 
     let confirmationResult = null, recaptchaVerifier = null;
     let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
-    let headerClickCount = 0, headerClickTimer = null; // 用于连点触发后台
+    let headerClickCount = 0, headerClickTimer = null;
 
     // DOM
     const headerTrigger = document.getElementById('headerTrigger');
-    const userBar = document.getElementById('userBar'), userPhone = document.getElementById('userPhone'), userAvatar = document.getElementById('userAvatar'), logoutBtn = document.getElementById('logoutBtn');
+    const userBar = document.getElementById('userBar'), userNameDisplay = document.getElementById('userNameDisplay'), userAvatar = document.getElementById('userAvatar'), logoutBtn = document.getElementById('logoutBtn');
     const authSection = document.getElementById('authSection'), mainSection = document.getElementById('mainSection');
-    const phoneInput = document.getElementById('phoneInput'), codeInput = document.getElementById('codeInput'), sendCodeBtn = document.getElementById('sendCodeBtn'), loginBtn = document.getElementById('loginBtn'), authError = document.getElementById('authError');
+    const nameInput = document.getElementById('nameInput'), phoneInput = document.getElementById('phoneInput'), codeInput = document.getElementById('codeInput'), sendCodeBtn = document.getElementById('sendCodeBtn'), loginBtn = document.getElementById('loginBtn'), authError = document.getElementById('authError');
     const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
     const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
     const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
     const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
     // 后台管理 DOM
     const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
+    const adminSummaryBody = document.getElementById('adminSummaryBody');
 
     // ================= 3. 基础工具 =================
     function showToast(msg, duration = 2500) {
@@ -272,20 +297,49 @@
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            userBar.classList.remove('hidden');
-            authSection.classList.add('hidden');
-            mainSection.classList.add('active');
-            userPhone.textContent = (user.phoneNumber || '').replace(/(\+\d{2})(\d{4})\d{4}(\d+)/, '$1 $2****$3');
-            userAvatar.textContent = (user.phoneNumber || '👤').slice(-2);
             
+            // 尝试获取名字：优先从 localStorage 读取，确保 UI 立即显示
+            let cachedName = localStorage.getItem('emp_name_' + user.uid);
+            if (cachedName) {
+                currentUserName = cachedName;
+                updateUserUI();
+            }
+
+            // 然后在后台向 Firebase 请求最新名字
+            db.ref(`users/${user.uid}`).once('value').then(snap => {
+                const data = snap.val();
+                if (data && data.name) {
+                    currentUserName = data.name;
+                    localStorage.setItem('emp_name_' + user.uid, data.name);
+                } else if (!currentUserName) {
+                    currentUserName = '员工 ' + (user.phoneNumber || '').slice(-4);
+                }
+                updateUserUI();
+            }).catch(err => {
+                console.error("获取用户姓名失败:", err);
+                if (!currentUserName) currentUserName = '员工 ' + (user.phoneNumber || '').slice(-4);
+                updateUserUI();
+            });
+
+            // 更新 UI 的辅助函数
+            function updateUserUI() {
+                userBar.classList.remove('hidden');
+                authSection.classList.add('hidden');
+                mainSection.classList.add('active');
+                userNameDisplay.textContent = `${currentUserName} (${(user.phoneNumber || '').replace(/(\+\d{2})(\d{4})\d{4}(\d+)/, '$1 $2****$3')})`;
+                userAvatar.textContent = currentUserName.slice(0, 1).toUpperCase();
+            }
+
             fetchLocation();
             loadMyLogs();
         } else {
-            currentUser = null;
+            currentUser = null; currentUserName = '';
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
+            
             if (logsRef) { logsRef.off(); logsRef = null; }
+            
             logList.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无记录</div>';
             currentPosition = null;
             updateGPSUI('waiting', '等待获取');
@@ -296,8 +350,11 @@
     });
 
     sendCodeBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
         const phone = phoneInput.value.trim();
+        if (!name) { authError.textContent = '请先输入您的姓名'; return; }
         if (!phone || phone.length < 8) { authError.textContent = '请输入有效手机号'; return; }
+        
         authError.textContent = '';
         sendCodeBtn.disabled = true; sendCodeBtn.textContent = '发送中...';
         try {
@@ -320,14 +377,30 @@
     });
 
     loginBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
         const code = codeInput.value.trim();
+        if (!name) { authError.textContent = '请先输入您的姓名'; return; }
         if (!code || code.length < 6) { authError.textContent = '请输入6位验证码'; return; }
         if (!confirmationResult) { authError.textContent = '请先获取验证码'; return; }
+        
         authError.textContent = ''; loginBtn.disabled = true; loginBtn.textContent = '验证中...';
         try {
-            await confirmationResult.confirm(code);
+            const result = await confirmationResult.confirm(code);
+            
+            // 1. 立即存入 localStorage 作为强力兜底
+            localStorage.setItem('emp_name_' + result.user.uid, name);
+            currentUserName = name;
+            
+            // 2. 写入 Firebase 数据库
+            await db.ref(`users/${result.user.uid}`).set({
+                name: name,
+                phone: result.user.phoneNumber,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            
             showToast('🎉 登录成功');
         } catch (err) {
+            console.error(err);
             authError.textContent = '验证码错误或已过期';
         } finally { loginBtn.disabled = false; loginBtn.textContent = '验证并登录'; }
     });
@@ -365,12 +438,25 @@
         if (!currentUser || !currentPosition) { showToast('位置未就绪，请稍候'); return; }
         const btn = type === 'in' ? clockInBtn : clockOutBtn;
         const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
+        
+        // 确保打卡时名字不为空
+        const saveName = currentUserName || '未知员工';
+
         try {
             await db.ref(`attendance/${currentUser.uid}`).push({
-                type: type, lat: currentPosition.lat, lng: currentPosition.lng, accuracy: currentPosition.accuracy, timestamp: firebase.database.ServerValue.TIMESTAMP
+                name: saveName, // 打卡数据也存入姓名
+                phone: currentUser.phoneNumber || '',
+                type: type, 
+                lat: currentPosition.lat, 
+                lng: currentPosition.lng, 
+                accuracy: currentPosition.accuracy, 
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
-        } catch (err) { showToast('❌ 打卡失败'); }
+        } catch (err) { 
+            console.error(err);
+            showToast('❌ 打卡失败'); 
+        }
         finally { btn.disabled = false; btn.innerHTML = originalText; }
     }
     clockInBtn.addEventListener('click', () => doClockAction('in'));
@@ -405,20 +491,19 @@
         showToast('🧹 已清空');
     });
 
-    // ================= 6. 后台管理系统 (连点 5 次触发) =================
+    // ================= 6. 后台管理系统 =================
     headerTrigger.addEventListener('click', () => {
         headerClickCount++;
         if (headerClickCount === 1) {
-            headerClickTimer = setTimeout(() => { headerClickCount = 0; }, 2000); // 2秒内未连点完毕重置
+            headerClickTimer = setTimeout(() => { headerClickCount = 0; }, 2000);
         }
         if (headerClickCount >= 5) {
             clearTimeout(headerClickTimer);
             headerClickCount = 0;
-            // 弹出密码框
             const pwd = prompt("请输入管理员密码:");
             if (pwd === 'admin123') {
                 adminPanel.classList.add('active');
-                loadAdminData(); // 拉取所有数据
+                loadAdminData();
             } else if (pwd !== null) {
                 showToast('❌ 密码错误');
             }
@@ -428,28 +513,85 @@
     adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
     adminRefreshBtn.addEventListener('click', loadAdminData);
 
-    // 加载所有用户的打卡数据
+    // 核心修复：加载数据并强制匹配姓名
     function loadAdminData() {
+        adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">加载中...</td></tr>';
         adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
-        db.ref('attendance').once('value').then(snap => {
-            const data = snap.val();
-            if (!data) {
-                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何用户数据</div>';
+        
+        // 同时获取 users 表和 attendance 表的数据
+        Promise.all([
+            db.ref('users').once('value'),
+            db.ref('attendance').once('value')
+        ]).then(([usersSnap, attendanceSnap]) => {
+            const usersData = usersSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+            
+            // 合并所有出现过的 UID
+            const allUids = new Set([...Object.keys(usersData), ...Object.keys(attendanceData)]);
+            
+            if (allUids.size === 0) {
+                adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;">暂无注册员工</td></tr>';
+                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何打卡数据</div>';
                 return;
             }
             
+            // 1. 渲染上方的员工汇总表
+            let summaryHtml = '';
+            allUids.forEach(uid => {
+                const u = usersData[uid] || {};
+                // 如果 users 表没名字，从 attendance 表找一条带名字的记录兜底
+                let fallbackName = '未知员工';
+                let fallbackPhone = u.phone || '未知号码';
+                if (attendanceData[uid]) {
+                    const logs = Object.values(attendanceData[uid]);
+                    const logWithName = logs.find(l => l.name);
+                    if (logWithName) {
+                        fallbackName = logWithName.name;
+                        fallbackPhone = logWithName.phone || fallbackPhone;
+                    }
+                }
+                const displayName = u.name || fallbackName;
+                const displayPhone = u.phone || fallbackPhone;
+
+                summaryHtml += `<tr>
+                    <td style="font-weight:600;color:var(--primary);">${displayName}</td>
+                    <td>${displayPhone}</td>
+                    <td style="font-family:monospace;font-size:11px;color:#888;">${uid}</td>
+                </tr>`;
+            });
+            adminSummaryBody.innerHTML = summaryHtml;
+
+            // 2. 渲染下方的详细打卡记录
             let html = '';
-            // 遍历每个用户 (uid)
-            Object.keys(data).forEach(uid => {
-                const userLogs = data[uid];
+            allUids.forEach(uid => {
+                const u = usersData[uid] || {};
+                let fallbackName = '未知员工';
+                let fallbackPhone = u.phone || '未知号码';
+                
+                const userLogs = attendanceData[uid] || {};
                 const logArray = [];
                 Object.keys(userLogs).forEach(logId => logArray.push({ id: logId, ...userLogs[logId] }));
                 logArray.sort((a, b) => b.timestamp - a.timestamp);
                 
+                // 从打卡记录中寻找名字兜底
+                if (logArray.length > 0) {
+                    const logWithName = logArray.find(l => l.name);
+                    if (logWithName) {
+                        fallbackName = logWithName.name;
+                        fallbackPhone = logWithName.phone || fallbackPhone;
+                    }
+                }
+                
+                const displayName = u.name || fallbackName;
+                const displayPhone = u.phone || fallbackPhone;
+
                 html += `<div class="admin-card">
                     <div class="admin-card-header">
-                        <span>用户 ID: ${uid}</span>
-                        <button class="del-btn" onclick="deleteUserData('${uid}')">删除该用户所有数据</button>
+                        <div>
+                            <div style="font-weight:600;color:var(--text-main);font-size:15px;">${displayName}</div>
+                            <div style="font-size:12px;color:var(--text-muted);">${displayPhone}</div>
+                        </div>
+                        <button class="del-btn" onclick="deleteUserData('${uid}')">删除员工数据</button>
                     </div>
                     <div class="admin-card-body">`;
                 
@@ -473,24 +615,28 @@
                 html += `</div></div>`;
             });
             adminUserList.innerHTML = html;
+
         }).catch(err => {
             console.error(err);
-            adminUserList.innerHTML = `<div style="color:red;padding:20px;">读取失败：请确保 Firebase 数据库规则允许读取。<br>错误信息：${err.message}</div>`;
+            adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:red;">读取失败，请检查数据库权限</td></tr>';
+            adminUserList.innerHTML = `<div style="color:red;padding:20px;">读取失败：${err.message}</div>`;
         });
     }
 
-    // 全局删除用户数据函数 (供后台按钮调用)
     window.deleteUserData = function(uid) {
-        if (!confirm(`⚠️ 警告：确定要彻底删除该用户 (ID: ${uid}) 的所有打卡数据吗？此操作无法撤销！`)) return;
-        db.ref(`attendance/${uid}`).remove().then(() => {
-            showToast('🗑️ 已成功删除该用户数据');
-            loadAdminData(); // 刷新列表
+        if (!confirm(`⚠️ 警告：确定要彻底删除该员工的所有资料和打卡数据吗？`)) return;
+        
+        Promise.all([
+            db.ref(`users/${uid}`).remove(),
+            db.ref(`attendance/${uid}`).remove()
+        ]).then(() => {
+            showToast('🗑️ 已成功删除该员工数据');
+            loadAdminData();
         }).catch(err => {
             showToast('❌ 删除失败: ' + err.message);
         });
     };
 
-    // 初始化验证码组件
     window.addEventListener('load', () => { initRecaptcha(); });
 </script>
 </body>
