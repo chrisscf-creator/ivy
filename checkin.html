@@ -3,84 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GPS 上下班打卡系统</title>
-    <!-- 引入 Google Fonts -->
+    <title>GPS 上下班考勤系统</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --success: #10B981;
-            --danger: #EF4444;
-            --bg: #F3F4F6;
-            --card-bg: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
+            --primary: #4F46E5; --primary-hover: #4338CA;
+            --success: #10B981; --danger: #EF4444;
+            --bg: #F3F4F6; --card-bg: #FFFFFF;
+            --text-main: #111827; --text-muted: #6B7280;
             --border: #E5E7EB;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Inter', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px 16px;
+            background-color: var(--bg); color: var(--text-main);
+            min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 16px;
         }
-
         .app-container {
-            width: 100%;
-            max-width: 480px;
-            background: var(--card-bg);
-            border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            overflow: hidden;
-            position: relative;
+            width: 100%; max-width: 480px; background: var(--card-bg);
+            border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            overflow: hidden; position: relative; min-height: 500px;
         }
+        .header { background: var(--primary); color: white; padding: 24px 20px; text-align: center; cursor: pointer; user-select: none;}
+        .header h1 { font-size: 22px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .header p { font-size: 14px; opacity: 0.8; margin-top: 4px;}
 
-        /* 顶部状态栏 */
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 24px 20px;
-            text-align: center;
-        }
-        .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: center; align-items: center; gap: 8px;}
-        .header p { font-size: 14px; opacity: 0.8; }
-
-        /* 用户信息栏 */
         .user-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            background: #F9FAFB;
-            border-bottom: 1px solid var(--border);
-            font-size: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 20px; background: #F9FAFB; border-bottom: 1px solid var(--border); font-size: 14px;
         }
         .user-info { display: flex; align-items: center; gap: 8px; font-weight: 500;}
         .avatar { width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;}
-        .logout-btn { color: var(--danger); font-weight: 500; background: none; border: none; cursor: pointer; font-size: 14px;}
+        .logout-btn { color: var(--danger); font-weight: 500; background: none; border: none; cursor: pointer;}
 
-        /* 内容区 */
         .content { padding: 20px; }
-
-        /* 注册表单 */
         .auth-form { display: flex; flex-direction: column; gap: 16px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
         .form-control {
-            padding: 14px 16px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.2s;
-            font-family: inherit;
+            padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; font-family: inherit;
         }
         .form-control:focus { border-color: var(--primary); }
         
@@ -88,107 +49,70 @@
         .row .form-control { flex: 1; }
 
         .btn {
-            padding: 16px;
-            border-radius: 12px;
-            border: none;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
+            padding: 16px; border-radius: 12px; border: none; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;
         }
         .btn:active { transform: scale(0.98); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
-        
         .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-main); }
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
 
         .error-msg { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: -8px;}
 
-        /* 主打卡区域 */
+        /* 主界面 */
         .main-feature { display: none; }
         .main-feature.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .clock-display {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-        .clock-time { font-size: 42px; font-weight: 700; letter-spacing: -1px; color: var(--text-main); }
+        .clock-display { text-align: center; margin-bottom: 24px; }
+        .clock-time { font-size: 42px; font-weight: 700; letter-spacing: -1px; }
         .clock-date { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
 
-        /* GPS 状态 */
         .gps-status {
-            background: #F9FAFB;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 20px;
+            background: #F9FAFB; border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 20px;
         }
         .gps-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600;}
         .gps-badge { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; background: #E5E7EB; color: var(--text-muted); }
         .gps-badge.active { background: #D1FAE5; color: var(--success); }
         .gps-badge.error { background: #FEE2E2; color: var(--danger); }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .coord-info { font-family: monospace; font-size: 13px; color: var(--text-main); line-height: 1.5;}
+        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.5;}
         
-        /* 打卡按钮组 */
         .action-group { display: flex; gap: 12px; margin-bottom: 24px; }
         .action-group .btn { flex: 1; padding: 20px 10px; font-size: 18px; flex-direction: column; }
         .action-group .btn span.icon { font-size: 24px; }
 
-        /* 记录列表 */
         .logs-section { border-top: 1px solid var(--border); padding-top: 20px; }
         .logs-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .logs-header h3 { font-size: 16px; font-weight: 600; }
-        .logs-header button { background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; }
-        
         .log-list { display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; }
-        .log-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px 16px;
-            background: #F9FAFB;
-            border-radius: 12px;
-            font-size: 14px;
-        }
+        .log-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #F9FAFB; border-radius: 12px; font-size: 14px; }
         .log-item.in { border-left: 4px solid var(--success); }
         .log-item.out { border-left: 4px solid var(--danger); }
-        .log-type { font-weight: 600; display: flex; align-items: center; gap: 6px;}
-        .log-time { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
         .log-loc { font-family: monospace; font-size: 12px; color: var(--text-muted); text-align: right; }
         
-        .empty-state { text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; }
-
-        /* Toast 提示 */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: #1F2937;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 100px;
-            font-size: 14px;
-            font-weight: 500;
-            opacity: 0;
-            transition: all 0.3s;
-            pointer-events: none;
-            z-index: 9999;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        /* 后台管理面板 (隐藏) */
+        #adminPanel {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 100; flex-direction: column; overflow-y: auto;
         }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #adminPanel.active { display: flex; }
+        .admin-header { background: #1F2937; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;}
+        .admin-header h2 { font-size: 18px; }
+        .admin-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
         
+        .admin-body { padding: 16px; }
+        .admin-card { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+        .admin-card-header { background: #F9FAFB; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 14px;}
+        .admin-card-body { padding: 16px; font-size: 13px; }
+        .admin-log-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px;}
+        .admin-log-table th, .admin-log-table td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
+        .admin-log-table th { color: var(--text-muted); font-weight: 500; }
+        .del-btn { background: #FEE2E2; color: var(--danger); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;}
+
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1F2937; color: white; padding: 12px 24px; border-radius: 100px; font-size: 14px; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 9999;}
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .hidden { display: none !important; }
         #recaptcha-container { margin-bottom: 10px; }
     </style>
@@ -196,25 +120,29 @@
 <body>
 
 <div class="app-container">
-    <!-- 顶部 -->
-    <div class="header">
+    <!-- 顶部 (连点5次进入后台) -->
+    <div class="header" id="headerTrigger">
         <h1>📍 GPS 考勤打卡</h1>
         <p>真实位置校验 · 云端记录</p>
     </div>
 
-    <!-- 用户信息 (登录后显示) -->
+    <!-- 用户信息 -->
     <div id="userBar" class="user-bar hidden">
         <div class="user-info">
             <div class="avatar" id="userAvatar">👤</div>
-            <span id="userPhone">--</span>
+            <span id="userNameDisplay">--</span>
         </div>
         <button class="logout-btn" id="logoutBtn">退出登录</button>
     </div>
 
     <div class="content">
-        <!-- ================= 登录/注册区域 ================= -->
+        <!-- 登录注册 -->
         <div id="authSection">
             <div class="auth-form">
+                <div class="form-group">
+                    <label>员工姓名</label>
+                    <input type="text" id="nameInput" class="form-control" placeholder="请输入您的真实姓名">
+                </div>
                 <div class="form-group">
                     <label>手机号码 (包含国家代码)</label>
                     <input type="tel" id="phoneInput" class="form-control" placeholder="例如：+6591234567" value="+65">
@@ -222,81 +150,79 @@
                 <div class="form-group">
                     <label>短信验证码</label>
                     <div class="row">
-                        <input type="text" id="codeInput" class="form-control" placeholder="输入6位验证码" maxlength="6" inputmode="numeric">
+                        <input type="text" id="codeInput" class="form-control" placeholder="6位验证码" maxlength="6" inputmode="numeric">
                         <button id="sendCodeBtn" class="btn btn-outline" style="width: 130px; padding: 0;">获取验证码</button>
                     </div>
                 </div>
                 <div class="error-msg" id="authError"></div>
-                
-                <!-- reCAPTCHA 容器 -->
                 <div id="recaptcha-container"></div>
-                
                 <button id="loginBtn" class="btn btn-primary" style="margin-top: 8px;">
                     <span>🔐</span> 验证并登录
                 </button>
             </div>
         </div>
 
-        <!-- ================= 主打卡区域 ================= -->
+        <!-- 打卡区 -->
         <div id="mainSection" class="main-feature">
-            <!-- 时钟 -->
             <div class="clock-display">
                 <div class="clock-time" id="liveTime">00:00:00</div>
-                <div class="clock-date" id="liveDate">2024年01月01日 星期一</div>
+                <div class="clock-date" id="liveDate">2024年01月01日</div>
             </div>
 
-            <!-- GPS 状态卡片 -->
             <div class="gps-status">
                 <div class="gps-header">
                     <span>当前定位状态</span>
                     <div class="gps-badge" id="gpsBadge">
-                        <div class="dot"></div>
-                        <span id="gpsText">等待获取</span>
+                        <div class="dot"></div><span id="gpsText">等待获取</span>
                     </div>
                 </div>
                 <div class="coord-info" id="coordInfo">
-                    纬度: -- <br>
-                    经度: -- <br>
-                    精度: --
+                    纬度: -- <br>经度: -- <br>精度: --
                 </div>
             </div>
 
-            <!-- 打卡按钮 -->
             <div class="action-group">
-                <button id="clockInBtn" class="btn btn-success">
-                    <span class="icon">☀️</span>
-                    上班打卡
-                </button>
-                <button id="clockOutBtn" class="btn btn-danger">
-                    <span class="icon">🌙</span>
-                    下班打卡
-                </button>
+                <button id="clockInBtn" class="btn btn-success"><span class="icon">☀️</span>上班打卡</button>
+                <button id="clockOutBtn" class="btn btn-danger"><span class="icon">🌙</span>下班打卡</button>
             </div>
 
-            <!-- 历史记录 -->
             <div class="logs-section">
                 <div class="logs-header">
-                    <h3>📋 历史打卡记录</h3>
-                    <button id="clearLogsBtn">清空全部</button>
+                    <h3>📋 我的记录</h3>
+                    <button id="clearLogsBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">清空</button>
                 </div>
-                <div class="log-list" id="logList">
-                    <div class="empty-state">暂无打卡记录</div>
-                </div>
+                <div class="log-list" id="logList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 后台管理面板 (覆盖在上面) ================= -->
+    <div id="adminPanel">
+        <div class="admin-header">
+            <h2>⚙️ 管理员控制台</h2>
+            <button class="admin-close" id="adminCloseBtn">✕</button>
+        </div>
+        <div class="admin-body">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <span style="font-size:14px; color:var(--text-muted);">所有员工打卡数据</span>
+                <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
+            </div>
+            <div id="adminUserList">
+                <!-- 动态渲染所有用户数据 -->
             </div>
         </div>
     </div>
 </div>
 
-<!-- Toast 提示容器 -->
-<div id="toast" class="toast">提示信息</div>
+<div id="toast" class="toast">提示</div>
 
-<!-- ================= Firebase SDK (Compat 版) ================= -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-    // ================= 1. Firebase 初始化 =================
+    // ================= 1. 初始化 =================
     const firebaseConfig = {
         apiKey: "AIzaSyBN3AqJw4LYUaK8BlZduriG7TJsgmRcGY4",
         authDomain: "payment-2084a.firebaseapp.com",
@@ -306,351 +232,326 @@
         messagingSenderId: "320939990652",
         appId: "1:320939990652:web:f7511e1722f34b4af7f3f9"
     };
-
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // ================= 2. 全局状态 & DOM =================
-    let currentUser = null;
-    let currentPosition = null;      // { lat, lng, accuracy }
-    let confirmationResult = null;   // 短信验证结果
-    let recaptchaVerifier = null;    // 防机器人验证器
-    let cooldownTimer = null;        // 验证码倒计时
-    let isFetchingGPS = false;
-    let logsRef = null;              // 数据库引用
+    // ================= 2. 全局变量 =================
+    let currentUser = null, currentPosition = null;
+    let currentUserName = ''; // 保存当前登录员工的姓名
+    let confirmationResult = null, recaptchaVerifier = null;
+    let cooldownTimer = null, isFetchingGPS = false, logsRef = null, userRef = null;
+    let headerClickCount = 0, headerClickTimer = null; // 用于连点触发后台
 
-    // DOM 节点
-    const userBar = document.getElementById('userBar');
-    const userPhone = document.getElementById('userPhone');
-    const userAvatar = document.getElementById('userAvatar');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    const authSection = document.getElementById('authSection');
-    const mainSection = document.getElementById('mainSection');
-    const phoneInput = document.getElementById('phoneInput');
-    const codeInput = document.getElementById('codeInput');
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
-    const loginBtn = document.getElementById('loginBtn');
-    const authError = document.getElementById('authError');
+    // DOM
+    const headerTrigger = document.getElementById('headerTrigger');
+    const userBar = document.getElementById('userBar'), userNameDisplay = document.getElementById('userNameDisplay'), userAvatar = document.getElementById('userAvatar'), logoutBtn = document.getElementById('logoutBtn');
+    const authSection = document.getElementById('authSection'), mainSection = document.getElementById('mainSection');
+    const nameInput = document.getElementById('nameInput'), phoneInput = document.getElementById('phoneInput'), codeInput = document.getElementById('codeInput'), sendCodeBtn = document.getElementById('sendCodeBtn'), loginBtn = document.getElementById('loginBtn'), authError = document.getElementById('authError');
+    const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
+    const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
+    const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
+    const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
+    // 后台管理 DOM
+    const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
 
-    const liveTime = document.getElementById('liveTime');
-    const liveDate = document.getElementById('liveDate');
-    const gpsBadge = document.getElementById('gpsBadge');
-    const gpsText = document.getElementById('gpsText');
-    const coordInfo = document.getElementById('coordInfo');
-    const clockInBtn = document.getElementById('clockInBtn');
-    const clockOutBtn = document.getElementById('clockOutBtn');
-    const logList = document.getElementById('logList');
-    const clearLogsBtn = document.getElementById('clearLogsBtn');
-    const toastEl = document.getElementById('toast');
-
-    // ================= 3. 通用工具函数 =================
+    // ================= 3. 基础工具 =================
     function showToast(msg, duration = 2500) {
-        toastEl.textContent = msg;
-        toastEl.classList.add('show');
-        clearTimeout(window.toastTimer);
-        window.toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+        toastEl.textContent = msg; toastEl.classList.add('show');
+        clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
     }
 
-    // 实时时钟
     setInterval(() => {
         const now = new Date();
         liveTime.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
         liveDate.textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
     }, 1000);
 
-    // 更新 GPS UI
-    function updateGPSUI(status, text, lat = null, lng = null, acc = null) {
-        gpsBadge.className = 'gps-badge'; // 重置
-        if (status === 'active') gpsBadge.classList.add('active');
-        if (status === 'error') gpsBadge.classList.add('error');
-        
-        gpsText.textContent = text;
-        if (lat !== null && lng !== null && acc !== null) {
-            coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
-        } else {
-            coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --`;
-        }
-    }
-
-    // ================= 4. 认证与手机号登录逻辑 =================
-    // 初始化 reCAPTCHA (不可见)
+    // ================= 4. 登录鉴权 =================
     function initRecaptcha() {
         if (!recaptchaVerifier) {
-            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-                size: 'invisible',
-                callback: () => { /* 验证成功无需操作 */ }
-            });
+            recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
         }
     }
 
-    // 监听登录状态变化
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            // 更新 UI
-            userBar.classList.remove('hidden');
-            authSection.classList.add('hidden');
-            mainSection.classList.add('active');
             
-            const phone = user.phoneNumber || '';
-            userPhone.textContent = phone.replace(/(\+\d{2})(\d{4})\d{4}(\d+)/, '$1 $2****$3'); // 简单脱敏
-            userAvatar.textContent = phone.slice(-2) || '👤';
-            
-            // 自动请求一次定位
+            // 实时监听该用户的个人资料 (获取姓名)
+            userRef = db.ref(`users/${user.uid}`);
+            userRef.on('value', snap => {
+                const data = snap.val();
+                if (data && data.name) {
+                    currentUserName = data.name;
+                } else {
+                    // 如果数据库没有名字（老用户），用手机尾号兜底
+                    currentUserName = '员工 ' + (user.phoneNumber || '').slice(-4);
+                }
+                
+                // 更新 UI
+                userBar.classList.remove('hidden');
+                authSection.classList.add('hidden');
+                mainSection.classList.add('active');
+                userNameDisplay.textContent = `${currentUserName} (${(user.phoneNumber || '').replace(/(\+\d{2})(\d{4})\d{4}(\d+)/, '$1 $2****$3')})`;
+                userAvatar.textContent = currentUserName.slice(0, 1).toUpperCase();
+            });
+
             fetchLocation();
-            
-            // 监听云端数据
-            loadLogsFromDB();
+            loadMyLogs();
         } else {
-            currentUser = null;
+            currentUser = null; currentUserName = '';
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
             
             if (logsRef) { logsRef.off(); logsRef = null; }
-            logList.innerHTML = '<div class="empty-state">暂无打卡记录</div>';
+            if (userRef) { userRef.off(); userRef = null; }
+            
+            logList.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无记录</div>';
             currentPosition = null;
             updateGPSUI('waiting', '等待获取');
             clearInterval(cooldownTimer);
-            sendCodeBtn.disabled = false;
-            sendCodeBtn.textContent = '获取验证码';
-            authError.textContent = '';
-            codeInput.value = '';
+            sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码';
+            authError.textContent = ''; codeInput.value = '';
         }
     });
 
-    // 发送验证码
     sendCodeBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
         const phone = phoneInput.value.trim();
-        if (!phone || phone.length < 8) {
-            authError.textContent = '请输入有效的手机号码（含国家代码，例如 +65）';
-            return;
-        }
+        if (!name) { authError.textContent = '请先输入您的姓名'; return; }
+        if (!phone || phone.length < 8) { authError.textContent = '请输入有效手机号'; return; }
+        
         authError.textContent = '';
-        
-        sendCodeBtn.disabled = true;
-        sendCodeBtn.textContent = '发送中...';
-        
+        sendCodeBtn.disabled = true; sendCodeBtn.textContent = '发送中...';
         try {
             initRecaptcha();
             confirmationResult = await auth.signInWithPhoneNumber(phone, recaptchaVerifier);
-            showToast('✅ 验证码已发送，请查收');
-            
-            // 倒计时 60s
-            let count = 60;
-            sendCodeBtn.textContent = `${count}s 后重发`;
+            showToast('✅ 验证码已发送');
+            let count = 60; sendCodeBtn.textContent = `${count}s`;
             clearInterval(cooldownTimer);
             cooldownTimer = setInterval(() => {
                 count--;
-                if (count <= 0) {
-                    clearInterval(cooldownTimer);
-                    sendCodeBtn.disabled = false;
-                    sendCodeBtn.textContent = '获取验证码';
-                } else {
-                    sendCodeBtn.textContent = `${count}s 后重发`;
-                }
+                if (count <= 0) { clearInterval(cooldownTimer); sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码'; }
+                else sendCodeBtn.textContent = `${count}s`;
             }, 1000);
-            
-        } catch (error) {
-            console.error('发送验证码失败:', error);
-            let msg = '发送失败，请重试';
-            if (error.code === 'auth/invalid-phone-number') msg = '手机号格式错误，请包含国家代码';
-            if (error.code === 'auth/too-many-requests') msg = '请求过于频繁，请稍后再试';
-            if (error.code === 'auth/quota-exceeded') msg = '短信额度已用尽';
-            authError.textContent = msg;
-            showToast('❌ ' + msg);
-            
-            sendCodeBtn.disabled = false;
-            sendCodeBtn.textContent = '获取验证码';
-            // 重置 recaptcha
+        } catch (err) {
+            console.error(err);
+            authError.textContent = err.message.includes('quota') ? '短信额度已满' : '发送失败，请检查号码';
+            sendCodeBtn.disabled = false; sendCodeBtn.textContent = '获取验证码';
             if (recaptchaVerifier) { recaptchaVerifier.clear(); recaptchaVerifier = null; }
         }
     });
 
-    // 验证并登录
     loginBtn.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
         const code = codeInput.value.trim();
-        if (!code || code.length < 6) {
-            authError.textContent = '请输入6位验证码';
-            return;
-        }
-        if (!confirmationResult) {
-            authError.textContent = '请先获取验证码';
-            return;
-        }
+        if (!name) { authError.textContent = '请先输入您的姓名'; return; }
+        if (!code || code.length < 6) { authError.textContent = '请输入6位验证码'; return; }
+        if (!confirmationResult) { authError.textContent = '请先获取验证码'; return; }
         
-        authError.textContent = '';
-        loginBtn.disabled = true;
-        loginBtn.textContent = '验证中...';
-        
+        authError.textContent = ''; loginBtn.disabled = true; loginBtn.textContent = '验证中...';
         try {
-            await confirmationResult.confirm(code);
-            // 登录成功后，onAuthStateChanged 会处理 UI 切换
+            const result = await confirmationResult.confirm(code);
+            // 验证成功，将该员工姓名写入数据库 users 节点
+            await db.ref(`users/${result.user.uid}`).set({
+                name: name,
+                phone: result.user.phoneNumber,
+                updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
             showToast('🎉 登录成功');
-        } catch (error) {
-            console.error('验证失败:', error);
-            let msg = '验证码错误或已过期';
-            if (error.code === 'auth/invalid-verification-code') msg = '验证码错误';
-            if (error.code === 'auth/code-expired') msg = '验证码已过期，请重新获取';
-            authError.textContent = msg;
-            showToast('❌ ' + msg);
-        } finally {
-            loginBtn.disabled = false;
-            loginBtn.textContent = '验证并登录';
-        }
+        } catch (err) {
+            console.error(err);
+            authError.textContent = '验证码错误或已过期';
+        } finally { loginBtn.disabled = false; loginBtn.textContent = '验证并登录'; }
     });
 
-    // 退出登录
-    logoutBtn.addEventListener('click', () => {
-        auth.signOut().then(() => showToast('👋 已退出'));
-    });
+    logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
 
-    // ================= 5. GPS 定位逻辑 =================
+    // ================= 5. GPS 定位 & 打卡 =================
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null) {
+        gpsBadge.className = 'gps-badge';
+        if (status === 'active') gpsBadge.classList.add('active');
+        if (status === 'error') gpsBadge.classList.add('error');
+        gpsText.textContent = text;
+        if (lat !== null) coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
+        else coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --`;
+    }
+
     function fetchLocation() {
-        if (!navigator.geolocation) {
-            showToast('❌ 浏览器不支持 GPS 定位');
-            updateGPSUI('error', '不支持定位');
-            return;
-        }
+        if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
         if (isFetchingGPS) return;
-        
-        isFetchingGPS = true;
-        updateGPSUI('waiting', '定位中...');
-        
+        isFetchingGPS = true; updateGPSUI('waiting', '定位中...');
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                currentPosition = {
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy
-                };
+                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
                 updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy);
                 isFetchingGPS = false;
             },
             (err) => {
-                console.error('定位失败:', err);
-                let msg = '定位失败';
-                if (err.code === 1) msg = '拒绝授权';
-                if (err.code === 2) msg = '位置不可用';
-                if (err.code === 3) msg = '定位超时';
-                updateGPSUI('error', msg);
-                showToast('❌ 请允许浏览器获取位置信息');
-                isFetchingGPS = false;
+                updateGPSUI('error', '定位失败'); showToast('❌ 请允许获取位置'); isFetchingGPS = false;
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     }
 
-    // ================= 6. 打卡与数据库交互 =================
-    // 加载云端记录
-    function loadLogsFromDB() {
-        if (!currentUser) return;
-        logsRef = db.ref(`attendance/${currentUser.uid}`);
-        
-        logsRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            const logs = [];
-            if (data) {
-                Object.keys(data).forEach(key => {
-                    logs.push({ id: key, ...data[key] });
-                });
-            }
-            // 按时间降序排序
-            logs.sort((a, b) => b.timestamp - a.timestamp);
-            renderLogs(logs);
-        }, (error) => {
-            console.error('读取数据库失败:', error);
-            showToast('读取云端记录失败，请检查数据库规则');
-        });
-    }
-
-    // 渲染记录列表
-    function renderLogs(logs) {
-        if (!logs || logs.length === 0) {
-            logList.innerHTML = '<div class="empty-state">暂无打卡记录</div>';
-            return;
-        }
-        
-        logList.innerHTML = logs.map(log => {
-            const date = new Date(log.timestamp);
-            const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-            const dateStr = date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
-            const isClockIn = log.type === 'in';
-            
-            return `
-                <div class="log-item ${isClockIn ? 'in' : 'out'}">
-                    <div>
-                        <div class="log-type" style="color: ${isClockIn ? 'var(--success)' : 'var(--danger)'}">
-                            ${isClockIn ? '☀️ 上班打卡' : '🌙 下班打卡'}
-                        </div>
-                        <div class="log-time">${dateStr} ${timeStr}</div>
-                    </div>
-                    <div class="log-loc">
-                        ${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br>
-                        <span style="font-size: 10px;">±${log.accuracy.toFixed(0)}m</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // 执行打卡动作
     async function doClockAction(type) {
-        if (!currentUser) return;
-        if (!currentPosition) {
-            showToast('⏳ 位置尚未获取，正在重新定位...');
-            fetchLocation();
-            return;
-        }
-        
+        if (!currentUser || !currentPosition) { showToast('位置未就绪，请稍候'); return; }
         const btn = type === 'in' ? clockInBtn : clockOutBtn;
-        const originalText = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '保存中...';
-        
+        const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
         try {
-            const newLogRef = db.ref(`attendance/${currentUser.uid}`).push();
-            await newLogRef.set({
-                type: type,                // 'in' 或 'out'
-                lat: currentPosition.lat,
-                lng: currentPosition.lng,
-                accuracy: currentPosition.accuracy,
+            // 打卡数据中带上员工姓名
+            await db.ref(`attendance/${currentUser.uid}`).push({
+                name: currentUserName,
+                phone: currentUser.phoneNumber || '',
+                type: type, 
+                lat: currentPosition.lat, 
+                lng: currentPosition.lng, 
+                accuracy: currentPosition.accuracy, 
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
-        } catch (error) {
-            console.error('打卡失败:', error);
-            showToast('❌ 打卡失败: ' + error.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
+        } catch (err) { showToast('❌ 打卡失败'); }
+        finally { btn.disabled = false; btn.innerHTML = originalText; }
     }
-
     clockInBtn.addEventListener('click', () => doClockAction('in'));
     clockOutBtn.addEventListener('click', () => doClockAction('out'));
 
-    // 清空记录
-    clearLogsBtn.addEventListener('click', async () => {
+    // 加载我的记录
+    function loadMyLogs() {
         if (!currentUser) return;
-        if (!confirm('确定要清空所有打卡记录吗？此操作不可恢复。')) return;
-        
-        try {
-            await db.ref(`attendance/${currentUser.uid}`).remove();
-            showToast('🧹 记录已清空');
-        } catch (error) {
-            showToast('❌ 清空失败: ' + error.message);
+        logsRef = db.ref(`attendance/${currentUser.uid}`);
+        logsRef.on('value', snap => {
+            const data = snap.val(); const logs = [];
+            if (data) Object.keys(data).forEach(k => logs.push({ id: k, ...data[k] }));
+            logs.sort((a, b) => b.timestamp - a.timestamp);
+            
+            if (logs.length === 0) { logList.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无记录</div>'; return; }
+            logList.innerHTML = logs.map(log => {
+                const d = new Date(log.timestamp);
+                const isIn = log.type === 'in';
+                return `
+                <div class="log-item ${isIn ? 'in' : 'out'}">
+                    <div><div class="log-type" style="font-weight:600;color:${isIn ? 'var(--success)' : 'var(--danger)'}">${isIn ? '☀️ 上班' : '🌙 下班'}</div>
+                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div></div>
+                    <div class="log-loc">${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br><span style="font-size:10px;">±${log.accuracy.toFixed(0)}m</span></div>
+                </div>`;
+            }).join('');
+        });
+    }
+    
+    clearLogsBtn.addEventListener('click', async () => {
+        if (!currentUser || !confirm('确定清空您的所有记录吗？')) return;
+        await db.ref(`attendance/${currentUser.uid}`).remove();
+        showToast('🧹 已清空');
+    });
+
+    // ================= 6. 后台管理系统 (连点 5 次触发) =================
+    headerTrigger.addEventListener('click', () => {
+        headerClickCount++;
+        if (headerClickCount === 1) {
+            headerClickTimer = setTimeout(() => { headerClickCount = 0; }, 2000); // 2秒内未连点完毕重置
+        }
+        if (headerClickCount >= 5) {
+            clearTimeout(headerClickTimer);
+            headerClickCount = 0;
+            // 弹出密码框
+            const pwd = prompt("请输入管理员密码:");
+            if (pwd === 'admin123') {
+                adminPanel.classList.add('active');
+                loadAdminData(); // 拉取所有数据
+            } else if (pwd !== null) {
+                showToast('❌ 密码错误');
+            }
         }
     });
 
-    // ================= 7. 页面初始化 =================
-    // 初始化 reCAPTCHA 容器，避免首次点击发送按钮报错
-    window.addEventListener('load', () => {
-        initRecaptcha();
-    });
+    adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
+    adminRefreshBtn.addEventListener('click', loadAdminData);
 
+    // 加载所有用户的打卡数据
+    function loadAdminData() {
+        adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
+        
+        // 同时拉取 users 表（姓名）和 attendance 表（打卡记录）
+        Promise.all([
+            db.ref('users').once('value'),
+            db.ref('attendance').once('value')
+        ]).then(([usersSnap, attendanceSnap]) => {
+            const usersData = usersSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+            
+            // 合并数据：基于 attendance 表的 UID 来遍历
+            const allUids = new Set([...Object.keys(usersData), ...Object.keys(attendanceData)]);
+            
+            if (allUids.size === 0) {
+                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何用户数据</div>';
+                return;
+            }
+            
+            let html = '';
+            allUids.forEach(uid => {
+                const userInfo = usersData[uid] || { name: '未知员工', phone: uid };
+                const userLogs = attendanceData[uid] || {};
+                const logArray = [];
+                Object.keys(userLogs).forEach(logId => logArray.push({ id: logId, ...userLogs[logId] }));
+                logArray.sort((a, b) => b.timestamp - a.timestamp);
+                
+                html += `<div class="admin-card">
+                    <div class="admin-card-header">
+                        <div>
+                            <div style="font-weight:600;color:var(--text-main);font-size:15px;">${userInfo.name}</div>
+                            <div style="font-size:12px;color:var(--text-muted);">${userInfo.phone}</div>
+                        </div>
+                        <button class="del-btn" onclick="deleteUserData('${uid}')">删除员工数据</button>
+                    </div>
+                    <div class="admin-card-body">`;
+                
+                if (logArray.length === 0) {
+                    html += `<div style="color:#888;">无打卡记录</div>`;
+                } else {
+                    html += `<table class="admin-log-table">
+                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>精度</th></tr></thead><tbody>`;
+                    logArray.forEach(log => {
+                        const d = new Date(log.timestamp);
+                        const isIn = log.type === 'in';
+                        html += `<tr>
+                            <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
+                            <td>${d.toLocaleString()}</td>
+                            <td><a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank" style="color:var(--primary);text-decoration:none;">${log.lat.toFixed(5)}, ${log.lng.toFixed(5)} ↗</a></td>
+                            <td>±${log.accuracy.toFixed(1)}m</td>
+                        </tr>`;
+                    });
+                    html += `</tbody></table>`;
+                }
+                html += `</div></div>`;
+            });
+            adminUserList.innerHTML = html;
+        }).catch(err => {
+            console.error(err);
+            adminUserList.innerHTML = `<div style="color:red;padding:20px;">读取失败：请确保 Firebase 数据库规则允许读取。<br>错误信息：${err.message}</div>`;
+        });
+    }
+
+    // 全局删除用户数据函数
+    window.deleteUserData = function(uid) {
+        if (!confirm(`⚠️ 警告：确定要彻底删除该员工的所有资料和打卡数据吗？此操作无法撤销！`)) return;
+        
+        // 同时删除 users 节点和 attendance 节点
+        Promise.all([
+            db.ref(`users/${uid}`).remove(),
+            db.ref(`attendance/${uid}`).remove()
+        ]).then(() => {
+            showToast('🗑️ 已成功删除该员工数据');
+            loadAdminData(); // 刷新列表
+        }).catch(err => {
+            showToast('❌ 删除失败: ' + err.message);
+        });
+    };
+
+    // 初始化验证码组件
+    window.addEventListener('load', () => { initRecaptcha(); });
 </script>
 </body>
 </html>
