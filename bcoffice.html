@@ -469,7 +469,7 @@
 
                 // Nominatim 逆地理编码（免费，需 User-Agent）
                 try {
-                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=zh&zoom=18&addressdetails=1`;
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en&zoom=18&addressdetails=1`;
                     const res = await fetch(url, {
                         headers: {
                             'User-Agent': 'GPSAttendanceApp/1.0 (contact: your-email@example.com)'
