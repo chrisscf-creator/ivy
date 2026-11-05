@@ -196,7 +196,6 @@
             <div class="logs-section">
                 <div class="logs-header">
                     <h3>📋 我的记录</h3>
-                    <button id="clearLogsBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">清空</button>
                 </div>
                 <div class="log-list" id="logList"></div>
             </div>
@@ -260,7 +259,7 @@
     // 固定地标名称
     const FIXED_LANDMARK = 'Sumang Lane';
     // 本软件的唯一标识 —— 用于区分账户注册来源
-    const APP_SOURCE = 'bcoffice';
+    const APP_SOURCE = 'bcoffice3';
 
     let currentUser = null, currentPosition = null;
     let currentUserName = ''; 
@@ -277,7 +276,7 @@
     const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
     const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
     const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
-    const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
+    const logList = document.getElementById('logList'), toastEl = document.getElementById('toast');
     // 后台管理 DOM
     const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
     const adminSummaryBody = document.getElementById('adminSummaryBody');
@@ -398,7 +397,7 @@
             localStorage.setItem('emp_name_' + result.user.uid, name);
             currentUserName = name;
             
-            // 2. 写入 Firebase 数据库，标记注册来源为 bcoffice
+            // 2. 写入 Firebase 数据库，标记注册来源为 bcoffice3
             await db.ref(`users/${result.user.uid}`).update({
                 name: name,
                 phone: result.user.phoneNumber,
@@ -502,12 +501,6 @@
             }).join('');
         });
     }
-    
-    clearLogsBtn.addEventListener('click', async () => {
-        if (!currentUser || !confirm('确定清空您的所有记录吗？')) return;
-        await db.ref(`attendance/${currentUser.uid}`).remove();
-        showToast('🧹 已清空');
-    });
 
     // ================= 6. 后台管理系统 =================
     headerTrigger.addEventListener('click', () => {
@@ -531,7 +524,7 @@
     adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
     adminRefreshBtn.addEventListener('click', loadAdminData);
 
-    // 核心：加载数据，仅显示在本软件（bcoffice）注册的账户
+    // 核心：加载数据，仅显示在本软件（bcoffice3）注册的账户
     function loadAdminData() {
         adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">加载中...</td></tr>';
         adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
@@ -543,7 +536,7 @@
             const usersData = usersSnap.val() || {};
             const attendanceData = attendanceSnap.val() || {};
             
-            // ===== 关键过滤：只保留 users 表中 source === 'bcoffice' 的账户 =====
+            // ===== 关键过滤：只保留 users 表中 source === 'bcoffice3' 的账户 =====
             const validUids = new Set();
             Object.keys(usersData).forEach(uid => {
                 const u = usersData[uid] || {};
