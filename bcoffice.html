@@ -78,8 +78,7 @@
         .gps-badge.active { background: #D1FAE5; color: var(--success); }
         .gps-badge.error { background: #FEE2E2; color: var(--danger); }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.6;}
-        .landmark-text { color: var(--primary); font-weight: 600; }
+        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.5;}
         
         .action-group { display: flex; gap: 12px; margin-bottom: 24px; }
         .action-group .btn { flex: 1; padding: 20px 10px; font-size: 18px; flex-direction: column; }
@@ -184,7 +183,7 @@
                     </div>
                 </div>
                 <div class="coord-info" id="coordInfo">
-                    纬度: -- <br>经度: -- <br>精度: --<br>地标: 获取中...
+                    纬度: -- <br>经度: -- <br>精度: -- <br>地标: --
                 </div>
             </div>
 
@@ -257,12 +256,9 @@
     const db = firebase.database();
 
     // ================= 2. 全局变量 =================
-    // 新增：固定地标名称（强制显示为你需要的地点）
-    const FIXED_LANDMARK = 'Sumang Lane';
-
     let currentUser = null, currentPosition = null;
+    let currentPlaceName = ''; // 当前地点名
     let currentUserName = ''; 
-    let currentLandmark = FIXED_LANDMARK; // 初始化为固定地标
     let confirmationResult = null, recaptchaVerifier = null;
     let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
     let headerClickCount = 0, headerClickTimer = null;
@@ -303,14 +299,12 @@
         if (user) {
             currentUser = user;
             
-            // 尝试获取名字：优先从 localStorage 读取，确保 UI 立即显示
             let cachedName = localStorage.getItem('emp_name_' + user.uid);
             if (cachedName) {
                 currentUserName = cachedName;
                 updateUserUI();
             }
 
-            // 然后在后台向 Firebase 请求最新名字
             db.ref(`users/${user.uid}`).once('value').then(snap => {
                 const data = snap.val();
                 if (data && data.name) {
@@ -326,7 +320,6 @@
                 updateUserUI();
             });
 
-            // 更新 UI 的辅助函数
             function updateUserUI() {
                 userBar.classList.remove('hidden');
                 authSection.classList.add('hidden');
@@ -338,7 +331,7 @@
             fetchLocation();
             loadMyLogs();
         } else {
-            currentUser = null; currentUserName = ''; currentLandmark = FIXED_LANDMARK;
+            currentUser = null; currentUserName = ''; currentPlaceName = '';
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
@@ -392,11 +385,9 @@
         try {
             const result = await confirmationResult.confirm(code);
             
-            // 1. 立即存入 localStorage 作为强力兜底
             localStorage.setItem('emp_name_' + result.user.uid, name);
             currentUserName = name;
             
-            // 2. 写入 Firebase 数据库
             await db.ref(`users/${result.user.uid}`).set({
                 name: name,
                 phone: result.user.phoneNumber,
@@ -413,33 +404,96 @@
     logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
 
     // ================= 5. GPS 定位 & 打卡 =================
-    function updateGPSUI(status, text, lat = null, lng = null, acc = null, landmark = FIXED_LANDMARK) {
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null, placeName = null) {
         gpsBadge.className = 'gps-badge';
         if (status === 'active') gpsBadge.classList.add('active');
         if (status === 'error') gpsBadge.classList.add('error');
         gpsText.textContent = text;
-        
         if (lat !== null) {
-            coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米<br>地标: <span class="landmark-text">${landmark}</span>`;
+            let html = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
+            if (placeName) {
+                html += `<br>地标: <span style="color:var(--primary);">${placeName}</span>`;
+            } else {
+                html += `<br>地标: --`;
+            }
+            coordInfo.innerHTML = html;
         } else {
             coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --<br>地标: --`;
         }
     }
 
-    function fetchLocation() {
+    // 解析 Nominatim 返回的 address，优先取 POI / 建筑 / 街道
+    function parseNominatimAddress(data) {
+        if (!data) return '';
+        const a = data.address || {};
+        // 优先级：具体 POI > 建筑 > 道路 > 社区/郊区 > 城市
+        const candidates = [
+            a.building,
+            a.amenity,
+            a.shop,
+            a.office,
+            a.tourism,
+            a.leisure,
+            a.road,
+            a.neighbourhood,
+            a.suburb,
+            a.city_district,
+            a.city,
+            a.town,
+            a.village
+        ];
+        for (const c of candidates) {
+            if (c && c.trim()) return c.trim();
+        }
+        // 最后回退到 display_name 的第一段
+        if (data.display_name) {
+            return data.display_name.split(',')[0].trim();
+        }
+        return '';
+    }
+
+    async function fetchLocation() {
         if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
         if (isFetchingGPS) return;
-        isFetchingGPS = true; updateGPSUI('waiting', '定位中...');
+        isFetchingGPS = true;
+        updateGPSUI('waiting', '定位中...');
+
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
-                // 直接使用设定的固定地标名称
-                currentLandmark = FIXED_LANDMARK; 
-                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, currentLandmark);
+            async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const acc = pos.coords.accuracy;
+                currentPosition = { lat, lng, accuracy: acc };
+
+                updateGPSUI('active', '定位成功', lat, lng, acc, null);
+
+                // Nominatim 逆地理编码（免费，需 User-Agent）
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=zh&zoom=18&addressdetails=1`;
+                    const res = await fetch(url, {
+                        headers: {
+                            'User-Agent': 'GPSAttendanceApp/1.0 (contact: your-email@example.com)'
+                        }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const placeName = parseNominatimAddress(data);
+                        currentPlaceName = placeName;
+                        updateGPSUI('active', '定位成功', lat, lng, acc, placeName || '未知地点');
+                    } else {
+                        currentPlaceName = '';
+                    }
+                } catch (e) {
+                    console.warn('逆地理编码失败:', e);
+                    currentPlaceName = '';
+                }
+
                 isFetchingGPS = false;
             },
             (err) => {
-                updateGPSUI('error', '定位失败'); showToast('❌ 请允许获取位置'); isFetchingGPS = false;
+                updateGPSUI('error', '定位失败');
+                showToast('❌ 请允许获取位置');
+                isFetchingGPS = false;
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
@@ -450,10 +504,8 @@
         const btn = type === 'in' ? clockInBtn : clockOutBtn;
         const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
         
-        // 确保打卡时名字不为空
         const saveName = currentUserName || '未知员工';
-        // 保存固定地标名称
-        const saveLandmark = FIXED_LANDMARK; 
+        const savePlaceName = currentPlaceName || '';
 
         try {
             await db.ref(`attendance/${currentUser.uid}`).push({
@@ -463,7 +515,7 @@
                 lat: currentPosition.lat, 
                 lng: currentPosition.lng, 
                 accuracy: currentPosition.accuracy, 
-                landmark: saveLandmark, // <-- 保存固定地标到数据库
+                placeName: savePlaceName,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
@@ -489,15 +541,11 @@
             logList.innerHTML = logs.map(log => {
                 const d = new Date(log.timestamp);
                 const isIn = log.type === 'in';
-                // 强制显示固定地标名称
-                const displayLandmark = log.landmark || FIXED_LANDMARK;
-                
+                const placeHtml = log.placeName ? `<div style="font-size:11px;color:var(--primary);margin-top:2px;">📍 ${log.placeName}</div>` : '';
                 return `
                 <div class="log-item ${isIn ? 'in' : 'out'}">
                     <div><div class="log-type" style="font-weight:600;color:${isIn ? 'var(--success)' : 'var(--danger)'}">${isIn ? '☀️ 上班' : '🌙 下班'}</div>
-                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>
-                    <div style="font-size:12px;color:var(--primary);margin-top:2px;">📍 ${displayLandmark}</div>
-                    </div>
+                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>${placeHtml}</div>
                     <div class="log-loc">${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br><span style="font-size:10px;">±${log.accuracy.toFixed(0)}m</span></div>
                 </div>`;
             }).join('');
@@ -532,12 +580,10 @@
     adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
     adminRefreshBtn.addEventListener('click', loadAdminData);
 
-    // 核心修复：加载数据并强制匹配姓名
     function loadAdminData() {
         adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">加载中...</td></tr>';
         adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
         
-        // 同时获取 users 表和 attendance 表的数据
         Promise.all([
             db.ref('users').once('value'),
             db.ref('attendance').once('value')
@@ -545,7 +591,6 @@
             const usersData = usersSnap.val() || {};
             const attendanceData = attendanceSnap.val() || {};
             
-            // 合并所有出现过的 UID
             const allUids = new Set([...Object.keys(usersData), ...Object.keys(attendanceData)]);
             
             if (allUids.size === 0) {
@@ -554,11 +599,9 @@
                 return;
             }
             
-            // 1. 渲染上方的员工汇总表
             let summaryHtml = '';
             allUids.forEach(uid => {
                 const u = usersData[uid] || {};
-                // 如果 users 表没名字，从 attendance 表找一条带名字的记录兜底
                 let fallbackName = '未知员工';
                 let fallbackPhone = u.phone || '未知号码';
                 if (attendanceData[uid]) {
@@ -580,7 +623,6 @@
             });
             adminSummaryBody.innerHTML = summaryHtml;
 
-            // 2. 渲染下方的详细打卡记录
             let html = '';
             allUids.forEach(uid => {
                 const u = usersData[uid] || {};
@@ -592,7 +634,6 @@
                 Object.keys(userLogs).forEach(logId => logArray.push({ id: logId, ...userLogs[logId] }));
                 logArray.sort((a, b) => b.timestamp - a.timestamp);
                 
-                // 从打卡记录中寻找名字兜底
                 if (logArray.length > 0) {
                     const logWithName = logArray.find(l => l.name);
                     if (logWithName) {
@@ -618,18 +659,17 @@
                     html += `<div style="color:#888;">无打卡记录</div>`;
                 } else {
                     html += `<table class="admin-log-table">
-                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>地标</th><th>精度</th></tr></thead><tbody>`;
+                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>精度</th><th>地标</th></tr></thead><tbody>`;
                     logArray.forEach(log => {
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
-                        // 强制显示固定地标名称，兼容旧数据
-                        const landmarkText = log.landmark || FIXED_LANDMARK;
+                        const placeText = log.placeName ? log.placeName : '--';
                         html += `<tr>
                             <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
                             <td>${d.toLocaleString()}</td>
                             <td><a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank" style="color:var(--primary);text-decoration:none;">${log.lat.toFixed(5)}, ${log.lng.toFixed(5)} ↗</a></td>
-                            <td style="color:var(--primary);font-weight:500;">${landmarkText}</td>
                             <td>±${log.accuracy.toFixed(1)}m</td>
+                            <td style="color:var(--primary);">${placeText}</td>
                         </tr>`;
                     });
                     html += `</tbody></table>`;
