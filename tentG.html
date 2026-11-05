@@ -87,7 +87,6 @@
         <label>Password</label>
         <input type="password" id="loginPassword" required>
       </div>
-      <!-- 添加了 ID 方便获取，防报错 -->
       <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
     </form>
 
@@ -104,7 +103,6 @@
         <label>Password (min. 6 characters)</label>
         <input type="password" id="regPassword" required minlength="6">
       </div>
-      <!-- 添加了 ID 方便获取，防报错 -->
       <button type="submit" class="btn btn-primary" id="registerBtn">Register Merchant</button>
     </form>
   </div>
@@ -455,27 +453,27 @@
     document.getElementById('authError').classList.remove('show');
   });
 
-  // --- 注册逻辑 (修复了按钮无反应) ---
+  // --- 注册逻辑 ---
   document.getElementById('registerForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (isProcessing) return;
     isProcessing = true;
-    
-    const btn = document.getElementById('registerBtn'); // 直接获取
+
+    const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
-    
+
     try {
       const email = document.getElementById('regEmail').value.trim();
       const name = document.getElementById('merchantName').value.trim();
       const pwd = document.getElementById('regPassword').value;
-      
+
       const userCred = await createUserWithEmailAndPassword(auth, email, pwd);
       await set(ref(db, `merchants/${userCred.user.uid}`), {
         name, email, balance: 0, role: 'merchant', createdAt: serverTimestamp()
       });
       await userCred.user.updateProfile({ displayName: name });
-      
+
       showToast('Merchant registered successfully!', 'success');
     } catch (err) {
       showError('Registration failed: ' + err.message);
@@ -486,16 +484,16 @@
     }
   });
 
-  // --- 登录逻辑 (修复了按钮无反应) ---
+  // --- 登录逻辑 ---
   document.getElementById('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (isProcessing) return;
     isProcessing = true;
-    
-    const btn = document.getElementById('loginBtn'); // 直接获取
+
+    const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
-    
+
     try {
       const email = document.getElementById('loginEmail').value.trim();
       const pwd = document.getElementById('loginPassword').value;
@@ -536,7 +534,7 @@
     }));
   }
 
-  // --- 渲染交易记录 (补全了被截断的代码) ---
+  // --- 渲染交易记录 ---
   function renderHistory(filter='') {
     const entries = Object.entries(allHistoryData).sort(([,a], [,b]) => (b.createdAt||0)-(a.createdAt||0));
     const f = filter.toLowerCase();
@@ -764,19 +762,61 @@
     document.getElementById('stopScanBtn').style.display = 'none';
   }
 
-  // --- 扫码逻辑核心修复：加入 Trim 防空白，兼容各种格式 ---
+  // ============================================================
+  // 扫码逻辑核心修复
+  // 1) 优先解析客户端的 JSON 格式：{"type":"voucher","code":"...","uid":"..."}
+  // 2) 兼容旧格式：PAY:<amount>:<uid> / PAY:<total>:<voucher>:<cash>:<uid>
+  // 3) 兼容旧格式：VOUCHER:<code>:<uid>
+  // ============================================================
   async function onScanSuccess(decodedText) {
     if (isProcessing) return;
     isProcessing = true;
     stopScanner();
 
     try {
-      // 去除可能存在的不可见字符、换行符
       const cleanText = decodedText.trim();
+      let qrObj = null;
+      try { qrObj = JSON.parse(cleanText); } catch (_) {}
 
-      if (cleanText.startsWith('PAY:')) {
+      // ---------- 分支 A：客户端 JSON（voucher） ----------
+      if (qrObj && qrObj.type === 'voucher') {
+        const voucherCode = String(qrObj.code || '').trim();
+        const customerUid = String(qrObj.uid || '').trim();
+        if (!voucherCode || !customerUid) throw new Error('Invalid voucher QR data');
+
+        const custSnap = await get(ref(db, `users/${customerUid}`));
+        if (!custSnap.exists()) throw new Error('Customer account not found');
+
+        const voucher = custSnap.val().vouchers?.[voucherCode];
+        if (!voucher) throw new Error('Voucher not found');
+        if (voucher.used === true) throw new Error('Voucher already used');
+        if (voucher.expiry && voucher.expiry < Date.now()) throw new Error('Voucher expired');
+
+        pendingAction = {
+          type: 'voucher',
+          code: voucherCode,
+          customerUid,
+          amount: voucher.amount,
+          voucherAmount: voucher.amount,
+          cashAmount: 0,
+          minSpend: voucher.minSpend || 0,
+          customerName: custSnap.val().name || 'Customer'
+        };
+
+        document.getElementById('modalTitle').textContent = 'Confirm Voucher Redemption';
+        document.getElementById('modalSubtext').textContent = `Code: ${voucherCode}`;
+        document.getElementById('modalAmount').textContent = formatMoney(voucher.amount);
+        document.getElementById('modalUserInfo').textContent =
+          `Customer: ${pendingAction.customerName} · Min. spend ${formatMoney(pendingAction.minSpend)}`;
+        document.getElementById('confirmModal').classList.add('show');
+      }
+      // ---------- 分支 B：客户端 JSON（merchant 付款） —— 商户端无需处理 ----------
+      else if (qrObj && qrObj.type === 'merchant') {
+        throw new Error('This is a customer payment QR, not a voucher QR');
+      }
+      // ---------- 分支 C：旧格式 PAY: ----------
+      else if (cleanText.startsWith('PAY:')) {
         const parts = cleanText.split(':');
-        // 兼容5段式（组合支付）和3段式（纯余额支付）
         if (parts.length >= 5) {
           const totalAmount = parseFloat(parts[1]);
           const voucherAmount = parseFloat(parts[2]) || 0;
@@ -803,9 +843,8 @@
           document.getElementById('modalAmount').textContent = formatMoney(totalAmount);
           document.getElementById('modalUserInfo').textContent = `Customer: ${pendingAction.customerName}`;
           document.getElementById('confirmModal').classList.add('show');
-        } 
+        }
         else if (parts.length >= 3) {
-          // 兼容纯余额直接付款
           const totalAmount = parseFloat(parts[1]);
           const customerUid = parts[2];
 
@@ -827,11 +866,11 @@
           throw new Error('Invalid PAY format');
         }
       }
+      // ---------- 分支 D：旧格式 VOUCHER: ----------
       else if (cleanText.startsWith('VOUCHER:')) {
         const parts = cleanText.split(':');
         if (parts.length < 3) throw new Error('Invalid voucher code format');
-        
-        // 加上 decodeURIComponent 防止 UID 含特殊字符
+
         const voucherCode = decodeURIComponent(parts[1]);
         const customerUid = decodeURIComponent(parts[2]);
 
@@ -859,7 +898,8 @@
         document.getElementById('modalUserInfo').textContent =
           `Customer: ${pendingAction.customerName} · Min. spend ${formatMoney(pendingAction.minSpend)}`;
         document.getElementById('confirmModal').classList.add('show');
-      } else {
+      }
+      else {
         throw new Error('Unrecognized QR code');
       }
     } catch (e) {
