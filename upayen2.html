@@ -117,10 +117,6 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
           <label>SMS Code</label>
           <input type="text" id="otpCodeInput" placeholder="Enter 6-digit code" autocomplete="one-time-code">
         </div>
-        <div class="form-group" id="otpNameGroup" style="display:none;">
-          <label>Your Name <span style="color:#c62828;">*</span></label>
-          <input type="text" id="otpNameInput" placeholder="How should we call you?" autocomplete="name">
-        </div>
         <button class="btn btn-success" id="verifyOtpBtn" type="button">Verify & Sign In</button>
       </div>
 
@@ -135,8 +131,8 @@ body { background: #f4f5f9; min-height: 100vh; padding: 16px; color: #333; }
         <input type="text" id="regAccount" required placeholder="Enter email or phone">
       </div>
       <div class="form-group">
-        <label>Your Name <span style="color:#c62828;">*</span></label>
-        <input type="text" id="regUserName" required placeholder="How should we call you?" autocomplete="name">
+        <label>Your Name</label>
+        <input type="text" id="regUserName" required placeholder="How should we call you?">
       </div>
       <div class="form-group">
         <label>Password (min 6 characters)</label>
@@ -324,8 +320,6 @@ onAuthStateChanged(auth, user => {
     document.getElementById('mainApp').classList.remove('active');
     document.getElementById('otpInputGroup').style.display = 'none';
     document.getElementById('otpCodeInput').value = '';
-    document.getElementById('otpNameGroup').style.display = 'none';
-    document.getElementById('otpNameInput').value = '';
   }
 });
 
@@ -366,10 +360,6 @@ registerForm.addEventListener('submit', async e => {
     const accountInput = document.getElementById('regAccount').value;
     const { type, authEmail, raw } = processAccountInput(accountInput);
     const name = document.getElementById('regUserName').value.trim();
-    if (!name) {
-      showError('Please enter your name');
-      return;
-    }
     const pwd = document.getElementById('regPassword').value;
     const userCred = await createUserWithEmailAndPassword(auth, authEmail, pwd);
     await set(ref(db, `users/${userCred.user.uid}`), {
@@ -431,8 +421,6 @@ document.getElementById('sendOtpBtn').addEventListener('click', async () => {
     });
     confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
     document.getElementById('otpInputGroup').style.display = 'block';
-    document.getElementById('otpNameGroup').style.display = 'none';
-    document.getElementById('otpNameInput').value = '';
     showToast('Verification code sent', 'success');
   } catch (e) {
     console.error(e);
@@ -452,50 +440,20 @@ document.getElementById('verifyOtpBtn').addEventListener('click', async () => {
   const btn = document.getElementById('verifyOtpBtn');
   btn.disabled = true; btn.textContent = 'Verifying...';
   try {
-    // If this is a brand-new phone user, we must collect their name first
-    const nameGroup = document.getElementById('otpNameGroup');
-    const nameInput = document.getElementById('otpNameInput');
-    const needsName = nameGroup.style.display !== 'none';
-
-    let name = null;
-    if (needsName) {
-      name = nameInput.value.trim();
-      if (!name) {
-        showToast('Please enter your name', 'error');
-        btn.disabled = false; btn.textContent = 'Verify & Sign In'; isProcessing = false;
-        return;
-      }
-    }
-
     const result = await confirmationResult.confirm(code);
     const user = result.user;
     const userRef = ref(db, `users/${user.uid}`);
     const snap = await get(userRef);
     if (!snap.exists()) {
-      // New user: name is required
-      if (!name) {
-        name = nameInput.value.trim();
-        if (!name) {
-          // Show the name field and ask user to fill it in, then retry
-          nameGroup.style.display = 'block';
-          nameInput.focus();
-          showToast('Please enter your name to complete sign-up', 'error');
-          btn.disabled = false; btn.textContent = 'Verify & Sign In'; isProcessing = false;
-          return;
-        }
-      }
       await set(userRef, {
-        name,
+        name: 'User' + (user.phoneNumber || '').slice(-4),
         email: '', phone: user.phoneNumber || '', rawAccount: user.phoneNumber || '',
         balance: 0, role: 'customer', createdAt: serverTimestamp()
       });
-      await user.updateProfile({ displayName: name });
     }
     showToast('Signed in successfully!', 'success');
     document.getElementById('otpInputGroup').style.display = 'none';
     document.getElementById('otpCodeInput').value = '';
-    document.getElementById('otpNameInput').value = '';
-    document.getElementById('otpNameGroup').style.display = 'none';
     document.getElementById('phoneNumberInput').value = '';
     confirmationResult = null;
   } catch (e) {
@@ -677,29 +635,47 @@ async function stopScanner() {
 startScanBtn.addEventListener('click', startScanner);
 stopScanBtn.addEventListener('click', stopScanner);
 
-// ============ Scan success ============
+// ============ Scan success（只接受商户 3 段 PAY 码 / JSON merchant） ============
 function onScanSuccess(decodedText) {
   if (isProcessing) return;
+  const cleanText = decodedText.trim();
   let payload = null;
+
+  // 1) 尝试 JSON（商户端付款码一般不是 JSON，保留兼容）
   try {
-    payload = JSON.parse(decodedText);
-  } catch (e) {
-    if (decodedText.startsWith('PAY:')) {
-      const parts = decodedText.split(':');
-      if (parts.length >= 3) {
-        payload = {
-          type: 'merchant',
-          amount: Number(parts[1]),
-          merchantId: parts[2],
-          orderId: null
-        };
-      }
+    const obj = JSON.parse(cleanText);
+    if (obj && obj.type === 'merchant' && obj.merchantId) {
+      payload = {
+        type: 'merchant',
+        amount: Number(obj.amount),
+        merchantId: String(obj.merchantId),
+        orderId: obj.orderId || null
+      };
+    }
+  } catch (_) {}
+
+  // 2) 旧格式 PAY:<amount>:<merchantUid> —— 只接受 3 段
+  if (!payload && cleanText.startsWith('PAY:')) {
+    const parts = cleanText.split(':');
+    if (parts.length === 3) {
+      payload = {
+        type: 'merchant',
+        amount: Number(parts[1]),
+        merchantId: parts[2],
+        orderId: null
+      };
+    } else if (parts.length >= 5) {
+      // 5 段是商户端扫顾客的付款码，顾客端不应该处理
+      showToast('This is a customer payment code, not a merchant QR. Please scan the merchant\'s QR.', 'error');
+      return;
     }
   }
-  if (!payload || payload.type !== 'merchant' || !payload.merchantId) {
+
+  if (!payload || payload.type !== 'merchant' || !payload.merchantId || !payload.amount || payload.amount <= 0) {
     showToast('Invalid merchant QR code, please ask the merchant to regenerate', 'error');
     return;
   }
+
   isProcessing = true;
   stopScanner().then(() => {
     isProcessing = false;
@@ -707,16 +683,23 @@ function onScanSuccess(decodedText) {
   });
 }
 
-// ============ Prompt payment ============
+// ============ Prompt payment（带诊断信息） ============
 async function promptPayment(payload) {
   try {
-    const merchantSnap = await get(ref(db, `merchants/${payload.merchantId}`));
+    const merchantId = String(payload.merchantId || '').trim();
+    if (!merchantId) { showToast('Invalid merchant QR code', 'error'); return; }
+
+    const merchantSnap = await get(ref(db, `merchants/${merchantId}`));
     const merchant = merchantSnap.val();
-    if (!merchant) { showToast('Merchant not found or invalid', 'error'); return; }
+    if (!merchant) {
+      console.warn('Merchant lookup failed for UID:', merchantId);
+      showToast('Merchant not found (UID: ' + merchantId.slice(0, 8) + '...). Ask merchant to regenerate QR.', 'error');
+      return;
+    }
     const amount = Number(payload.amount);
     if (!amount || amount <= 0) { showToast('Invalid amount', 'error'); return; }
     pendingPayData = {
-      merchantId: payload.merchantId,
+      merchantId: merchantId,
       merchantName: merchant.name || 'Merchant',
       amount: amount,
       orderId: payload.orderId || null
@@ -736,7 +719,7 @@ document.getElementById('closePayModalBtn').addEventListener('click', () => {
   pendingPayData = null;
 });
 
-// ============ Confirm payment ============
+// ============ Confirm payment（写 merchants 节点） ============
 document.getElementById('confirmPayBtn').addEventListener('click', async () => {
   if (!pendingPayData || isProcessing) return;
   isProcessing = true;
