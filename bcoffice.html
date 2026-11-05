@@ -78,7 +78,8 @@
         .gps-badge.active { background: #D1FAE5; color: var(--success); }
         .gps-badge.error { background: #FEE2E2; color: var(--danger); }
         .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.5;}
+        .coord-info { font-family: monospace; font-size: 13px; line-height: 1.6;}
+        .landmark-text { color: var(--primary); font-weight: 600; }
         
         .action-group { display: flex; gap: 12px; margin-bottom: 24px; }
         .action-group .btn { flex: 1; padding: 20px 10px; font-size: 18px; flex-direction: column; }
@@ -183,7 +184,7 @@
                     </div>
                 </div>
                 <div class="coord-info" id="coordInfo">
-                    纬度: -- <br>经度: -- <br>精度: -- <br>地标: --
+                    纬度: -- <br>经度: -- <br>精度: --<br>地标: 获取中...
                 </div>
             </div>
 
@@ -210,9 +211,9 @@
         </div>
         <div class="admin-body">
             
-            <!-- 新增：已注册员工列表 -->
+            <!-- 已注册员工列表（仅显示本软件注册的账户） -->
             <div style="margin-bottom: 24px;">
-                <h3 style="font-size: 16px; margin-bottom: 8px;">👥 已注册员工列表</h3>
+                <h3 style="font-size: 16px; margin-bottom: 8px;">👥 已注册员工列表 <span style="font-size:12px;color:#888;font-weight:400;">（仅本软件注册）</span></h3>
                 <table class="admin-summary-table" id="adminSummaryTable">
                     <thead><tr><th>姓名</th><th>手机号</th><th>UID</th></tr></thead>
                     <tbody id="adminSummaryBody">
@@ -222,7 +223,7 @@
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="font-size: 16px;">📋 详细打卡记录</h3>
+                <h3 style="font-size: 16px;">📋 详细打卡记录 <span style="font-size:12px;color:#888;font-weight:400;">（仅本软件注册）</span></h3>
                 <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
             </div>
             
@@ -256,9 +257,14 @@
     const db = firebase.database();
 
     // ================= 2. 全局变量 =================
+    // 固定地标名称
+    const FIXED_LANDMARK = 'Sumang Lane';
+    // 本软件的唯一标识 —— 用于区分账户注册来源
+    const APP_SOURCE = 'bcoffice';
+
     let currentUser = null, currentPosition = null;
-    let currentPlaceName = ''; // 当前地点名
     let currentUserName = ''; 
+    let currentLandmark = FIXED_LANDMARK;
     let confirmationResult = null, recaptchaVerifier = null;
     let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
     let headerClickCount = 0, headerClickTimer = null;
@@ -299,12 +305,14 @@
         if (user) {
             currentUser = user;
             
+            // 尝试获取名字：优先从 localStorage 读取，确保 UI 立即显示
             let cachedName = localStorage.getItem('emp_name_' + user.uid);
             if (cachedName) {
                 currentUserName = cachedName;
                 updateUserUI();
             }
 
+            // 然后在后台向 Firebase 请求最新名字
             db.ref(`users/${user.uid}`).once('value').then(snap => {
                 const data = snap.val();
                 if (data && data.name) {
@@ -320,6 +328,7 @@
                 updateUserUI();
             });
 
+            // 更新 UI 的辅助函数
             function updateUserUI() {
                 userBar.classList.remove('hidden');
                 authSection.classList.add('hidden');
@@ -331,7 +340,7 @@
             fetchLocation();
             loadMyLogs();
         } else {
-            currentUser = null; currentUserName = ''; currentPlaceName = '';
+            currentUser = null; currentUserName = ''; currentLandmark = FIXED_LANDMARK;
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
@@ -385,12 +394,15 @@
         try {
             const result = await confirmationResult.confirm(code);
             
+            // 1. 立即存入 localStorage 作为强力兜底
             localStorage.setItem('emp_name_' + result.user.uid, name);
             currentUserName = name;
             
-            await db.ref(`users/${result.user.uid}`).set({
+            // 2. 写入 Firebase 数据库，标记注册来源为 bcoffice
+            await db.ref(`users/${result.user.uid}`).update({
                 name: name,
                 phone: result.user.phoneNumber,
+                source: APP_SOURCE,          // <-- 关键：标记注册来源
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             });
             
@@ -404,96 +416,32 @@
     logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
 
     // ================= 5. GPS 定位 & 打卡 =================
-    function updateGPSUI(status, text, lat = null, lng = null, acc = null, placeName = null) {
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null, landmark = FIXED_LANDMARK) {
         gpsBadge.className = 'gps-badge';
         if (status === 'active') gpsBadge.classList.add('active');
         if (status === 'error') gpsBadge.classList.add('error');
         gpsText.textContent = text;
+        
         if (lat !== null) {
-            let html = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米`;
-            if (placeName) {
-                html += `<br>地标: <span style="color:var(--primary);">${placeName}</span>`;
-            } else {
-                html += `<br>地标: --`;
-            }
-            coordInfo.innerHTML = html;
+            coordInfo.innerHTML = `纬度: ${lat.toFixed(6)}<br>经度: ${lng.toFixed(6)}<br>精度: ±${acc.toFixed(1)} 米<br>地标: <span class="landmark-text">${landmark}</span>`;
         } else {
             coordInfo.innerHTML = `纬度: --<br>经度: --<br>精度: --<br>地标: --`;
         }
     }
 
-    // 解析 Nominatim 返回的 address，优先取 POI / 建筑 / 街道
-    function parseNominatimAddress(data) {
-        if (!data) return '';
-        const a = data.address || {};
-        // 优先级：具体 POI > 建筑 > 道路 > 社区/郊区 > 城市
-        const candidates = [
-            a.building,
-            a.amenity,
-            a.shop,
-            a.office,
-            a.tourism,
-            a.leisure,
-            a.road,
-            a.neighbourhood,
-            a.suburb,
-            a.city_district,
-            a.city,
-            a.town,
-            a.village
-        ];
-        for (const c of candidates) {
-            if (c && c.trim()) return c.trim();
-        }
-        // 最后回退到 display_name 的第一段
-        if (data.display_name) {
-            return data.display_name.split(',')[0].trim();
-        }
-        return '';
-    }
-
-    async function fetchLocation() {
+    function fetchLocation() {
         if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
         if (isFetchingGPS) return;
-        isFetchingGPS = true;
-        updateGPSUI('waiting', '定位中...');
-
+        isFetchingGPS = true; updateGPSUI('waiting', '定位中...');
         navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const acc = pos.coords.accuracy;
-                currentPosition = { lat, lng, accuracy: acc };
-
-                updateGPSUI('active', '定位成功', lat, lng, acc, null);
-
-                // Nominatim 逆地理编码（免费，需 User-Agent）
-                try {
-                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en&zoom=18&addressdetails=1`;
-                    const res = await fetch(url, {
-                        headers: {
-                            'User-Agent': 'GPSAttendanceApp/1.0 (contact: your-email@example.com)'
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        const placeName = parseNominatimAddress(data);
-                        currentPlaceName = placeName;
-                        updateGPSUI('active', '定位成功', lat, lng, acc, placeName || '未知地点');
-                    } else {
-                        currentPlaceName = '';
-                    }
-                } catch (e) {
-                    console.warn('逆地理编码失败:', e);
-                    currentPlaceName = '';
-                }
-
+            (pos) => {
+                currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+                currentLandmark = FIXED_LANDMARK; 
+                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, currentLandmark);
                 isFetchingGPS = false;
             },
             (err) => {
-                updateGPSUI('error', '定位失败');
-                showToast('❌ 请允许获取位置');
-                isFetchingGPS = false;
+                updateGPSUI('error', '定位失败'); showToast('❌ 请允许获取位置'); isFetchingGPS = false;
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
@@ -505,7 +453,7 @@
         const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
         
         const saveName = currentUserName || '未知员工';
-        const savePlaceName = currentPlaceName || '';
+        const saveLandmark = FIXED_LANDMARK; 
 
         try {
             await db.ref(`attendance/${currentUser.uid}`).push({
@@ -515,7 +463,7 @@
                 lat: currentPosition.lat, 
                 lng: currentPosition.lng, 
                 accuracy: currentPosition.accuracy, 
-                placeName: savePlaceName,
+                landmark: saveLandmark,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             showToast(type === 'in' ? '✅ 上班打卡成功' : '✅ 下班打卡成功');
@@ -541,11 +489,14 @@
             logList.innerHTML = logs.map(log => {
                 const d = new Date(log.timestamp);
                 const isIn = log.type === 'in';
-                const placeHtml = log.placeName ? `<div style="font-size:11px;color:var(--primary);margin-top:2px;">📍 ${log.placeName}</div>` : '';
+                const displayLandmark = log.landmark || FIXED_LANDMARK;
+                
                 return `
                 <div class="log-item ${isIn ? 'in' : 'out'}">
                     <div><div class="log-type" style="font-weight:600;color:${isIn ? 'var(--success)' : 'var(--danger)'}">${isIn ? '☀️ 上班' : '🌙 下班'}</div>
-                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>${placeHtml}</div>
+                    <div style="font-size:12px;color:#888;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</div>
+                    <div style="font-size:12px;color:var(--primary);margin-top:2px;">📍 ${displayLandmark}</div>
+                    </div>
                     <div class="log-loc">${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}<br><span style="font-size:10px;">±${log.accuracy.toFixed(0)}m</span></div>
                 </div>`;
             }).join('');
@@ -580,6 +531,7 @@
     adminCloseBtn.addEventListener('click', () => adminPanel.classList.remove('active'));
     adminRefreshBtn.addEventListener('click', loadAdminData);
 
+    // 核心：加载数据，仅显示在本软件（bcoffice）注册的账户
     function loadAdminData() {
         adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">加载中...</td></tr>';
         adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">加载中...</div>';
@@ -591,16 +543,24 @@
             const usersData = usersSnap.val() || {};
             const attendanceData = attendanceSnap.val() || {};
             
-            const allUids = new Set([...Object.keys(usersData), ...Object.keys(attendanceData)]);
+            // ===== 关键过滤：只保留 users 表中 source === 'bcoffice' 的账户 =====
+            const validUids = new Set();
+            Object.keys(usersData).forEach(uid => {
+                const u = usersData[uid] || {};
+                if (u.source === APP_SOURCE) {
+                    validUids.add(uid);
+                }
+            });
             
-            if (allUids.size === 0) {
-                adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;">暂无注册员工</td></tr>';
-                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何打卡数据</div>';
+            if (validUids.size === 0) {
+                adminSummaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;">暂无本软件注册的员工</td></tr>';
+                adminUserList.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">没有任何本软件注册的打卡数据</div>';
                 return;
             }
             
+            // 1. 渲染上方的员工汇总表
             let summaryHtml = '';
-            allUids.forEach(uid => {
+            validUids.forEach(uid => {
                 const u = usersData[uid] || {};
                 let fallbackName = '未知员工';
                 let fallbackPhone = u.phone || '未知号码';
@@ -623,8 +583,9 @@
             });
             adminSummaryBody.innerHTML = summaryHtml;
 
+            // 2. 渲染下方的详细打卡记录
             let html = '';
-            allUids.forEach(uid => {
+            validUids.forEach(uid => {
                 const u = usersData[uid] || {};
                 let fallbackName = '未知员工';
                 let fallbackPhone = u.phone || '未知号码';
@@ -659,17 +620,17 @@
                     html += `<div style="color:#888;">无打卡记录</div>`;
                 } else {
                     html += `<table class="admin-log-table">
-                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>精度</th><th>地标</th></tr></thead><tbody>`;
+                        <thead><tr><th>类型</th><th>时间</th><th>GPS 坐标</th><th>地标</th><th>精度</th></tr></thead><tbody>`;
                     logArray.forEach(log => {
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
-                        const placeText = log.placeName ? log.placeName : '--';
+                        const landmarkText = log.landmark || FIXED_LANDMARK;
                         html += `<tr>
                             <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
                             <td>${d.toLocaleString()}</td>
                             <td><a href="https://www.google.com/maps?q=${log.lat},${log.lng}" target="_blank" style="color:var(--primary);text-decoration:none;">${log.lat.toFixed(5)}, ${log.lng.toFixed(5)} ↗</a></td>
+                            <td style="color:var(--primary);font-weight:500;">${landmarkText}</td>
                             <td>±${log.accuracy.toFixed(1)}m</td>
-                            <td style="color:var(--primary);">${placeText}</td>
                         </tr>`;
                     });
                     html += `</tbody></table>`;
