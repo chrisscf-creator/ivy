@@ -639,8 +639,9 @@
         });
     }
 
+    // 后台删除功能：彻底删除该员工的注册资料和所有打卡记录
     window.deleteUserData = function(uid) {
-        if (!confirm(`⚠️ 警告：确定要彻底删除该员工的所有资料和打卡数据吗？`)) return;
+        if (!confirm(`⚠️ 警告：确定要彻底删除该员工的所有资料和打卡数据吗？此操作不可恢复！`)) return;
         
         Promise.all([
             db.ref(`users/${uid}`).remove(),
