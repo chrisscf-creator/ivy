@@ -831,6 +831,59 @@
             margin-right: 3px;
         }
 
+        /* ===== 待办按键 ===== */
+        .task-row .pending-btn {
+            background: var(--bg-card);
+            border: 2px solid var(--color-pending);
+            color: var(--color-pending);
+            width: 32px;
+            height: 32px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.15s;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .task-row .pending-btn:hover {
+            background: var(--color-pending-bg);
+            border-color: var(--color-pending);
+            color: var(--color-pending);
+            transform: scale(1.06);
+        }
+        .task-row .pending-btn.active {
+            background: var(--color-pending);
+            border-color: var(--color-pending);
+            color: #fff;
+        }
+        .task-row .pending-btn.active:hover {
+            background: #9a5620;
+            border-color: #9a5620;
+        }
+        .task-row .pending-btn .pending-tooltip {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-primary);
+            color: #fff;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.15s;
+            font-weight: 500;
+            z-index: 10;
+        }
+        .task-row .pending-btn:hover .pending-tooltip {
+            opacity: 1;
+        }
+
         /* ===== Empty State ===== */
         .empty-state {
             text-align: center;
@@ -1035,6 +1088,7 @@
             }
             .btn-icon,
             .check-btn,
+            .pending-btn,
             .reset-btn,
             .group-toggle,
             .filter-btn,
@@ -1084,80 +1138,354 @@
         .task-row {
             animation: fadeInUp 0.25s ease both;
         }
-        .task-row:nth-child(1) {
-            animation-delay: 0.01s;
+
+        /* =====================================================
+           后台管理面板样式
+           ===================================================== */
+        .admin-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            transition: opacity 0.3s;
         }
-        .task-row:nth-child(2) {
-            animation-delay: 0.02s;
+        .admin-overlay.hidden {
+            display: none;
         }
-        .task-row:nth-child(3) {
-            animation-delay: 0.03s;
+        .admin-panel {
+            background: var(--bg-card);
+            border-radius: var(--radius-card);
+            width: 100%;
+            max-width: 1000px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-color);
+            animation: fadeInUp 0.3s ease both;
+            overflow: hidden;
         }
-        .task-row:nth-child(4) {
-            animation-delay: 0.04s;
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
-        .task-row:nth-child(5) {
-            animation-delay: 0.05s;
+        .admin-header h2 {
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .task-row:nth-child(6) {
-            animation-delay: 0.06s;
+        .admin-header h2 i {
+            color: var(--color-accent);
         }
-        .task-row:nth-child(7) {
-            animation-delay: 0.07s;
+        .admin-close {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            transition: 0.15s;
         }
-        .task-row:nth-child(8) {
-            animation-delay: 0.08s;
+        .admin-close:hover {
+            background: var(--bg-task-hover);
+            color: var(--text-primary);
+            border-color: var(--text-light);
         }
-        .task-row:nth-child(9) {
-            animation-delay: 0.09s;
+        .admin-body {
+            padding: 16px 24px 24px;
+            overflow-y: auto;
+            flex: 1;
         }
-        .task-row:nth-child(10) {
-            animation-delay: 0.10s;
+        .admin-body .admin-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        .task-row:nth-child(11) {
-            animation-delay: 0.11s;
+        .admin-body .admin-hint i {
+            color: var(--color-pending);
         }
-        .task-row:nth-child(12) {
-            animation-delay: 0.12s;
+        .admin-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
-        .task-row:nth-child(13) {
-            animation-delay: 0.13s;
+        .admin-stats .stat-chip {
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 4px 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        .task-row:nth-child(14) {
-            animation-delay: 0.14s;
+        .admin-stats .stat-chip strong {
+            color: var(--text-primary);
         }
-        .task-row:nth-child(15) {
-            animation-delay: 0.15s;
+        .admin-table-wrap {
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow-x: auto; 
         }
-        .task-row:nth-child(16) {
-            animation-delay: 0.16s;
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 800px;
         }
-        .task-row:nth-child(17) {
-            animation-delay: 0.17s;
+        .admin-table thead {
+            background: var(--bg-body);
         }
-        .task-row:nth-child(18) {
-            animation-delay: 0.18s;
+        .admin-table th {
+            text-align: left;
+            padding: 11px 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
-        .task-row:nth-child(19) {
-            animation-delay: 0.19s;
+        .admin-table td {
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: middle;
         }
-        .task-row:nth-child(20) {
-            animation-delay: 0.20s;
+        .admin-table tbody tr:last-child td {
+            border-bottom: none;
         }
-        .task-row:nth-child(21) {
-            animation-delay: 0.21s;
+        .admin-table tbody tr:hover {
+            background: var(--bg-task-hover);
         }
-        .task-row:nth-child(22) {
-            animation-delay: 0.22s;
+        .admin-table .uid-cell {
+            font-size: 11px;
+            color: var(--text-light);
+            font-family: monospace;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        .task-row:nth-child(23) {
-            animation-delay: 0.23s;
+        .admin-table .email-cell {
+            font-weight: 500;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        .task-row:nth-child(24) {
-            animation-delay: 0.24s;
+        .admin-table .date-cell {
+            color: var(--text-muted);
+            font-size: 12px;
+            white-space: nowrap;
         }
-        .task-row:nth-child(25) {
-            animation-delay: 0.25s;
+        .admin-table .action-cell {
+            text-align: right;
+            white-space: nowrap;
+        }
+        
+        /* 后台进度条样式 */
+        .admin-progress-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 140px;
+        }
+        .admin-progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 40px;
+            font-variant-numeric: tabular-nums;
+        }
+        .admin-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .admin-progress-fill {
+            height: 100%;
+            background: var(--color-success);
+            border-radius: 10px;
+        }
+
+        /* 展开详情按钮 */
+        .btn-expand-user {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-expand-user:hover {
+            background: var(--bg-task-hover);
+            border-color: var(--text-light);
+            color: var(--text-primary);
+        }
+
+        /* 用户任务详情展开行 */
+        .user-detail-row td {
+            background: var(--bg-body) !important;
+            padding: 16px 20px !important;
+        }
+        .user-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+        }
+        .user-task-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .user-task-item .title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .user-task-item .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 2px;
+        }
+        .user-task-item .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .user-task-item .badge.done { background: var(--color-success-bg); color: var(--color-success); }
+        .user-task-item .badge.pending { background: var(--color-pending-bg); color: var(--color-pending); }
+        .user-task-item .badge.na { background: var(--color-na-bg); color: var(--color-na); }
+
+        .btn-del-user {
+            background: var(--color-pending-bg);
+            border: 1px solid rgba(177, 100, 42, 0.25);
+            color: var(--color-pending);
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--font);
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .btn-del-user:hover {
+            background: var(--color-pending);
+            color: #fff;
+            border-color: var(--color-pending);
+        }
+        .btn-del-user:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .admin-empty {
+            text-align: center;
+            padding: 36px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .admin-empty i {
+            font-size: 34px;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+        .admin-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 36px 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .admin-loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .admin-login-card {
+            max-width: 380px;
+        }
+        .admin-login-card .admin-error {
+            background: var(--color-pending-bg);
+            color: var(--color-pending);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .admin-login-card .admin-error.show {
+            display: block;
+        }
+        .btn-admin-entry {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: 0.15s;
+            flex-shrink: 0;
+        }
+        .btn-admin-entry:hover {
+            background: var(--bg-task-hover);
+            color: var(--text-primary);
+            border-color: var(--text-light);
+            transform: rotate(30deg);
         }
     </style>
 </head>
@@ -1179,6 +1507,56 @@
             </div>
             <div style="text-align:center;margin-top:8px;">
                 <button class="btn-reset" id="authResetBtn">忘记密码？</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADMIN OVERLAY ===== -->
+    <div class="admin-overlay hidden" id="adminOverlay">
+        <!-- 登录卡 -->
+        <div class="admin-panel admin-login-card" id="adminLoginCard">
+            <div class="admin-header">
+                <h2><i class="fas fa-user-shield"></i> 后台管理</h2>
+                <button class="admin-close" id="adminLoginClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="admin-body">
+                <p class="admin-hint"><i class="fas fa-info-circle"></i> 请输入管理员密码以查看账户列表</p>
+                <div class="admin-error" id="adminLoginError"></div>
+                <label style="font-size:13px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px;">管理员密码</label>
+                <input type="password" id="adminPasswordInput" placeholder="请输入后台密码"
+                    style="width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-body);color:var(--text-primary);font-size:14px;margin-bottom:16px;outline:none;font-family:var(--font);" />
+                <button class="btn-auth" id="adminLoginBtn"
+                    style="width:100%;padding:12px;border-radius:12px;border:none;background:var(--color-primary);color:#fff;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font);">
+                    <i class="fas fa-unlock-alt"></i> 进入后台
+                </button>
+            </div>
+        </div>
+
+        <!-- 账户列表卡 -->
+        <div class="admin-panel hidden" id="adminListCard">
+            <div class="admin-header">
+                <h2><i class="fas fa-users-cog"></i> 账户管理</h2>
+                <button class="admin-close" id="adminListClose"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="admin-body">
+                <p class="admin-hint"><i class="fas fa-shield-alt"></i> 仅显示在 Setup 看板中登录过的账户。点击“展开详情”可查看每一项任务的进度。</p>
+                <div class="admin-stats" id="adminStats"></div>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>邮箱账号</th>
+                                <th>完成进度</th>
+                                <th>UID</th>
+                                <th>最后登录</th>
+                                <th style="text-align:right;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUserTbody">
+                            <tr><td colspan="5" class="admin-loading"><i class="fas fa-spinner"></i> 加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -1211,6 +1589,10 @@
                     <span class="email" id="userEmailDisplay"></span>
                     <button class="btn-logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> 退出</button>
                 </div>
+                <!-- 管理员入口 -->
+                <button class="btn-admin-entry" id="adminEntryBtn" title="后台管理">
+                    <i class="fas fa-user-shield"></i>
+                </button>
                 <button class="btn-icon" id="themeToggle" title="切换主题">
                     <i class="fas fa-moon"></i>
                     <span class="btn-label">主题</span>
@@ -1279,7 +1661,7 @@
         <!-- ===== FOOTER ===== -->
         <div class="footer-note">
             <div class="left">
-                <span><i class="fas fa-sync-alt"></i> 点击 <strong>⭕</strong> 切换完成状态</span>
+                <span><i class="fas fa-sync-alt"></i> 点击 <strong>⭕</strong> 切换完成状态 · 点击 <strong>⏳</strong> 标记待办</span>
                 <span><i class="far fa-clock"></i> 自动保存 (localStorage)</span>
                 <span class="key-hint"><kbd>Ctrl+F</kbd> 搜索 · <kbd>Ctrl+D</kbd> 切换主题</span>
             </div>
@@ -1368,6 +1750,7 @@
             //  STATE
             // =============================================
             let doneStatus = {};
+            let pendingStatus = {};
             let doneTimestamps = {};
             let outletName = 'FR · Vivo City';
             let stallName = '#R04 Koe Koe Ang';
@@ -1379,8 +1762,12 @@
 
             // Firebase user
             let currentUser = null;
-            let authMode = 'login'; // 'login' or 'register'
+            let authMode = 'login';
             let cloudSyncEnabled = false;
+
+            // 后台管理
+            const ADMIN_PASSWORD = 'admin123';
+            let adminAuthenticated = false;
 
             // =============================================
             //  DOM refs
@@ -1416,8 +1803,21 @@
             const userEmailDisplay = document.getElementById('userEmailDisplay');
             const logoutBtn = document.getElementById('logoutBtn');
 
+            // Admin DOM
+            const adminOverlay = document.getElementById('adminOverlay');
+            const adminLoginCard = document.getElementById('adminLoginCard');
+            const adminListCard = document.getElementById('adminListCard');
+            const adminPasswordInput = document.getElementById('adminPasswordInput');
+            const adminLoginBtn = document.getElementById('adminLoginBtn');
+            const adminLoginError = document.getElementById('adminLoginError');
+            const adminLoginClose = document.getElementById('adminLoginClose');
+            const adminListClose = document.getElementById('adminListClose');
+            const adminUserTbody = document.getElementById('adminUserTbody');
+            const adminStats = document.getElementById('adminStats');
+            const adminEntryBtn = document.getElementById('adminEntryBtn');
+
             // =============================================
-            //  STORAGE (local fallback + cloud)
+            //  STORAGE
             // =============================================
             const STORAGE_KEY = 'setupPro_FR_R04';
 
@@ -1427,6 +1827,7 @@
                     if (raw) {
                         const data = JSON.parse(raw);
                         if (data.doneStatus) doneStatus = data.doneStatus;
+                        if (data.pendingStatus) pendingStatus = data.pendingStatus;
                         if (data.doneTimestamps) doneTimestamps = data.doneTimestamps;
                         if (data.outletName) outletName = data.outletName;
                         if (data.stallName) stallName = data.stallName;
@@ -1436,6 +1837,7 @@
                 } catch (e) { /* ignore */ }
                 TASKS.forEach(t => {
                     if (!(t.id in doneStatus)) doneStatus[t.id] = false;
+                    if (!(t.id in pendingStatus)) pendingStatus[t.id] = false;
                     if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
                 });
                 if (!localStorage.getItem(STORAGE_KEY)) {
@@ -1448,6 +1850,7 @@
             function saveStateLocal() {
                 const data = {
                     doneStatus,
+                    pendingStatus,
                     doneTimestamps,
                     outletName,
                     stallName,
@@ -1469,6 +1872,7 @@
                 if (!ref) return;
                 const data = {
                     doneStatus,
+                    pendingStatus,
                     doneTimestamps,
                     outletName,
                     stallName,
@@ -1490,6 +1894,7 @@
                         const data = snapshot.val();
                         if (data) {
                             if (data.doneStatus) doneStatus = data.doneStatus;
+                            if (data.pendingStatus) pendingStatus = data.pendingStatus;
                             if (data.doneTimestamps) doneTimestamps = data.doneTimestamps;
                             if (data.outletName) outletName = data.outletName;
                             if (data.stallName) stallName = data.stallName;
@@ -1497,11 +1902,11 @@
                             if (data.theme) theme = data.theme;
                             TASKS.forEach(t => {
                                 if (!(t.id in doneStatus)) doneStatus[t.id] = false;
+                                if (!(t.id in pendingStatus)) pendingStatus[t.id] = false;
                                 if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
                             });
                             resolve(true);
                         } else {
-                            // No cloud data yet — try to upload local data
                             saveStateCloud();
                             resolve(false);
                         }
@@ -1585,9 +1990,9 @@
                 if (currentFilter === 'done') {
                     tasks = tasks.filter(t => doneStatus[t.id] === true);
                 } else if (currentFilter === 'pending') {
-                    tasks = tasks.filter(t => doneStatus[t.id] === false && !t.notRequired);
+                    tasks = tasks.filter(t => (doneStatus[t.id] !== true && !t.notRequired) || pendingStatus[t.id] === true);
                 } else if (currentFilter === 'na') {
-                    tasks = tasks.filter(t => t.notRequired === true);
+                    tasks = tasks.filter(t => t.notRequired === true && doneStatus[t.id] !== true);
                 }
                 return tasks;
             }
@@ -1653,6 +2058,7 @@
                 });
                 grid.innerHTML = html;
                 attachCheckEvents();
+                attachPendingEvents();
             }
 
             function renderGrouped(tasks) {
@@ -1689,18 +2095,35 @@
                 });
                 grid.innerHTML = html;
                 attachCheckEvents();
+                attachPendingEvents();
                 attachGroupToggleEvents();
             }
 
             function buildTaskRow(t, idx) {
                 const isDone = doneStatus[t.id] === true;
-                const isNA = t.notRequired || false;
+                const isPending = pendingStatus[t.id] === true;
+                
+                // 修复：如果用户主动点了待办或完成，即使它本来是“不适用”的任务，也不显示为不适用了
+                const isNA = (t.notRequired === true) && !isDone && !isPending;
+                
                 const timeStr = doneTimestamps[t.id] || '';
                 const statusClass = isDone ? 'done' : (isNA ? 'na' : 'pending');
                 const statusText = isDone ? '完成' : (isNA ? '不适用' : '待办');
                 const statusIcon = isDone ? 'fa-check' : (isNA ? 'fa-ban' : 'fa-clock');
 
                 const deptColor = DEPT_COLORS[t.dept] || '#5a6a7a';
+
+                // 修复：不要禁用按钮
+                const pendingBtnDisabled = false; 
+                const pendingBtnClass = isPending ? 'pending-btn active' : 'pending-btn';
+                const pendingBtnHtml = `
+                    <button class="${pendingBtnClass}" data-id="${t.id}" 
+                        aria-label="标记待办" 
+                        style="${pendingBtnDisabled ? 'opacity:0.35;cursor:not-allowed;' : ''}">
+                        <i class="fas fa-clock"></i>
+                        <span class="pending-tooltip">${isPending ? '取消待办' : '标记待办'}</span>
+                    </button>
+                `;
 
                 return `
                     <div class="task-row" data-id="${t.id}">
@@ -1714,11 +2137,12 @@
                                 <i class="fas fa-user-circle"></i>
                                 <span>${t.dept}</span>
                                 <span class="dept-tag" style="background:${deptColor}20;color:${deptColor}">${t.dept}</span>
-                                ${isNA ? '<span class="not-required"><i class="fas fa-minus-circle"></i> Not Required</span>' : ''}
+                                ${t.notRequired ? '<span class="not-required" style="opacity:0.6;"><i class="fas fa-info-circle"></i> 默认不适用</span>' : ''}
                                 ${timeStr ? `<span class="task-time"><i class="far fa-clock"></i> ${timeStr}</span>` : ''}
                             </div>
                         </div>
                         <div class="task-actions">
+                            ${pendingBtnHtml}
                             <span class="status-badge ${statusClass}"><i class="fas ${statusIcon}"></i> ${statusText}</span>
                             <button class="check-btn ${isDone ? 'done' : ''}" data-id="${t.id}" aria-label="切换完成状态">
                                 ${isDone ? '<i class="fas fa-check"></i>' : '<i class="far fa-circle"></i>'}
@@ -1763,6 +2187,24 @@
             }
 
             // =============================================
+            //  EVENTS: pending
+            // =============================================
+            function attachPendingEvents() {
+                document.querySelectorAll('.pending-btn').forEach(btn => {
+                    btn.removeEventListener('click', handlePendingClick);
+                    btn.addEventListener('click', handlePendingClick);
+                });
+            }
+
+            function handlePendingClick(e) {
+                e.stopPropagation();
+                const btn = e.currentTarget;
+                if (btn.disabled) return;
+                const id = parseInt(btn.dataset.id);
+                togglePending(id);
+            }
+
+            // =============================================
             //  GROUP TOGGLE (collapsible)
             // =============================================
             function attachGroupToggleEvents() {
@@ -1782,12 +2224,14 @@
             }
 
             // =============================================
-            //  TOGGLE TASK
+            //  TOGGLE TASK (完成)
             // =============================================
             function toggleTask(id) {
                 const wasDone = doneStatus[id] === true;
                 doneStatus[id] = !wasDone;
                 if (doneStatus[id]) {
+                    // 完成时自动取消待办标记
+                    pendingStatus[id] = false;
                     const now = new Date();
                     const ts = now.getFullYear() + '-' +
                         String(now.getMonth() + 1).padStart(2, '0') + '-' +
@@ -1811,12 +2255,27 @@
             }
 
             // =============================================
+            //  TOGGLE PENDING
+            // =============================================
+            function togglePending(id) {
+                if (doneStatus[id] === true) {
+                    showToast('已完成的任务无法标记待办', 1500);
+                    return;
+                }
+                pendingStatus[id] = !pendingStatus[id];
+                saveState();
+                render();
+                showToast(pendingStatus[id] ? '⏳ 已标记待办' : '✅ 已取消待办', 1200);
+            }
+
+            // =============================================
             //  RESET
             // =============================================
             function resetAll() {
                 if (!confirm('确认重置所有任务为“未完成”吗？\n（招牌名称和目标日期不会被重置）')) return;
                 TASKS.forEach(t => {
                     doneStatus[t.id] = false;
+                    pendingStatus[t.id] = false;
                     doneTimestamps[t.id] = null;
                 });
                 saveState();
@@ -1843,6 +2302,7 @@
                     stallName,
                     targetDate,
                     doneStatus,
+                    pendingStatus,
                     doneTimestamps,
                     theme
                 };
@@ -1869,6 +2329,7 @@
                         if (data.stallName) stallName = data.stallName;
                         if (data.targetDate) targetDate = data.targetDate;
                         if (data.theme) theme = data.theme;
+                        if (data.pendingStatus) pendingStatus = data.pendingStatus;
                         Object.keys(data.doneStatus).forEach(k => {
                             const id = parseInt(k);
                             if (TASKS.some(t => t.id === id)) {
@@ -1877,6 +2338,11 @@
                                     doneTimestamps[id] = data.doneTimestamps[k];
                                 } else {
                                     doneTimestamps[id] = null;
+                                }
+                                if (data.pendingStatus && data.pendingStatus[k] !== undefined) {
+                                    pendingStatus[id] = data.pendingStatus[k] === true;
+                                } else {
+                                    pendingStatus[id] = false;
                                 }
                             }
                         });
@@ -1902,6 +2368,7 @@
                 btn.disabled = true;
 
                 const checkBtns = document.querySelectorAll('.check-btn');
+                const pendingBtns = document.querySelectorAll('.pending-btn');
                 const resetBtn = document.getElementById('resetBtn');
                 const fsBtn = document.getElementById('fullscreenBtn');
                 const pdfBtn = document.getElementById('pdfBtn');
@@ -1912,6 +2379,7 @@
                 const filterBtnsAll = document.querySelectorAll('.filter-btn');
 
                 checkBtns.forEach(el => el.style.opacity = '0.2');
+                pendingBtns.forEach(el => el.style.opacity = '0.2');
                 resetBtn.style.display = 'none';
                 fsBtn.style.display = 'none';
                 pdfBtn.style.display = 'none';
@@ -1947,6 +2415,7 @@
 
                 function restoreUI() {
                     checkBtns.forEach(el => el.style.opacity = '1');
+                    pendingBtns.forEach(el => el.style.opacity = '1');
                     resetBtn.style.display = '';
                     fsBtn.style.display = '';
                     pdfBtn.style.display = '';
@@ -1990,6 +2459,10 @@
                     toggleTheme();
                 }
                 if (e.key === 'Escape') {
+                    if (!adminOverlay.classList.contains('hidden')) {
+                        closeAdminPanel();
+                        return;
+                    }
                     if (document.activeElement === searchInput) {
                         searchInput.blur();
                         searchInput.value = '';
@@ -1997,6 +2470,267 @@
                     }
                 }
             });
+
+            // =============================================
+            //  ADMIN: 打开/关闭
+            // =============================================
+            function openAdminPanel() {
+                adminOverlay.classList.remove('hidden');
+                if (adminAuthenticated) {
+                    adminLoginCard.classList.add('hidden');
+                    adminListCard.classList.remove('hidden');
+                    loadAdminUsers();
+                } else {
+                    adminLoginCard.classList.remove('hidden');
+                    adminListCard.classList.add('hidden');
+                    adminPasswordInput.value = '';
+                    adminLoginError.classList.remove('show');
+                    setTimeout(() => adminPasswordInput.focus(), 100);
+                }
+            }
+
+            function closeAdminPanel() {
+                adminOverlay.classList.add('hidden');
+            }
+
+            function showAdminError(msg) {
+                adminLoginError.textContent = msg;
+                adminLoginError.classList.add('show');
+                setTimeout(() => adminLoginError.classList.remove('show'), 4000);
+            }
+
+            function handleAdminLogin() {
+                const pwd = adminPasswordInput.value;
+                if (!pwd) {
+                    showAdminError('请输入管理员密码');
+                    return;
+                }
+                if (pwd !== ADMIN_PASSWORD) {
+                    showAdminError('密码错误，请重试');
+                    adminPasswordInput.value = '';
+                    adminPasswordInput.focus();
+                    return;
+                }
+                adminAuthenticated = true;
+                adminLoginCard.classList.add('hidden');
+                adminListCard.classList.remove('hidden');
+                loadAdminUsers();
+            }
+
+            // =============================================
+            //  ADMIN: 加载账户列表及详细进度
+            // =============================================
+            function loadAdminUsers() {
+                adminUserTbody.innerHTML = '<tr><td colspan="5" class="admin-loading"><i class="fas fa-spinner"></i> 加载中...</td></tr>';
+                adminStats.innerHTML = '';
+
+                db.ref('users').once('value').then(snapshot => {
+                    const users = [];
+                    snapshot.forEach(child => {
+                        const uid = child.key;
+                        const data = child.val() || {};
+                        
+                        // 解析完成进度和详情
+                        let doneCount = 0;
+                        let doneStatusObj = {};
+                        if (data.setupData && data.setupData.doneStatus) {
+                            doneStatusObj = data.setupData.doneStatus;
+                            doneCount = Object.values(doneStatusObj).filter(v => v === true).length;
+                        }
+
+                        // 取最后登录时间
+                        let lastLogin = null;
+                        if (data.setupData && data.setupData.updatedAt) {
+                            lastLogin = data.setupData.updatedAt;
+                        } else if (data.userMeta && data.userMeta.lastLogin) {
+                            lastLogin = data.userMeta.lastLogin;
+                        }
+                        
+                        // 获取邮箱
+                        const email = (data.userMeta && data.userMeta.email) || (data.email) || '';
+                        
+                        users.push({ uid, email, lastLogin, doneCount, doneStatusObj });
+                    });
+
+                    // 排序：有邮箱的在前，按最后登录时间降序
+                    users.sort((a, b) => {
+                        if (a.email && !b.email) return -1;
+                        if (!a.email && b.email) return 1;
+                        const ta = a.lastLogin || 0;
+                        const tb = b.lastLogin || 0;
+                        return tb - ta;
+                    });
+
+                    renderAdminUsers(users);
+                }).catch(err => {
+                    console.error('加载账户失败:', err);
+                    adminUserTbody.innerHTML = '<tr><td colspan="5" class="admin-empty"><i class="fas fa-exclamation-triangle"></i> 加载失败：' + err.message + '</td></tr>';
+                });
+            }
+
+            function renderAdminUsers(users) {
+                const totalTasks = TASKS.length; // 总任务数 25
+
+                // 统计
+                adminStats.innerHTML = `
+                    <span class="stat-chip"><i class="fas fa-users"></i> 总账户 <strong>${users.length}</strong></span>
+                    <span class="stat-chip"><i class="fas fa-envelope"></i> 已记录邮箱 <strong>${users.filter(u => u.email).length}</strong></span>
+                `;
+
+                if (users.length === 0) {
+                    adminUserTbody.innerHTML = '<tr><td colspan="5" class="admin-empty"><i class="fas fa-inbox"></i> 暂无登录账户</td></tr>';
+                    return;
+                }
+
+                let html = '';
+                users.forEach(u => {
+                    let dateStr = '—';
+                    if (u.lastLogin) {
+                        try {
+                            const d = new Date(u.lastLogin);
+                            dateStr = d.toLocaleString('zh-CN', { hour12: false });
+                        } catch (e) {
+                            dateStr = String(u.lastLogin);
+                        }
+                    }
+                    
+                    const displayEmail = u.email || '（未记录邮箱）';
+                    const isSelf = currentUser && currentUser.uid === u.uid;
+                    
+                    // 计算进度条百分比
+                    const pct = totalTasks > 0 ? Math.round((u.doneCount / totalTasks) * 100) : 0;
+
+                    // 生成任务详情 HTML
+                    let detailHtml = `<div class="user-detail-grid">`;
+                    TASKS.forEach(t => {
+                        let status = 'pending'; // 默认待办
+                        let statusText = '待办';
+                        let icon = 'fa-clock';
+                        
+                        if (u.doneStatusObj[t.id] === true) {
+                            status = 'done';
+                            statusText = '已完成';
+                            icon = 'fa-check';
+                        } else if (t.notRequired) {
+                            status = 'na';
+                            statusText = '不适用';
+                            icon = 'fa-ban';
+                        }
+
+                        detailHtml += `
+                            <div class="user-task-item">
+                                <div class="title">${t.id}. ${t.zh}</div>
+                                <div class="status-row">
+                                    <span class="badge ${status}"><i class="fas ${icon}"></i> ${statusText}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    detailHtml += `</div>`;
+
+                    // 主行
+                    html += `
+                        <tr data-uid="${u.uid}" class="user-main-row">
+                            <td class="email-cell">${escapeHtml(displayEmail)}${isSelf ? ' <span style="font-size:10px;color:var(--color-success);">(当前)</span>' : ''}</td>
+                            <td>
+                                <div class="admin-progress-wrap">
+                                    <span class="admin-progress-text">${u.doneCount}/${totalTasks}</span>
+                                    <div class="admin-progress-bar">
+                                        <div class="admin-progress-fill" style="width:${pct}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="uid-cell" title="${escapeHtml(u.uid)}">${escapeHtml(u.uid)}</td>
+                            <td class="date-cell">${escapeHtml(dateStr)}</td>
+                            <td class="action-cell">
+                                <button class="btn-expand-user" data-uid="${u.uid}"><i class="fas fa-chevron-down"></i> 展开详情</button>
+                                <button class="btn-del-user" data-uid="${u.uid}" data-email="${escapeHtml(u.email || '')}" ${isSelf ? 'disabled title="不能删除当前登录的账户"' : ''}>
+                                    <i class="fas fa-trash-alt"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- 详情展开行（默认隐藏） -->
+                        <tr class="user-detail-row hidden" id="detail-${u.uid}" style="display:none;">
+                            <td colspan="5">
+                                ${detailHtml}
+                            </td>
+                        </tr>
+                    `;
+                });
+                adminUserTbody.innerHTML = html;
+
+                // 绑定展开按钮事件
+                adminUserTbody.querySelectorAll('.btn-expand-user').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const uid = this.dataset.uid;
+                        const detailRow = document.getElementById(`detail-${uid}`);
+                        const isHidden = detailRow.style.display === 'none';
+                        
+                        if (isHidden) {
+                            detailRow.style.display = 'table-row';
+                            this.innerHTML = '<i class="fas fa-chevron-up"></i> 收起详情';
+                            this.style.color = 'var(--color-primary)';
+                            this.style.borderColor = 'var(--color-primary)';
+                        } else {
+                            detailRow.style.display = 'none';
+                            this.innerHTML = '<i class="fas fa-chevron-down"></i> 展开详情';
+                            this.style.color = '';
+                            this.style.borderColor = '';
+                        }
+                    });
+                });
+
+                // 绑定删除按钮事件
+                adminUserTbody.querySelectorAll('.btn-del-user').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const uid = this.dataset.uid;
+                        const email = this.dataset.email || '该账户';
+                        deleteUser(uid, email);
+                    });
+                });
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            // =============================================
+            //  ADMIN: 删除账户
+            // =============================================
+            function deleteUser(uid, email) {
+                if (!adminAuthenticated) return;
+                if (currentUser && currentUser.uid === uid) {
+                    showToast('不能删除当前登录的账户', 2000);
+                    return;
+                }
+                if (!confirm(`确认删除账户「${email}」吗？\n\n将删除其云端数据（users/${uid}）。\n注意：此操作不会删除 Firebase Authentication 中的登录凭证，但会移除系统中的账户记录与进度数据。`)) {
+                    return;
+                }
+
+                const btn = adminUserTbody.querySelector(`.btn-del-user[data-uid="${uid}"]`);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 删除中...';
+                }
+
+                db.ref('users/' + uid).remove().then(() => {
+                    showToast('🗑️ 账户已删除', 2000);
+                    loadAdminUsers();
+                }).catch(err => {
+                    console.error('删除失败:', err);
+                    showToast('❌ 删除失败: ' + err.message, 3000);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-trash-alt"></i> 删除';
+                    }
+                });
+            }
 
             // =============================================
             //  AUTH UI
@@ -2024,7 +2758,6 @@
                     authSwitch.innerHTML = '已有账户？ <a id="authToggleLink">去登录</a>';
                     authResetBtn.style.display = 'none';
                 }
-                // rebind toggle link
                 const link = document.getElementById('authToggleLink');
                 if (link) {
                     link.addEventListener('click', function() {
@@ -2114,15 +2847,22 @@
                     hideAuthOverlay();
                     cloudSyncEnabled = true;
 
-                    // Load cloud data, if none, upload local
+                    // 记录账户信息（用于后台显示）
+                    const metaRef = db.ref('users/' + user.uid + '/userMeta');
+                    metaRef.update({
+                        email: user.email || '',
+                        lastLogin: firebase.database.ServerValue.TIMESTAMP
+                    }).catch(err => {
+                        console.warn('写入用户元信息失败:', err);
+                    });
+
                     const hadCloud = await loadStateCloud();
                     if (!hadCloud) {
-                        // local data already loaded, push to cloud
                         saveStateCloud();
                     }
-                    // ensure timestamps for all tasks
                     TASKS.forEach(t => {
                         if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
+                        if (!(t.id in pendingStatus)) pendingStatus[t.id] = false;
                     });
                     applyTheme(theme);
                     render();
@@ -2131,10 +2871,10 @@
                     currentUser = null;
                     cloudSyncEnabled = false;
                     userInfoBar.style.display = 'none';
-                    // Load local data
                     loadStateLocal();
                     TASKS.forEach(t => {
                         if (!(t.id in doneTimestamps)) doneTimestamps[t.id] = null;
+                        if (!(t.id in pendingStatus)) pendingStatus[t.id] = false;
                     });
                     applyTheme(theme);
                     render();
@@ -2158,6 +2898,18 @@
                 });
                 logoutBtn.addEventListener('click', handleLogout);
                 authResetBtn.addEventListener('click', handlePasswordReset);
+
+                // Admin bindings
+                adminEntryBtn.addEventListener('click', openAdminPanel);
+                adminLoginClose.addEventListener('click', closeAdminPanel);
+                adminListClose.addEventListener('click', closeAdminPanel);
+                adminLoginBtn.addEventListener('click', handleAdminLogin);
+                adminPasswordInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') handleAdminLogin();
+                });
+                adminOverlay.addEventListener('click', function(e) {
+                    if (e.target === adminOverlay) closeAdminPanel();
+                });
 
                 // Theme
                 applyTheme(theme);
@@ -2207,7 +2959,7 @@
                     }
                 });
 
-                // initial render (will be refreshed after auth)
+                // initial render
                 render();
                 saveStateLocal();
 
@@ -2217,7 +2969,6 @@
                     groupToggle.classList.remove('active');
                 }
 
-                // Show auth overlay initially (onAuthStateChanged will handle)
                 showAuthOverlay();
 
                 setTimeout(() => {
