@@ -122,6 +122,15 @@
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .hidden { display: none !important; }
         #recaptcha-container { margin-bottom: 10px; }
+
+        /* 新增：下载按钮样式 */
+        .btn-download {
+            background: #0F766E; color: white; border: none; border-radius: 8px; padding: 8px 16px;
+            font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+            transition: 0.2s;
+        }
+        .btn-download:hover { background: #0D5F59; }
+        .btn-download:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
@@ -196,7 +205,7 @@
             <div class="logs-section">
                 <div class="logs-header">
                     <h3>📋 我的记录</h3>
-                    <!-- 清空按钮已移除，避免员工误操作 -->
+                    <button id="clearLogsBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">清空</button>
                 </div>
                 <div class="log-list" id="logList"></div>
             </div>
@@ -222,9 +231,13 @@
                 </table>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <!-- 详细打卡记录 + 导出按钮（新增） -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="font-size: 16px;">📋 详细打卡记录 <span style="font-size:12px;color:#888;font-weight:400;">（仅本软件注册）</span></h3>
-                <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-download" id="exportExcelBtn">📥 下载 Excel</button>
+                    <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" id="adminRefreshBtn">刷新数据</button>
+                </div>
             </div>
             
             <div id="adminUserList">
@@ -277,10 +290,11 @@
     const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
     const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
     const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
-    const logList = document.getElementById('logList'), toastEl = document.getElementById('toast');
+    const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
     // 后台管理 DOM
     const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
     const adminSummaryBody = document.getElementById('adminSummaryBody');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');  // 新增导出按钮
 
     // ================= 3. 基础工具 =================
     function showToast(msg, duration = 2500) {
@@ -503,8 +517,11 @@
         });
     }
     
-    // 员工界面清空按钮已移除，以下事件监听不再需要
-    // clearLogsBtn.addEventListener('click', async () => { ... });
+    clearLogsBtn.addEventListener('click', async () => {
+        if (!currentUser || !confirm('确定清空您的所有记录吗？')) return;
+        await db.ref(`attendance/${currentUser.uid}`).remove();
+        showToast('🧹 已清空');
+    });
 
     // ================= 6. 后台管理系统 =================
     headerTrigger.addEventListener('click', () => {
@@ -656,6 +673,127 @@
             showToast('❌ 删除失败: ' + err.message);
         });
     };
+
+    // ================= 7. 导出 Excel (CSV) =================
+    function generateAttendanceCSV() {
+        // 从当前后台加载的数据中提取（因为已经渲染了 DOM，我们可以直接读取表格内容，但更稳健的方式是重新从数据库获取）
+        // 为了确保数据是最新的，我们重新从数据库拉取，但为了不与 loadAdminData 耦合，直接复用 loadAdminData 的逻辑并过滤。
+        // 这样更可靠，但会有异步。我们就在导出时重新拉取并生成。
+        // 也可以从当前已渲染的表格提取，但表格内容是用户展示格式，不方便提取完整字段。决定重新拉取。
+        return Promise.all([
+            db.ref('users').once('value'),
+            db.ref('attendance').once('value')
+        ]).then(([usersSnap, attendanceSnap]) => {
+            const usersData = usersSnap.val() || {};
+            const attendanceData = attendanceSnap.val() || {};
+            
+            const validUids = new Set();
+            Object.keys(usersData).forEach(uid => {
+                const u = usersData[uid] || {};
+                if (u.source === APP_SOURCE) validUids.add(uid);
+            });
+
+            if (validUids.size === 0) {
+                return null; // 无数据
+            }
+
+            // 构建 CSV 内容
+            const rows = [];
+            // 表头
+            rows.push(['姓名', '手机号', '打卡类型', '时间', '纬度', '经度', '精度(米)', '地标']);
+
+            validUids.forEach(uid => {
+                const userLogs = attendanceData[uid] || {};
+                const logArray = [];
+                Object.keys(userLogs).forEach(logId => {
+                    logArray.push({ id: logId, ...userLogs[logId] });
+                });
+                // 按时间排序
+                logArray.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                const u = usersData[uid] || {};
+                let displayName = u.name || '未知员工';
+                let displayPhone = u.phone || '未知号码';
+                // 如果 user 表没有名字，尝试从日志获取
+                if (!u.name && logArray.length > 0) {
+                    const logWithName = logArray.find(l => l.name);
+                    if (logWithName) {
+                        displayName = logWithName.name;
+                        displayPhone = logWithName.phone || displayPhone;
+                    }
+                }
+
+                if (logArray.length === 0) {
+                    // 没有打卡记录，不输出行，或者可以输出一行提示？按需，通常不输出。
+                } else {
+                    logArray.forEach(log => {
+                        const d = new Date(log.timestamp);
+                        const isIn = log.type === 'in';
+                        const typeStr = isIn ? '上班' : '下班';
+                        const timeStr = d.toLocaleString('zh-CN', { hour12: false });
+                        const landmark = log.landmark || FIXED_LANDMARK;
+                        rows.push([
+                            displayName,
+                            displayPhone,
+                            typeStr,
+                            timeStr,
+                            log.lat.toFixed(6),
+                            log.lng.toFixed(6),
+                            log.accuracy.toFixed(1),
+                            landmark
+                        ]);
+                    });
+                }
+            });
+
+            if (rows.length <= 1) return null; // 只有表头，无数据
+
+            // 转义 CSV (处理逗号、引号)
+            const csvContent = rows.map(row => {
+                return row.map(cell => {
+                    const str = String(cell);
+                    // 如果包含逗号、引号、换行，则用双引号包裹并转义引号
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return '"' + str.replace(/"/g, '""') + '"';
+                    }
+                    return str;
+                }).join(',');
+            }).join('\n');
+
+            return csvContent;
+        });
+    }
+
+    exportExcelBtn.addEventListener('click', async () => {
+        try {
+            exportExcelBtn.disabled = true;
+            exportExcelBtn.textContent = '⏳ 生成中...';
+            
+            const csv = await generateAttendanceCSV();
+            if (!csv) {
+                showToast('暂无打卡数据可导出');
+                return;
+            }
+
+            // 创建 Blob (加 BOM 让 Excel 识别 UTF-8)
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `考勤记录_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('✅ 导出成功');
+        } catch (err) {
+            console.error(err);
+            showToast('❌ 导出失败: ' + err.message);
+        } finally {
+            exportExcelBtn.disabled = false;
+            exportExcelBtn.textContent = '📥 下载 Excel';
+        }
+    });
 
     window.addEventListener('load', () => { initRecaptcha(); });
 </script>
