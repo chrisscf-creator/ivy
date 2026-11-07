@@ -270,14 +270,12 @@
     const db = firebase.database();
 
     // ================= 2. 全局变量 =================
-    // 固定地标名称
-    const FIXED_LANDMARK = 'Sumang Lane';
     // 本软件的唯一标识 —— 用于区分账户注册来源
     const APP_SOURCE = 'bcoffice3';
 
     let currentUser = null, currentPosition = null;
     let currentUserName = ''; 
-    let currentLandmark = FIXED_LANDMARK;
+    let currentLandmark = '获取中...';   // 不再固定，改为动态获取
     let confirmationResult = null, recaptchaVerifier = null;
     let cooldownTimer = null, isFetchingGPS = false, logsRef = null;
     let headerClickCount = 0, headerClickTimer = null;
@@ -294,7 +292,7 @@
     // 后台管理 DOM
     const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
     const adminSummaryBody = document.getElementById('adminSummaryBody');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');  // 新增导出按钮
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
 
     // ================= 3. 基础工具 =================
     function showToast(msg, duration = 2500) {
@@ -354,7 +352,7 @@
             fetchLocation();
             loadMyLogs();
         } else {
-            currentUser = null; currentUserName = ''; currentLandmark = FIXED_LANDMARK;
+            currentUser = null; currentUserName = ''; currentLandmark = '获取中...';
             userBar.classList.add('hidden');
             authSection.classList.remove('hidden');
             mainSection.classList.remove('active');
@@ -408,15 +406,13 @@
         try {
             const result = await confirmationResult.confirm(code);
             
-            // 1. 立即存入 localStorage 作为强力兜底
             localStorage.setItem('emp_name_' + result.user.uid, name);
             currentUserName = name;
             
-            // 2. 写入 Firebase 数据库，标记注册来源为 bcoffice3
             await db.ref(`users/${result.user.uid}`).update({
                 name: name,
                 phone: result.user.phoneNumber,
-                source: APP_SOURCE,          // <-- 关键：标记注册来源
+                source: APP_SOURCE,
                 updatedAt: firebase.database.ServerValue.TIMESTAMP
             });
             
@@ -429,8 +425,8 @@
 
     logoutBtn.addEventListener('click', () => auth.signOut().then(() => showToast('👋 已退出')));
 
-    // ================= 5. GPS 定位 & 打卡 =================
-    function updateGPSUI(status, text, lat = null, lng = null, acc = null, landmark = FIXED_LANDMARK) {
+    // ================= 5. GPS 定位 & 反向地理编码 =================
+    function updateGPSUI(status, text, lat = null, lng = null, acc = null, landmark = currentLandmark) {
         gpsBadge.className = 'gps-badge';
         if (status === 'active') gpsBadge.classList.add('active');
         if (status === 'error') gpsBadge.classList.add('error');
@@ -443,15 +439,75 @@
         }
     }
 
-    function fetchLocation() {
+    // 反向地理编码：根据经纬度获取实际地名/商场名
+    async function reverseGeocode(lat, lng) {
+        // 添加请求头（Nominatim 要求提供 User-Agent 或 Referer，浏览器中会自动带 Referer）
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=zh-CN,en`;
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'GPS-Attendance-App/1.0'
+                }
+            });
+            if (!response.ok) throw new Error('网络响应异常');
+            const data = await response.json();
+            
+            // 优先取商场/建筑名，其次取道路名，再次取 suburb/neighbourhood，最后取 city/town
+            const addr = data.address || {};
+            let landmark = '';
+            
+            // 1. 尝试获取具体地点名（如商场、大厦、学校等）
+            if (data.name && data.name.trim()) {
+                landmark = data.name.trim();
+            } else if (addr.shop) {
+                landmark = addr.shop;
+            } else if (addr.building) {
+                landmark = addr.building;
+            } else if (addr.amenity) {
+                landmark = addr.amenity;
+            } else if (addr.road) {
+                landmark = addr.road;
+                if (addr.house_number) landmark = addr.house_number + ' ' + landmark;
+            } else if (addr.suburb) {
+                landmark = addr.suburb;
+            } else if (addr.neighbourhood) {
+                landmark = addr.neighbourhood;
+            } else if (addr.city_district) {
+                landmark = addr.city_district;
+            } else if (addr.city || addr.town || addr.village) {
+                landmark = addr.city || addr.town || addr.village;
+            } else if (addr.county) {
+                landmark = addr.county;
+            }
+            
+            // 如果地标名过长，截断
+            if (landmark.length > 40) landmark = landmark.substring(0, 37) + '...';
+            
+            return landmark || '未知地点';
+        } catch (err) {
+            console.warn('反向地理编码失败:', err);
+            return '未知地点';
+        }
+    }
+
+    async function fetchLocation() {
         if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
         if (isFetchingGPS) return;
         isFetchingGPS = true; updateGPSUI('waiting', '定位中...');
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
+            async (pos) => {
                 currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
-                currentLandmark = FIXED_LANDMARK; 
+                
+                // 先显示坐标，地标显示“解析中...”
+                updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, '解析中...');
+                
+                // 异步获取地标名
+                const landmark = await reverseGeocode(currentPosition.lat, currentPosition.lng);
+                currentLandmark = landmark;
+                
+                // 更新 UI 中的地标
                 updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, currentLandmark);
+                
                 isFetchingGPS = false;
             },
             (err) => {
@@ -467,7 +523,11 @@
         const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
         
         const saveName = currentUserName || '未知员工';
-        const saveLandmark = FIXED_LANDMARK; 
+        // 如果地标还在解析中，等待一下（最多等 1.5 秒）
+        if (currentLandmark === '解析中...') {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+        const saveLandmark = currentLandmark;
 
         try {
             await db.ref(`attendance/${currentUser.uid}`).push({
@@ -503,7 +563,7 @@
             logList.innerHTML = logs.map(log => {
                 const d = new Date(log.timestamp);
                 const isIn = log.type === 'in';
-                const displayLandmark = log.landmark || FIXED_LANDMARK;
+                const displayLandmark = log.landmark || '未知地点';
                 
                 return `
                 <div class="log-item ${isIn ? 'in' : 'out'}">
@@ -557,7 +617,6 @@
             const usersData = usersSnap.val() || {};
             const attendanceData = attendanceSnap.val() || {};
             
-            // ===== 关键过滤：只保留 users 表中 source === 'bcoffice3' 的账户 =====
             const validUids = new Set();
             Object.keys(usersData).forEach(uid => {
                 const u = usersData[uid] || {};
@@ -638,7 +697,7 @@
                     logArray.forEach(log => {
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
-                        const landmarkText = log.landmark || FIXED_LANDMARK;
+                        const landmarkText = log.landmark || '未知地点';
                         html += `<tr>
                             <td style="color:${isIn ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${isIn ? '上班' : '下班'}</td>
                             <td>${d.toLocaleString()}</td>
@@ -676,10 +735,6 @@
 
     // ================= 7. 导出 Excel (CSV) =================
     function generateAttendanceCSV() {
-        // 从当前后台加载的数据中提取（因为已经渲染了 DOM，我们可以直接读取表格内容，但更稳健的方式是重新从数据库获取）
-        // 为了确保数据是最新的，我们重新从数据库拉取，但为了不与 loadAdminData 耦合，直接复用 loadAdminData 的逻辑并过滤。
-        // 这样更可靠，但会有异步。我们就在导出时重新拉取并生成。
-        // 也可以从当前已渲染的表格提取，但表格内容是用户展示格式，不方便提取完整字段。决定重新拉取。
         return Promise.all([
             db.ref('users').once('value'),
             db.ref('attendance').once('value')
@@ -694,12 +749,10 @@
             });
 
             if (validUids.size === 0) {
-                return null; // 无数据
+                return null;
             }
 
-            // 构建 CSV 内容
             const rows = [];
-            // 表头
             rows.push(['姓名', '手机号', '打卡类型', '时间', '纬度', '经度', '精度(米)', '地标']);
 
             validUids.forEach(uid => {
@@ -708,13 +761,11 @@
                 Object.keys(userLogs).forEach(logId => {
                     logArray.push({ id: logId, ...userLogs[logId] });
                 });
-                // 按时间排序
                 logArray.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
                 const u = usersData[uid] || {};
                 let displayName = u.name || '未知员工';
                 let displayPhone = u.phone || '未知号码';
-                // 如果 user 表没有名字，尝试从日志获取
                 if (!u.name && logArray.length > 0) {
                     const logWithName = logArray.find(l => l.name);
                     if (logWithName) {
@@ -723,15 +774,13 @@
                     }
                 }
 
-                if (logArray.length === 0) {
-                    // 没有打卡记录，不输出行，或者可以输出一行提示？按需，通常不输出。
-                } else {
+                if (logArray.length > 0) {
                     logArray.forEach(log => {
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
                         const typeStr = isIn ? '上班' : '下班';
                         const timeStr = d.toLocaleString('zh-CN', { hour12: false });
-                        const landmark = log.landmark || FIXED_LANDMARK;
+                        const landmark = log.landmark || '未知地点';
                         rows.push([
                             displayName,
                             displayPhone,
@@ -746,13 +795,11 @@
                 }
             });
 
-            if (rows.length <= 1) return null; // 只有表头，无数据
+            if (rows.length <= 1) return null;
 
-            // 转义 CSV (处理逗号、引号)
             const csvContent = rows.map(row => {
                 return row.map(cell => {
                     const str = String(cell);
-                    // 如果包含逗号、引号、换行，则用双引号包裹并转义引号
                     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
                         return '"' + str.replace(/"/g, '""') + '"';
                     }
@@ -775,7 +822,6 @@
                 return;
             }
 
-            // 创建 Blob (加 BOM 让 Excel 识别 UTF-8)
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
