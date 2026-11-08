@@ -205,7 +205,7 @@
             <div class="logs-section">
                 <div class="logs-header">
                     <h3>📋 我的记录</h3>
-                    <button id="clearLogsBtn" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">清空</button>
+                    <!-- 已移除清空按钮，仅保留标题 -->
                 </div>
                 <div class="log-list" id="logList"></div>
             </div>
@@ -231,7 +231,7 @@
                 </table>
             </div>
 
-            <!-- 详细打卡记录 + 导出按钮（新增） -->
+            <!-- 详细打卡记录 + 导出按钮 -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="font-size: 16px;">📋 详细打卡记录 <span style="font-size:12px;color:#888;font-weight:400;">（仅本软件注册）</span></h3>
                 <div style="display: flex; gap: 8px;">
@@ -288,7 +288,7 @@
     const liveTime = document.getElementById('liveTime'), liveDate = document.getElementById('liveDate');
     const gpsBadge = document.getElementById('gpsBadge'), gpsText = document.getElementById('gpsText'), coordInfo = document.getElementById('coordInfo');
     const clockInBtn = document.getElementById('clockInBtn'), clockOutBtn = document.getElementById('clockOutBtn');
-    const logList = document.getElementById('logList'), clearLogsBtn = document.getElementById('clearLogsBtn'), toastEl = document.getElementById('toast');
+    const logList = document.getElementById('logList'), toastEl = document.getElementById('toast');
     // 后台管理 DOM
     const adminPanel = document.getElementById('adminPanel'), adminCloseBtn = document.getElementById('adminCloseBtn'), adminUserList = document.getElementById('adminUserList'), adminRefreshBtn = document.getElementById('adminRefreshBtn');
     const adminSummaryBody = document.getElementById('adminSummaryBody');
@@ -441,8 +441,6 @@
 
     // 反向地理编码：根据经纬度获取实际地名/商场名（英语优先）
     async function reverseGeocode(lat, lng) {
-        // 添加请求头（Nominatim 要求提供 User-Agent 或 Referer，浏览器中会自动带 Referer）
-        // 修改 accept-language 为 'en'，确保地标名称优先返回英语
         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=en`;
         try {
             const response = await fetch(url, {
@@ -453,11 +451,9 @@
             if (!response.ok) throw new Error('网络响应异常');
             const data = await response.json();
             
-            // 优先取商场/建筑名，其次取道路名，再次取 suburb/neighbourhood，最后取 city/town
             const addr = data.address || {};
             let landmark = '';
             
-            // 1. 尝试获取具体地点名（如商场、大厦、学校等）
             if (data.name && data.name.trim()) {
                 landmark = data.name.trim();
             } else if (addr.shop) {
@@ -481,7 +477,6 @@
                 landmark = addr.county;
             }
             
-            // 如果地标名过长，截断
             if (landmark.length > 40) landmark = landmark.substring(0, 37) + '...';
             
             return landmark || 'Unknown location';
@@ -499,14 +494,11 @@
             async (pos) => {
                 currentPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
                 
-                // 先显示坐标，地标显示“解析中...”
                 updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, '解析中...');
                 
-                // 异步获取地标名
                 const landmark = await reverseGeocode(currentPosition.lat, currentPosition.lng);
                 currentLandmark = landmark;
                 
-                // 更新 UI 中的地标
                 updateGPSUI('active', '定位成功', currentPosition.lat, currentPosition.lng, currentPosition.accuracy, currentLandmark);
                 
                 isFetchingGPS = false;
@@ -524,7 +516,6 @@
         const originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '保存中...';
         
         const saveName = currentUserName || '未知员工';
-        // 如果地标还在解析中，等待一下（最多等 1.5 秒）
         if (currentLandmark === '解析中...') {
             await new Promise(resolve => setTimeout(resolve, 1500));
         }
@@ -578,11 +569,7 @@
         });
     }
     
-    clearLogsBtn.addEventListener('click', async () => {
-        if (!currentUser || !confirm('确定清空您的所有记录吗？')) return;
-        await db.ref(`attendance/${currentUser.uid}`).remove();
-        showToast('🧹 已清空');
-    });
+    // 清空记录按钮已被移除，不再需要 clearLogsBtn 相关逻辑
 
     // ================= 6. 后台管理系统 =================
     headerTrigger.addEventListener('click', () => {
