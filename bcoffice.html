@@ -439,10 +439,11 @@
         }
     }
 
-    // 反向地理编码：根据经纬度获取实际地名/商场名
+    // 反向地理编码：根据经纬度获取实际地名/商场名（英语优先）
     async function reverseGeocode(lat, lng) {
         // 添加请求头（Nominatim 要求提供 User-Agent 或 Referer，浏览器中会自动带 Referer）
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=zh-EN,en`;
+        // 修改 accept-language 为 'en'，确保地标名称优先返回英语
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=en`;
         try {
             const response = await fetch(url, {
                 headers: {
@@ -483,10 +484,10 @@
             // 如果地标名过长，截断
             if (landmark.length > 40) landmark = landmark.substring(0, 37) + '...';
             
-            return landmark || '未知地点';
+            return landmark || 'Unknown location';
         } catch (err) {
             console.warn('反向地理编码失败:', err);
-            return '未知地点';
+            return 'Unknown location';
         }
     }
 
