@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-EN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -302,8 +302,8 @@
 
     setInterval(() => {
         const now = new Date();
-        liveTime.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
-        liveDate.textContent = now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+        liveTime.textContent = now.toLocaleTimeString('zh-EN', { hour12: false });
+        liveDate.textContent = now.toLocaleDateString('zh-EN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
     }, 1000);
 
     // ================= 4. 登录鉴权 =================
@@ -442,7 +442,7 @@
     // 反向地理编码：根据经纬度获取实际地名/商场名
     async function reverseGeocode(lat, lng) {
         // 添加请求头（Nominatim 要求提供 User-Agent 或 Referer，浏览器中会自动带 Referer）
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=zh-CN,en`;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=zh-EN,en`;
         try {
             const response = await fetch(url, {
                 headers: {
@@ -779,7 +779,7 @@
                         const d = new Date(log.timestamp);
                         const isIn = log.type === 'in';
                         const typeStr = isIn ? '上班' : '下班';
-                        const timeStr = d.toLocaleString('zh-CN', { hour12: false });
+                        const timeStr = d.toLocaleString('zh-EN', { hour12: false });
                         const landmark = log.landmark || '未知地点';
                         rows.push([
                             displayName,
