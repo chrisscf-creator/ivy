@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anjappar KDS - Kitchen Display System</title>
+<title>Malay Food KDS - Kitchen Display System</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -302,8 +302,8 @@ body {
   <div class="kds-logo">
     <div class="kds-logo-icon">👨‍🍳</div>
     <div class="kds-logo-text">
-      <h1>ANJAPPAR KDS</h1>
-      <p>Kitchen Display System • Vivocity</p>
+      <h1>MALAY FOOD KDS</h1>
+      <p>Kitchen Display System • Counter POS</p>
     </div>
   </div>
   <div class="kds-stats">
@@ -335,10 +335,13 @@ body {
   <div class="filter-tabs">
     <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All <span class="count" id="countAll">0</span></button>
     <button class="filter-tab" data-filter="pending" onclick="setFilter('pending')">🔴 Pending <span class="count" id="countPending">0</span></button>
-    <button class="filter-tab" data-filter="cooking" onclick="setFilter('cooking')">🟡 Order Complite <span class="count" id="countCooking">0</span></button>
+    <button class="filter-tab" data-filter="cooking" onclick="setFilter('cooking')">🟡 Food Done <span class="count" id="countCooking">0</span></button>
     <button class="filter-tab" data-filter="done" onclick="setFilter('done')">✅ Completed <span class="count" id="countDone">0</span></button>
   </div>
   <div class="control-actions">
+    <label class="action-btn" style="background:#2a2a45;color:#ddd;cursor:pointer;">
+      <input type="checkbox" id="showAllSourcesCheck" onchange="toggleShowAll(this.checked)"> 🌐 All Sources
+    </label>
     <button class="action-btn btn-sound" id="soundBtn" onclick="toggleSound()">🔔 Sound</button>
     <button class="action-btn btn-history" onclick="showHistory()">📜 History</button>
     <button class="action-btn btn-export" onclick="downloadExcel()">⬇ Download Excel</button>
@@ -353,7 +356,7 @@ body {
   <span class="bell">🔔</span>
   <div>
     <div style="font-weight:700;">New Order!</div>
-    <div style="font-size:12px;" id="toastMsg">Table 3 - #A001</div>
+    <div style="font-size:12px;" id="toastMsg">Table 1 - #1</div>
   </div>
 </div>
 
@@ -390,7 +393,7 @@ body {
 <script>
 
 // =========================
-// Firebase - Anjappar Shared Database
+// Firebase - Malay Food POS Shared Database (same project as malayfood.html)
 // =========================
 const firebaseConfig = {
   apiKey: "AIzaSyARFD8Zdb7D22XCUJctKM8E-4nVznhqYDc",
@@ -409,32 +412,9 @@ const ordersRef = db.ref("orders");
 const orderCounterRef = db.ref("orderCounter");
 const orderHistoryRef = db.ref("orderHistory");
 
-// Menu Data (English Only)
-const menuData = {
-  combos: [
-    { id: 'c1', name: 'Mini Tiffin Delight (Veg)', emoji: '🫓' },
-    { id: 'c2', name: 'The Tanjore Trio', emoji: '🍛' },
-    { id: 'c3', name: 'Chettinad Silk Combo', emoji: '🍗' },
-    { id: 'c4', name: 'Tandoori Smoky Feast', emoji: '🍗' },
-    { id: 'c5', name: 'Kebab Express Lane', emoji: '🍢' },
-    { id: 'c6', name: 'Chicken Tikka Meal', emoji: '🍗' },
-    { id: 'c7', name: 'Fish Tikka Meal', emoji: '🐟' },
-    { id: 'c8', name: 'Paneer Tikka Meal', emoji: '🧀' },
-    { id: 'c9', name: 'Kal Dosa Combo', emoji: '🫓' },
-    { id: 'c10', name: 'Idly Combo Meal', emoji: '🍚' }
-  ],
-  drinks: [
-    { id: 'd1', name: 'Masala Tea Hot', emoji: '🍵' },
-    { id: 'd2', name: 'Ginger Tea', emoji: '🫚' },
-    { id: 'd3', name: 'Filter Coffee', emoji: '☕' },
-    { id: 'd4', name: 'Mango Lassi', emoji: '🥭' },
-    { id: 'd5', name: 'Salted Lassi', emoji: '🥛' },
-    { id: 'd6', name: 'Sweet Lassi', emoji: '🥛' },
-    { id: 'd7', name: 'Butter Milk', emoji: '🥛' }
-  ]
-};
-
 let orders = [];
+let rawOrders = [];
+let showAllSources = false;   // false = only malayfood.html orders (source: 'counter')
 let orderHistory = [];
 let currentFilter = 'all';
 let soundEnabled = true;
@@ -462,16 +442,35 @@ function updateClock() {
 function normaliseOrder(key, value) {
   const source = value && typeof value === 'object' ? value : {};
   const rawItems = Array.isArray(source.items) ? source.items : Object.values(source.items || {});
+  // malayfood.html writes no "status" (and sets completed:true at the counter),
+  // so the kitchen treats orders without a valid KDS status as pending.
   const status = ['pending', 'cooking', 'done'].includes(source.status) ? source.status : 'pending';
+  // malayfood.html stores the time as an ISO string in "time"; KDS needs milliseconds.
+  const parsedTime = source.time ? Date.parse(source.time) : NaN;
+  const createdAt = Number(source.createdAt) || (Number.isFinite(parsedTime) ? parsedTime : Date.now());
+  // Show the POS order number as the visible order id.
+  const id = source.orderNumber != null && source.orderNumber !== '' ? source.orderNumber : (source.id || key);
   return {
     ...source,
-    id: source.id || key,
+    id,
     _key: key,
     table: source.table ?? '-',
     items: rawItems.filter(item => item && typeof item === 'object'),
     status,
-    createdAt: Number(source.createdAt) || Date.now()
+    createdAt
   };
+}
+
+function applySourceFilter() {
+  const list = showAllSources ? rawOrders : rawOrders.filter(o => o.source === 'counter');
+  orders = [...list].sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+  lastOrderCount = orders.length;
+}
+
+function toggleShowAll(checked) {
+  showAllSources = !!checked;
+  applySourceFilter();
+  renderOrders();
 }
 
 function loadOrders() {
@@ -485,12 +484,9 @@ function loadOrders() {
       .map(([key, order]) => normaliseOrder(key, order));
 
     const previousKeys = new Set(orders.map(o => o._key));
-    const newlyArrived = newOrders.filter(o => !previousKeys.has(o._key));
-
-    orders = newOrders.sort((a, b) =>
-      (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)
-    );
-    lastOrderCount = orders.length;
+    rawOrders = newOrders;
+    applySourceFilter();
+    const newlyArrived = orders.filter(o => !previousKeys.has(o._key));
 
     newlyArrived.forEach(order => {
       if (initialOrdersLoaded && order.status === 'pending') {
@@ -554,7 +550,7 @@ function orderTotal(order) {
 
 function formatOrderTotal(order) {
   const total = orderTotal(order);
-  return total === null ? 'Price unavailable' : `S$ ${total.toFixed(2)}`;
+  return total === null ? 'Price unavailable' : `$${total.toFixed(2)}`;
 }
 
 function spreadsheetRows(orderList) {
@@ -567,10 +563,11 @@ function spreadsheetRows(orderList) {
       'Order Time': new Date(order.createdAt).toLocaleString('en-SG'),
       'Item': item.name || 'No item details',
       'Quantity': Number(item.qty) || 0,
-      'Unit Price (S$)': Number.isFinite(Number(item.price)) ? Number(item.price) : '',
-      'Order Subtotal (S$)': Number.isFinite(Number(order.subtotal)) ? Number(order.subtotal) : '',
-      'Discount (S$)': Number.isFinite(Number(order.discount)) ? Number(order.discount) : '',
-      'Order Total (S$)': orderTotal(order) ?? '',
+      'Unit Price ($)': Number.isFinite(Number(item.price)) ? Number(item.price) : '',
+      'Order Subtotal ($)': Number.isFinite(Number(order.subtotal)) ? Number(order.subtotal) : '',
+      'Discount ($)': Number.isFinite(Number(order.discount)) ? Number(order.discount) : '',
+      'Order Total ($)': orderTotal(order) ?? '',
+      'Source': order.source || '',
       'Customer Note': order.note || ''
     }));
   });
@@ -589,7 +586,7 @@ function downloadExcel() {
   const historySheet = XLSX.utils.json_to_sheet(historyRows.length ? historyRows : [{ 'Info': 'No completed order history' }]);
   XLSX.utils.book_append_sheet(workbook, activeSheet, 'Active Orders');
   XLSX.utils.book_append_sheet(workbook, historySheet, 'Order History');
-  XLSX.writeFile(workbook, `Anjappar-orders-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(workbook, `MalayFood-orders-${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 function showFirebaseError(message) {
@@ -605,7 +602,7 @@ function updateElapsedTimes() {
     const startedAt = el.dataset.started ? parseInt(el.dataset.started) : null;
     const status = el.dataset.status;
     const now = Date.now();
-    let elapsed = status === 'pending' ? Math.floor((now - createdAt) / 1000) : (status === 'Order Complite' && startedAt ? Math.floor((now - startedAt) / 1000) : 0);
+    let elapsed = status === 'pending' ? Math.floor((now - createdAt) / 1000) : (status === 'cooking' && startedAt ? Math.floor((now - startedAt) / 1000) : 0);
     
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
@@ -653,7 +650,7 @@ function renderOrders() {
         </div>
         <div class="order-card-body">
           <ul class="order-items">
-            ${order.items.length ? order.items.map(item => `<li class="order-item"><div><div class="item-name">${escapeHtml(item.emoji || '🍽️')} ${escapeHtml(item.name || 'Unnamed item')}</div>${item.note ? `<div class="item-note">📝 ${escapeHtml(item.note)}</div>` : ''}</div><div class="item-qty">x${Number(item.qty) || 0}</div></li>`).join('') : '<li class="order-item"><div class="item-note">No item details were saved for this order.</div></li>'}
+            ${order.items.length ? order.items.map(item => `<li class="order-item"><div><div class="item-name">${item.emoji ? escapeHtml(item.emoji) + ' ' : ''}${escapeHtml(item.name || 'Unnamed item')}</div>${item.note ? `<div class="item-note">📝 ${escapeHtml(item.note)}</div>` : ''}</div><div class="item-qty">x${Number(item.qty) || 0}</div></li>`).join('') : '<li class="order-item"><div class="item-note">No item details were saved for this order.</div></li>'}
           </ul>
           ${order.note ? `<div class="item-note" style="margin-top:10px">Order note: ${escapeHtml(order.note)}</div>` : ''}
         </div>
@@ -810,7 +807,7 @@ function showOrderDetail(id) {
     <div class="info-item"><div class="info-label">Wait Time</div><div class="info-value">⏱️ ${Math.floor((Date.now() - order.createdAt) / 60000)} mins</div></div>
   `;
   
-  document.getElementById('modalItems').innerHTML = `<h3 style="color:#fff;margin-bottom:10px;">Items</h3>` + (order.items.length ? order.items.map(item => `<div class="modal-item"><span class="name">${escapeHtml(item.emoji || '🍽️')} ${escapeHtml(item.name || 'Unnamed item')}</span><span class="qty">x${Number(item.qty) || 0}</span></div>`).join('') : '<div class="item-note">No item details were saved for this order.</div>');
+  document.getElementById('modalItems').innerHTML = `<h3 style="color:#fff;margin-bottom:10px;">Items</h3>` + (order.items.length ? order.items.map(item => `<div class="modal-item"><span class="name">${item.emoji ? escapeHtml(item.emoji) + ' ' : ''}${escapeHtml(item.name || 'Unnamed item')}</span><span class="qty">x${Number(item.qty) || 0}</span></div>`).join('') : '<div class="item-note">No item details were saved for this order.</div>');
   
   let actionsHtml = '';
   if (order.status === 'pending') actionsHtml = `<button class="modal-btn btn-start" onclick="startOrder('${order._key}');closeModal()">▶ Start Cooking</button><button class="modal-btn btn-cancel" onclick="cancelOrder('${order._key}');closeModal()">✕ Cancel Order</button>`;
@@ -846,10 +843,9 @@ async function refreshOrders() {
   try {
     const snapshot = await ordersRef.once('value');
     const data = snapshot.val() || {};
-    orders = Object.entries(data).filter(([, order]) => order)
-      .map(([key, order]) => normaliseOrder(key, order))
-      .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-    lastOrderCount = orders.length;
+    rawOrders = Object.entries(data).filter(([, order]) => order)
+      .map(([key, order]) => normaliseOrder(key, order));
+    applySourceFilter();
     renderOrders();
   } catch (e) {
     console.error('Firebase refresh failed:', e);
